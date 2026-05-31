@@ -65,7 +65,11 @@ export default function MicrosoftIntegration() {
       // harmless to refresh on both.
     }
     if (params.get('ms_error')) {
-      setError(`Microsoft sign-in failed: ${params.get('ms_error').replace(/_/g, ' ')}`)
+      // params.get() already URL-decodes once. We still swap underscores to
+      // spaces for legacy ms_error values (v0.6.x used underscores instead
+      // of percent-encoding before v0.6.4).
+      const raw = params.get('ms_error').replace(/_/g, ' ')
+      setError(`Microsoft sign-in failed: ${raw}`)
       window.history.replaceState({}, '', window.location.pathname)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

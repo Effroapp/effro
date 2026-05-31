@@ -127,7 +127,14 @@ async def auth_callback(
         await _complete_auth(db, code)
     except Exception as e:
         log.error("MS OAuth completion failed: %s", e)
-        return RedirectResponse(url="/settings?ms_error=token_exchange_failed")
+        # Surface the actual MSAL/Graph error in the ms_error param so the
+        # user can act on it without opening DevTools. Common ones include
+        # "Invalid client secret" (AADSTS7000215 - they copied the Secret
+        # ID instead of the Value) and "AADSTS50011" (redirect URI
+        # mismatch). Truncate to 400 chars to keep the URL reasonable.
+        from urllib.parse import quote
+        msg = quote(str(e)[:400], safe="")
+        return RedirectResponse(url=f"/settings?ms_error={msg}")
     return RedirectResponse(url="/settings?ms_connected=true")
 
 
