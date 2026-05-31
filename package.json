@@ -1,6 +1,6 @@
 {
   "name": "trace",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "private": true,
   "description": "Trace. - Stay across everything. Desktop shell + backend orchestration.",
   "scripts": {
