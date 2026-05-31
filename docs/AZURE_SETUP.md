@@ -126,6 +126,26 @@ instead of the Secret Value. Go back to Certificates & secrets and copy
 the Value column. (If your secret has expired, you'll need to create a
 new one.)
 
+**`{"detail":"Not Found"}` after clicking "Sign in with Microsoft"** —
+the OAuth callback is being sent to a port that nothing is listening on.
+As of **v0.6.2** Trace pins its backend to port 8000 to match the
+redirect URI you registered. If you're on **v0.6.0 or v0.6.1** the
+backend picks a random port and this exact symptom appears every time —
+update to v0.6.2+ to fix.
+
+If you're on v0.6.2+ and still see this, port 8000 was taken on your
+machine when Trace started (Trace falls back to 8001-8010). Open the
+DevTools Console (right-click → Inspect) and run:
+
+```javascript
+location.host
+```
+
+That tells you the actual port Trace is on. Then go to Azure portal →
+your app → Authentication → edit the existing redirect URI to use that
+port, save, and try Sign in again. Or quit whatever else is using
+port 8000 and restart Trace.
+
 **Sync runs but no signals appear** — open Trace's Signals page and click
 "Sync now". Check the timestamp on Settings → Integrations → Microsoft 365
 to confirm the last sync went through. If it shows an old time, your

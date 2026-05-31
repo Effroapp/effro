@@ -46,16 +46,42 @@ const CONFIG_STORE: &str = "config.json";
 /// JSON key inside `CONFIG_STORE` holding the user-chosen data directory.
 const DATA_DIR_KEY: &str = "data_dir";
 
-/// Find a free TCP port by binding to port 0 and reading what the OS hands
-/// back. The listener is dropped immediately, freeing the port for the
-/// sidecar. There is a tiny TOCTOU race here - acceptable for a single-user
-/// desktop app on the loopback interface.
+/// Find a free TCP port for the sidecar. Prefers a stable, well-known port
+/// (8000) so the Microsoft 365 OAuth redirect URI registered in Azure stays
+/// consistent across launches - Microsoft does an exact-match validation on
+/// the redirect URI, so a random port breaks the flow when nothing answers
+/// on the registered port.
+///
+/// Falls back to 8001..=8010 if 8000 is taken (another app on the user's
+/// machine), then to a random free port as a last resort. If we end up on
+/// anything other than 8000, the Microsoft sign-in will only work if the
+/// user has registered that exact port in their Azure app config.
+///
+/// There is a tiny TOCTOU race between the test bind here and the sidecar's
+/// real bind - acceptable for a single-user desktop app on the loopback
+/// interface, where the gap is microseconds and the contender pool is tiny.
 fn find_free_port() -> u16 {
+    // Try the preferred port + a small range of fallbacks. The 8000-8010 range
+    // is a common "personal local server" band that's usually free; falling out
+    // of it is rare.
+    for port in 8000u16..=8010 {
+        if TcpListener::bind(("127.0.0.1", port)).is_ok() {
+            return port;
+        }
+    }
+    // Last resort: any free port. Microsoft sign-in won't work without
+    // updating the Azure redirect URI to match.
     let listener = TcpListener::bind("127.0.0.1:0").expect("failed to bind to a free port");
-    listener
+    let port = listener
         .local_addr()
         .expect("failed to read assigned port")
-        .port()
+        .port();
+    eprintln!(
+        "Trace. backend fell back to dynamic port {} (8000-8010 all taken). \
+         Microsoft 365 sign-in will need the Azure redirect URI updated to match.",
+        port
+    );
+    port
 }
 
 /// Block (with sleeps) until the backend responds to the health endpoint, or
@@ -452,6 +478,12 @@ fn main() {
                     "--data-dir",
                     data_dir_arg,
                 ])
+                // Expose the chosen port to the sidecar via BACKEND_PORT so the
+                // Microsoft 365 OAuth redirect URI matches what the user
+                // registered in their Azure app. Without this, microsoft_graph.py
+                // defaults to 8000 and the post-consent callback hits a dead
+                // port - the source of the "404 after Sign in" bug in v0.6.0-0.6.1.
+                .env("BACKEND_PORT", port.to_string())
                 .spawn()
                 .map_err(|e| {
                     eprintln!("Failed to spawn trace-backend: {}", e);
