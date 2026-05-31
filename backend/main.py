@@ -252,7 +252,34 @@ app.include_router(signals_router.router, prefix="/api")
 if os.path.exists(UPLOAD_DIR):
     app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
-# Serve the compiled React app (production only)
-# In development, Vite dev server handles this with a proxy to /api
+
+# Serve the compiled React app (production only).
+#
+# StaticFiles' html=True mode only falls back to index.html for DIRECTORY
+# paths, not arbitrary client-side routes - so a hard navigation to
+# /settings, /insights, /signals, /thread/123 etc. would 404. This bit
+# the Microsoft 365 OAuth flow in v0.6.0-0.6.2: the auth_login handler's
+# error branch issues `RedirectResponse(url="/settings?ms_error=...")`,
+# and the resulting hard navigation hit the static mount's 404.
+#
+# Fix: a SPAStaticFiles subclass catches the 404 and serves index.html.
+# React Router then picks up the path on the client side. /api/* paths
+# are still handled by the routers above this mount, so this only affects
+# unmatched non-API paths (i.e. genuine SPA routes).
 if os.path.exists(FRONTEND_DIST):
-    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
+    from fastapi.responses import FileResponse
+    from starlette.exceptions import HTTPException as StarletteHTTPException
+
+    class SPAStaticFiles(StaticFiles):
+        async def get_response(self, path, scope):
+            try:
+                return await super().get_response(path, scope)
+            except StarletteHTTPException as e:
+                # 404 on /api/* stays a genuine 404 - this is what makes
+                # bad API calls obvious during development. SPA paths fall
+                # back to index.html so React Router can take it from there.
+                if e.status_code == 404 and not path.startswith("api/") and not path.startswith("uploads/"):
+                    return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
+                raise
+
+    app.mount("/", SPAStaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")

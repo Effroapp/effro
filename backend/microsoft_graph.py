@@ -35,10 +35,16 @@ log = logging.getLogger("trace.microsoft")
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
 
 # Minimum scopes per spec §7. Read-only - no mail, files, or Teams.
+#
+# We do NOT list openid, profile, or offline_access here even though we need
+# refresh tokens. MSAL Python treats these three as "reserved" and adds them
+# automatically; including them explicitly raises "You cannot use any scope
+# value that is reserved" at get_authorization_request_url time. The Azure
+# app registration should still grant offline_access via API Permissions -
+# MSAL passes it on the wire either way.
 SCOPES = [
     "User.Read",
     "Calendars.Read",
-    "offline_access",
 ]
 
 # Local timezone for "today" boundary calculations - matches the scheduler.
