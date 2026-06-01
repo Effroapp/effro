@@ -29,7 +29,7 @@ def _provider_error(e: Exception) -> HTTPException:
 def generate_process(payload: schemas.ProcessRequest, db: Session = Depends(get_db)):
     provider = get_provider(db)
 
-    base_system = """You extract structured work items from unstructured text for Trace., a personal log for tracking work across multiple parallel areas of responsibility.
+    base_system = """You extract structured work items from unstructured text for Effro., a personal log for tracking work across multiple parallel areas of responsibility.
 Respond with a JSON array only. No preamble, no explanation, no markdown code fences.
 Each item must have exactly these fields:
   type:             "todo" | "entry" | "decision" | "meeting"

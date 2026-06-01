@@ -255,7 +255,7 @@ export default function MicrosoftIntegration() {
       )}
 
       <p className="text-[11px] text-paper-500 dark:text-paper-600 leading-snug">
-        Trace reads your Outlook calendar (titles, times, organisers, locations) every 30 minutes
+        Effro reads your Outlook calendar (titles, times, organisers, locations) every 30 minutes
         and stages new events in <strong className="font-medium">Signals</strong> for you to triage.
         Nothing is written back to Outlook. Mail, files, and Teams are never accessed.
       </p>

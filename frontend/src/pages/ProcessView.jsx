@@ -586,7 +586,7 @@ export default function ProcessView() {
         <div className="space-y-4">
           <p className="text-base leading-relaxed text-pitch-700 dark:text-paper-200 max-w-2xl">
             Turn messy input into structured items. Drop notes, emails,
-            calendar invites, or PDFs - Trace extracts the to-dos,
+            calendar invites, or PDFs - Effro extracts the to-dos,
             decisions, and context for you to approve.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">

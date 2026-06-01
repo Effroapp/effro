@@ -1,8 +1,8 @@
 {
   "name": "trace",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "private": true,
-  "description": "Trace. - Stay across everything. Desktop shell + backend orchestration.",
+  "description": "Effro. - Stay across everything. effro.io. Desktop shell + backend orchestration.",
   "scripts": {
     "dev": "tauri dev",
     "build": "python scripts/build-backend.py && tauri build",

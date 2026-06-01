@@ -7,7 +7,7 @@ import argparse
 # SQLAlchemy engine, so any env-var override needs to be in place BEFORE we
 # `from database import …`. Docker continues to work because docker-compose
 # already sets DB_PATH explicitly; the Tauri sidecar passes --data-dir.
-parser = argparse.ArgumentParser(description="Trace. backend")
+parser = argparse.ArgumentParser(description="Effro. backend")
 parser.add_argument("--port", type=int, default=None, help="Port to listen on")
 parser.add_argument("--data-dir", type=str, default=None, help="Data directory path")
 _args, _unknown = parser.parse_known_args()
@@ -57,7 +57,7 @@ from routers import (
     signals as signals_router,
 )
 
-# Trace. launches with no seeded areas - the user creates their own from the
+# Effro. launches with no seeded areas - the user creates their own from the
 # sidebar's "+ Add your first area" prompt. The previous seven-area software
 # seed was removed when the product was broadened away from a single-team
 # deployment; existing installations are unaffected because the seed only
@@ -216,7 +216,7 @@ async def lifespan(app: FastAPI):
         pass
 
 
-app = FastAPI(title="Trace.", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Effro.", version="1.0.0", lifespan=lifespan)
 
 
 @app.get("/api/health")
