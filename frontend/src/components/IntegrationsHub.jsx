@@ -136,7 +136,7 @@ export default function IntegrationsHub() {
           Integrations
         </h2>
         <p className="text-xs text-paper-500 dark:text-paper-600 mt-1 leading-snug">
-          Connect Trace to the tools you already use. Pick one to set it up.
+          Connect Effro to the tools you already use. Pick one to set it up.
         </p>
       </div>
 
@@ -237,7 +237,7 @@ function Tile({ integration, status }) {
         ">
           {isRequest ? (
             <p className="text-[11px] text-pitch-700 dark:text-paper-300 leading-snug">
-              Want Trace to integrate with something specific?{' '}
+              Want Effro to integrate with something specific?{' '}
               <a
                 href={integration.learnMoreUrl}
                 target="_blank"

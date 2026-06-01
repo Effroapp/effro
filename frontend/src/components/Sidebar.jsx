@@ -121,7 +121,7 @@ export default function Sidebar({
       {/* Brand - mark + wordmark with mint dot + slogan.
           Wrapped in `group` so the Logo's SVG paths can react on hover
           (defined in Logo.jsx via group-hover). Mint dot replaces the
-          full stop after "Trace" - same character, brand-coloured. */}
+          full stop after "Effro" - same character, brand-coloured. */}
       <div className={`
         ${collapsed ? 'px-3 py-4 flex justify-center' : 'px-4 py-5'}
         border-b border-paper-300 dark:border-pitch-700
@@ -129,7 +129,7 @@ export default function Sidebar({
         <Link
           to="/"
           className={`group flex items-center ${collapsed ? '' : 'gap-3'} min-w-0`}
-          title={collapsed ? 'Trace.' : undefined}
+          title={collapsed ? 'Effro.' : undefined}
         >
           {collapsed ? (
             <Logo size={28} />
@@ -140,7 +140,7 @@ export default function Sidebar({
                 <span
                   className="font-display font-medium text-xl tracking-tightest text-pitch-800 dark:text-white leading-none inline-flex items-baseline"
                 >
-                  Trace
+                  Effro
                   {/* Mint dot acting as the full stop. Same character, brand colour. */}
                   <span
                     aria-hidden="true"

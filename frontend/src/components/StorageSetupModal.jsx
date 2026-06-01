@@ -305,7 +305,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                 What is this?
               </div>
               <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
-                Nextcloud is your own private cloud. Trace will store attachments and daily encrypted database backups there. Your data never leaves infrastructure you control.
+                Nextcloud is your own private cloud. Effro will store attachments and daily encrypted database backups there. Your data never leaves infrastructure you control.
               </div>
             </div>
 
@@ -316,7 +316,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
               <div className="space-y-2">
                 {[
                   { text: 'Log into your Nextcloud and go to ', bold: 'Settings → Security' },
-                  { text: 'Scroll to App passwords. Type a name like "Trace" and click ', bold: 'Create new app password' },
+                  { text: 'Scroll to App passwords. Type a name like "Effro" and click ', bold: 'Create new app password' },
                   { text: 'Copy the password - it only shows once, then paste it below' },
                 ].map((s, i) => (
                   <div key={i} className="flex gap-3 items-start">
@@ -364,7 +364,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                 set: v => { setRemoteFolder(v); setTestResult(null) },
                 type: 'text',
                 placeholder: 'Trace',
-                hint: "Trace will create this folder if it doesn't exist",
+                hint: "Effro will create this folder if it doesn't exist",
               },
             ].map(f => (
               <div key={f.label}>

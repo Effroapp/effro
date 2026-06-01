@@ -1,8 +1,10 @@
-# Trace.
+# Effro.
 
-> Stay across everything.
+> Stay across everything. — [effro.io](https://effro.io)
 
 A self-hosted activity log for anyone juggling multiple parallel responsibilities. Organise your world into **areas** (one per spinning plate), break each area into **threads** of focused work, and keep a chronological record of todos, decisions, meetings, blockers, and notes inside every thread. AI surfaces help where they materially save time - parse messy input into structured items, regenerate area summaries automatically, draft a weekly status digest in one click. Self-hosted, single Docker container, your data on a disk you own.
+
+*Effro* is Welsh for "awake, alert" — what the app is meant to keep you. Previously named Trace; the rebrand landed in v0.7.0 and is purely visual. All internal paths, identifiers, and data layouts remain stable for upgrade continuity.
 
 ---
 

@@ -1,16 +1,19 @@
 /**
- * SplashScreen - full-bleed launch overlay with "The Draw" animation.
+ * SplashScreen - full-bleed launch overlay with the A5 reverse-draw.
  *
- * Four-beat sequence:
- *   1. Fork draws (stem → top branch → bottom branch)
- *   2. "Trace" wordmark fades up
- *   3. Mint dot pops in (with a small overshoot, like a deliberate full stop)
- *   4. Slogan fades up in mono caps
+ * Five-beat sequence:
+ *   1. Branches draw from their tips INWARD to the junction (top first, then bot)
+ *   2. Stem draws last, from its outer tip inward
+ *   3. "Effro" wordmark fades up
+ *   4. Mint period dot pops in (small overshoot, like a deliberate full stop)
+ *   5. Slogan + effro.io fade up in mono caps
  *
  * Total run time before the hold: roughly 3 seconds.
  *
- * Self-contained: no external token or Tailwind dependencies. Drop in,
- * mount in App.jsx, control with a `visible` prop.
+ * The A5 reverse-draw direction (tips inward) is the same animation used in
+ * the inline Logo's hover replay — "things arriving at centre" reads as the
+ * second-brain metaphor in motion. Top branch carries the mint accent;
+ * stem and lower branch are paper-on-pitch.
  *
  * Props:
  *   visible - when true, splash is shown. Set false once the app is ready.
@@ -20,82 +23,95 @@ export default function SplashScreen({ visible = true, tagline = 'Stay across ev
   return (
     <>
       <style>{`
-        @keyframes traceSplashStem {
-          0%   { stroke-dashoffset: 30; }
-          17%  { stroke-dashoffset: 0; }
+        /* Reverse-draw: paths are written tip → junction so the standard
+           dashoffset → 0 transition reveals them from the outer end inward.
+           Top branch first, then bottom branch ~150ms later, then stem last. */
+        @keyframes effroSplashTop {
+          0%   { stroke-dashoffset: 38; }
+          22%  { stroke-dashoffset: 0; }
           100% { stroke-dashoffset: 0; }
         }
-        @keyframes traceSplashTop {
-          0%, 17% { stroke-dashoffset: 38; }
-          33%     { stroke-dashoffset: 0; }
-          100%    { stroke-dashoffset: 0; }
+        @keyframes effroSplashBot {
+          0%, 8% { stroke-dashoffset: 38; }
+          30%    { stroke-dashoffset: 0; }
+          100%   { stroke-dashoffset: 0; }
         }
-        @keyframes traceSplashBot {
-          0%, 27% { stroke-dashoffset: 38; }
+        @keyframes effroSplashStem {
+          0%, 25% { stroke-dashoffset: 30; }
           47%     { stroke-dashoffset: 0; }
           100%    { stroke-dashoffset: 0; }
         }
-        @keyframes traceSplashWord {
+        @keyframes effroSplashWord {
           0%, 47%  { opacity: 0; transform: translateY(6px); }
           63%      { opacity: 1; transform: translateY(0); }
           100%     { opacity: 1; transform: translateY(0); }
         }
-        @keyframes traceSplashDot {
+        @keyframes effroSplashDot {
           0%, 63%  { opacity: 0; transform: scale(0); }
           73%      { opacity: 1; transform: scale(1.3); }
           80%      { opacity: 1; transform: scale(1); }
           100%     { opacity: 1; transform: scale(1); }
         }
-        @keyframes traceSplashSlogan {
+        @keyframes effroSplashSlogan {
           0%, 80%  { opacity: 0; transform: translateY(4px); }
           93%      { opacity: 0.55; transform: translateY(0); }
           100%     { opacity: 0.55; transform: translateY(0); }
         }
-        .trace-splash-stem {
+        @keyframes effroSplashDomain {
+          0%, 88%  { opacity: 0; }
+          100%     { opacity: 0.32; }
+        }
+        .effro-splash-top {
+          stroke-dasharray: 38;
+          animation: effroSplashTop 3s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+        }
+        .effro-splash-bot {
+          stroke-dasharray: 38;
+          animation: effroSplashBot 3s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+        }
+        .effro-splash-stem {
           stroke-dasharray: 30;
-          animation: traceSplashStem 3s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+          animation: effroSplashStem 3s cubic-bezier(0.65, 0, 0.35, 1) forwards;
         }
-        .trace-splash-top {
-          stroke-dasharray: 38;
-          animation: traceSplashTop 3s cubic-bezier(0.65, 0, 0.35, 1) forwards;
-        }
-        .trace-splash-bot {
-          stroke-dasharray: 38;
-          animation: traceSplashBot 3s cubic-bezier(0.65, 0, 0.35, 1) forwards;
-        }
-        .trace-splash-word {
+        .effro-splash-word {
           opacity: 0;
-          animation: traceSplashWord 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+          animation: effroSplashWord 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
-        .trace-splash-dot {
+        .effro-splash-dot {
           opacity: 0;
           transform: scale(0);
-          animation: traceSplashDot 3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          animation: effroSplashDot 3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
-        .trace-splash-slogan {
+        .effro-splash-slogan {
           opacity: 0;
-          animation: traceSplashSlogan 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+          animation: effroSplashSlogan 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+        .effro-splash-domain {
+          opacity: 0;
+          animation: effroSplashDomain 3.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
         @media (prefers-reduced-motion: reduce) {
-          .trace-splash-stem,
-          .trace-splash-top,
-          .trace-splash-bot,
-          .trace-splash-word,
-          .trace-splash-dot,
-          .trace-splash-slogan {
+          .effro-splash-stem,
+          .effro-splash-top,
+          .effro-splash-bot,
+          .effro-splash-word,
+          .effro-splash-dot,
+          .effro-splash-slogan,
+          .effro-splash-domain {
             animation: none;
             stroke-dashoffset: 0;
             opacity: 1;
             transform: none;
           }
-          .trace-splash-slogan { opacity: 0.55; }
+          .effro-splash-slogan { opacity: 0.55; }
+          .effro-splash-domain { opacity: 0.32; }
         }
       `}</style>
 
       <div
         role="status"
         aria-live="polite"
-        aria-label="Loading Trace"
+        aria-label="Loading Effro"
         style={{
           position: 'fixed',
           inset: 0,
@@ -122,25 +138,30 @@ export default function SplashScreen({ visible = true, tagline = 'Stay across ev
           xmlns="http://www.w3.org/2000/svg"
           aria-hidden="true"
         >
+          {/* Top branch — MINT — drawn tip → junction (reverse-draw) */}
           <path
-            className="trace-splash-stem"
+            className="effro-splash-top"
+            d="M 78 22 Q 64 42, 50 50"
+            stroke="#10B981"
+            strokeWidth="11"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          {/* Bottom branch — paper — drawn tip → junction */}
+          <path
+            className="effro-splash-bot"
+            d="M 78 78 Q 64 58, 50 50"
+            stroke="#F7F4ED"
+            strokeWidth="11"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          {/* Stem — paper — drawn tip → junction, last */}
+          <path
+            className="effro-splash-stem"
             d="M 22 50 L 50 50"
-            stroke="#F7F4ED"
-            strokeWidth="11"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            className="trace-splash-top"
-            d="M 50 50 L 78 26"
-            stroke="#F7F4ED"
-            strokeWidth="11"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            className="trace-splash-bot"
-            d="M 50 50 L 78 74"
             stroke="#F7F4ED"
             strokeWidth="11"
             strokeLinecap="round"
@@ -149,7 +170,7 @@ export default function SplashScreen({ visible = true, tagline = 'Stay across ev
         </svg>
 
         <div
-          className="trace-splash-word"
+          className="effro-splash-word"
           style={{
             fontSize: '2.4rem',
             fontWeight: 500,
@@ -159,9 +180,9 @@ export default function SplashScreen({ visible = true, tagline = 'Stay across ev
             alignItems: 'baseline',
           }}
         >
-          Trace
+          Effro
           <span
-            className="trace-splash-dot"
+            className="effro-splash-dot"
             aria-hidden="true"
             style={{
               width: '0.20em',
@@ -177,7 +198,7 @@ export default function SplashScreen({ visible = true, tagline = 'Stay across ev
         </div>
 
         <div
-          className="trace-splash-slogan"
+          className="effro-splash-slogan"
           style={{
             fontSize: '0.65rem',
             letterSpacing: '0.28em',
@@ -186,6 +207,24 @@ export default function SplashScreen({ visible = true, tagline = 'Stay across ev
           }}
         >
           {tagline}
+        </div>
+
+        {/* Domain stamp — quietly anchored bottom-centre, last to appear.
+            Faintly present so it doesn't compete with the wordmark, but
+            establishes the brand at effro.io for the launch screen. */}
+        <div
+          className="effro-splash-domain"
+          style={{
+            position: 'absolute',
+            bottom: '2.5rem',
+            fontSize: '0.6rem',
+            letterSpacing: '0.32em',
+            textTransform: 'uppercase',
+            fontFamily: "'Geist Mono', ui-monospace, monospace",
+            color: '#F7F4ED',
+          }}
+        >
+          effro.io
         </div>
       </div>
     </>

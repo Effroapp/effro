@@ -72,7 +72,7 @@ def get_random(exclude: Optional[int] = None, db: Session = Depends(get_db)):
 
 
 NUDGE_SYSTEM = """
-You write gentle, calming usage reminders for Trace, a personal app for
+You write gentle, calming usage reminders for Effro, a personal app for
 keeping work organised across multiple areas, threads, and to-dos.
 
 Each reminder nudges the user to keep the app current and lean on it - but

@@ -197,7 +197,7 @@ const GUIDES = {
   claude: {
     badge: 'Paid',
     icon: '🟠',
-    what: "The AI built into Trace by default. Strongest results for smart capture, area summaries, and the weekly roundup. Needs an Anthropic API key.",
+    what: "The AI built into Effro by default. Strongest results for smart capture, area summaries, and the weekly roundup. Needs an Anthropic API key.",
     time: 'About 3 minutes',
     steps: [
       { text: 'Go to', link: { label: 'console.anthropic.com', url: 'https://console.anthropic.com' } },
@@ -729,7 +729,7 @@ function UpdateSection({ updater }) {
                 ? 'Checking for updates…'
                 : updater?.status === 'none'
                   ? 'Up to date.'
-                  : "Trace checks for updates automatically at launch."}
+                  : "Effro checks for updates automatically at launch."}
             </p>
           </div>
         </div>
@@ -846,7 +846,7 @@ function StorageSection({ id }) {
             {restartPending && (
               <div className="mt-2 rounded-lg p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
                 <p className="text-sm text-amber-700 dark:text-amber-400 mb-2 leading-snug">
-                  Data moved. Trace needs to restart to use the new location.
+                  Data moved. Effro needs to restart to use the new location.
                 </p>
                 <button
                   onClick={relaunch}
@@ -962,6 +962,19 @@ function AboutSection() {
       <CardHeader icon={SettingsIcon} title="About" />
       <dl className="space-y-2 text-sm">
         <Row label="Version" value={version ? `v${version}` : '-'} />
+        <Row
+          label="Web"
+          value={
+            <a
+              href="https://effro.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-mint-700 dark:text-mint-300 hover:underline"
+            >
+              effro.io ↗
+            </a>
+          }
+        />
         <Row
           label="What's new"
           value={
