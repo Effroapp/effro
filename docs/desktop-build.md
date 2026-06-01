@@ -1,6 +1,6 @@
-# Building the Trace. desktop app
+# Building the Effro. desktop app
 
-This document covers the **desktop** build path - packaging Trace. as a
+This document covers the **desktop** build path - packaging Effro. as a
 self-contained Windows / macOS / Linux app via Tauri v2 + PyInstaller. The
 **Docker** deployment path is unchanged and unaffected by anything here; see
 the project root README for that.
@@ -27,7 +27,7 @@ src-tauri/target/release/trace.exe                                # bare exe (no
 ```
 
 The NSIS installer runs without admin elevation and installs to
-`%LOCALAPPDATA%\Programs\Trace\` so the in-app updater can write to the
+`%LOCALAPPDATA%\Programs\Effro\` so the in-app updater can write to the
 install directory without UAC. We no longer ship the MSI; see
 [Why no MSI?](#why-no-msi) below.
 
@@ -82,7 +82,7 @@ Actions hosted runners.
 ┌─────────────────────────────────────────────────────────────┐
 │ Trace_1.0.0_x64-setup.exe                                   │
 │  installs to                                                │
-│  %LOCALAPPDATA%\Programs\Trace\                             │
+│  %LOCALAPPDATA%\Programs\Effro\                             │
 │    ├── trace.exe                  (Tauri Rust shell)        │
 │    ├── resources/                                           │
 │    │   └── binaries/                                        │
@@ -199,7 +199,7 @@ running `tauri build`.
 ### macOS - Developer ID + Notarization
 
 Required for distribution outside the App Store. Without notarization the user
-gets *"Trace.app can't be opened because Apple cannot check it for malicious
+gets *"Effro.app can't be opened because Apple cannot check it for malicious
 software."*
 
 **What you need:**

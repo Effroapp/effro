@@ -6,8 +6,8 @@ never the account login password. App passwords are scoped + revocable
 and they work alongside 2FA without prompting.
 
 Layout on the remote server (under the user-configured folder):
-  Trace/attachments/<stored_name>
-  Trace/backups/trace-backup-YYYY-MM-DD.db.enc
+  Effro/attachments/<stored_name>
+  Effro/backups/effro-backup-YYYY-MM-DD.db.enc
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ class NextcloudBackend(StorageBackend):
         server_url: str,
         username: str,
         password: str,
-        remote_folder: str = "Trace",
+        remote_folder: str = "Effro",
     ):
         self._url = server_url.rstrip("/")
         self._username = username

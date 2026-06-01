@@ -1,6 +1,6 @@
 "$schema" = "schemas/schema.json"
 
-# App-level permissions for Trace.'s custom Tauri commands.
+# App-level permissions for Effro.'s custom Tauri commands.
 #
 # Pattern: one [[permission]] per command, gathered into a [[set]] named
 # "default" - this mirrors the plugin permission convention and is what
@@ -25,7 +25,7 @@ commands.allow = ["migrate_and_set_data_dir"]
 
 [[permission]]
 identifier = "allow-relaunch"
-description = "Restart the Trace. app via app.restart()."
+description = "Restart the Effro. app via app.restart()."
 commands.allow = ["relaunch"]
 
 [[permission]]
@@ -55,7 +55,7 @@ commands.allow = ["app_version"]
 
 [[set]]
 identifier = "allow-all"
-description = "All custom Trace. desktop commands."
+description = "All custom Effro. desktop commands."
 permissions = [
     "allow-get-data-dir",
     "allow-pick-data-dir",

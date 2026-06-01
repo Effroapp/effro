@@ -398,7 +398,7 @@ class StorageConfig(BaseModel):
     server_url: Optional[str] = None
     username: Optional[str] = None
     password: Optional[str] = None        # Nextcloud app password, encrypted
-    remote_folder: str = "Trace"
+    remote_folder: str = "Effro"
     backup_enabled: bool = True
 
 

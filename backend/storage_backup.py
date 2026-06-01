@@ -1,5 +1,5 @@
 """
-Encrypted database backup for Trace.
+Encrypted database backup for Effro.
 
 The flow (run nightly by scheduler.py, or manually via POST /storage/backup/run):
   1. sqlite3 backup() API → consistent snapshot of trace.db (safe on a live DB

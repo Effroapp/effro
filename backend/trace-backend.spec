@@ -1,10 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller spec for the Trace. backend.
+PyInstaller spec for the Effro. backend.
 Run from the repo root:
     pyinstaller backend/trace-backend.spec
 Output lands in dist/trace-backend/ (onedir mode — fast launch, no per-launch
 temp extraction, no AV false-positives from --onefile bootloader behaviour).
+
+Note: the spec filename and the output dir still say "trace-backend" because
+the Tauri shell resolves the sidecar binary by that exact name. The next
+clean-migration release will rename the binary; until then the filename is
+load-bearing for the in-place upgrade path and must stay.
 """
 
 import os
@@ -85,7 +90,7 @@ a = Analysis(
         'aiofiles',
         'aiofiles.os',
         'aiofiles.threadpool',
-        # Trace's own backend modules (PyInstaller doesn't always discover them
+        # Effro's own backend modules (PyInstaller doesn't always discover them
         # when run.py imports them indirectly through `from main import app`).
         # IMPORTANT: every new router gets a line here. Static analysis worked
         # in earlier releases but v0.6.0 shipped with routers/microsoft.py
