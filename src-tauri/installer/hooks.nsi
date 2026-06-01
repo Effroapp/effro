@@ -1,8 +1,8 @@
-; NSIS installer hooks for Trace.
+; NSIS installer hooks for Effro.
 ;
 ; Tauri's NSIS template lets us inject custom macros at specific points in
 ; the installer lifecycle. We use NSIS_HOOK_PREINSTALL to kill any running
-; Trace. processes BEFORE the file extract phase — this fixes the recurring
+; Effro. processes BEFORE the file extract phase — this fixes the recurring
 ; MSVCP140.dll file-lock error that's been blocking every reinstall +
 ; auto-update.
 ;
@@ -19,7 +19,7 @@
 ; because NSIS macros run noisily; either result is acceptable.
 
 !macro NSIS_HOOK_PREINSTALL
-  DetailPrint "Stopping any running Trace. processes before extract..."
+  DetailPrint "Stopping any running Effro. processes before extract..."
   ; /F = force, /T = kill tree (children too), /IM = by image name.
   ; Suppress output so the installer log stays readable.
   nsExec::Exec 'taskkill /F /T /IM trace-backend.exe'

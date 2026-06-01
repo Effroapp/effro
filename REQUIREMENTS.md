@@ -1,4 +1,4 @@
-# Trace. - Requirements Specification
+# Effro. - Requirements Specification
 
 **Version:** 1.0.0
 **Prepared by:** Claude (Anthropic)

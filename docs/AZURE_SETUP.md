@@ -1,19 +1,19 @@
 # Microsoft 365 — Azure app registration (one-time setup)
 
-Before Trace can read your Outlook calendar, you need to register a small
+Before Effro can read your Outlook calendar, you need to register a small
 Azure application — it's free, takes about 5 minutes, and only has to be
 done once. Microsoft requires this as the security boundary: **you** decide
-what app talks to your data, and Trace's Settings → Integrations → Microsoft
+what app talks to your data, and Effro's Settings → Integrations → Microsoft
 365 only ever sees the app credentials *you* paste in.
 
 ## What you'll end up with
 
 Three values:
 1. **Client ID** — a GUID identifying your Azure app
-2. **Client secret** — a password for your Azure app (Trace stores it Fernet-encrypted)
+2. **Client secret** — a password for your Azure app (Effro stores it Fernet-encrypted)
 3. **Tenant** — usually `common` (lets you sign in with personal or work accounts)
 
-Paste those three into Settings → Integrations → Microsoft 365 in Trace, then click "Sign in with Microsoft." That's it.
+Paste those three into Settings → Integrations → Microsoft 365 in Effro, then click "Sign in with Microsoft." That's it.
 
 ---
 
@@ -33,13 +33,13 @@ click **+ New registration** at the top of the page.
 
 ### 3. Fill in the registration form
 
-- **Name:** anything memorable. `Trace - personal` is fine.
+- **Name:** anything memorable. `Effro - personal` is fine.
 
 - **Supported account types:** pick the option that matches who will sign in:
   - **Accounts in any organizational directory and personal Microsoft accounts** — most flexible. Use this if you want both personal and work accounts to work.
   - **Accounts in this organizational directory only** — work account only, single tenant.
 
-  *(Trace's `tenant_id` field maps to your choice: `common` for the
+  *(Effro's `tenant_id` field maps to your choice: `common` for the
   flexible option, your tenant GUID for single-tenant.)*
 
 - **Redirect URI:** under "Web", paste:
@@ -48,8 +48,8 @@ click **+ New registration** at the top of the page.
   http://localhost:8000/api/microsoft/auth/callback
   ```
 
-  *(That's the loopback URL Trace's backend listens on. If you've changed
-  Trace's backend port, swap `8000` for yours.)*
+  *(That's the loopback URL Effro's backend listens on. If you've changed
+  Effro's backend port, swap `8000` for yours.)*
 
 - Click **Register**.
 
@@ -69,10 +69,10 @@ option, your tenant is just the word `common`.)
 In the left sidebar, click **Certificates & secrets** → **Client secrets**
 tab → **+ New client secret**.
 
-- **Description:** `Trace`
+- **Description:** `Effro`
 - **Expires:** pick a duration. Azure recommends 6 months for production
   apps; 24 months is fine for personal use. Whatever you pick, set a
-  calendar reminder for a week before expiry — Trace will stop syncing
+  calendar reminder for a week before expiry — Effro will stop syncing
   silently when the secret expires.
 
 Click **Add**. **Immediately copy the `Value`** (not the `Secret ID`). The
@@ -89,25 +89,25 @@ In the left sidebar, click **API permissions** → **+ Add a permission** →
 Search for and tick each of:
 - `Calendars.Read`  *(read your Outlook calendar)*
 - `User.Read`  *(read your basic profile - Graph requires this for every app)*
-- `offline_access`  *(let Trace refresh your token without re-signing-in)*
+- `offline_access`  *(let Effro refresh your token without re-signing-in)*
 
 Click **Add permissions**.
 
 You should see all three listed under "Configured permissions" with green
 ticks. **No admin consent is needed for personal use** — these are all
-delegated, user-consent permissions. Trace will ask for them when you sign
+delegated, user-consent permissions. Effro will ask for them when you sign
 in.
 
-### 7. Paste into Trace
+### 7. Paste into Effro
 
-Back in Trace:
+Back in Effro:
 
 1. Open **Settings → Integrations → Microsoft 365**
 2. Paste the three values from steps 4 and 5
 3. Click **Save config**
 4. Click **Sign in with Microsoft** — your system browser opens
 5. Sign in with your Microsoft account, consent to the permissions
-6. The Trace settings page flips to "Connected as <you@example.com>"
+6. The Effro settings page flips to "Connected as <you@example.com>"
 
 The first calendar sync runs immediately. After that, the scheduler does
 a fresh pull every 30 minutes; you can also force one with the **Sync
@@ -128,44 +128,44 @@ new one.)
 
 **`{"detail":"Not Found"}` after clicking "Sign in with Microsoft"** —
 the OAuth callback is being sent to a port that nothing is listening on.
-As of **v0.6.2** Trace pins its backend to port 8000 to match the
+As of **v0.6.2** Effro pins its backend to port 8000 to match the
 redirect URI you registered. If you're on **v0.6.0 or v0.6.1** the
 backend picks a random port and this exact symptom appears every time —
 update to v0.6.2+ to fix.
 
 If you're on v0.6.2+ and still see this, port 8000 was taken on your
-machine when Trace started (Trace falls back to 8001-8010). Open the
+machine when Effro started (Effro falls back to 8001-8010). Open the
 DevTools Console (right-click → Inspect) and run:
 
 ```javascript
 location.host
 ```
 
-That tells you the actual port Trace is on. Then go to Azure portal →
+That tells you the actual port Effro is on. Then go to Azure portal →
 your app → Authentication → edit the existing redirect URI to use that
 port, save, and try Sign in again. Or quit whatever else is using
-port 8000 and restart Trace.
+port 8000 and restart Effro.
 
-**Sync runs but no signals appear** — open Trace's Signals page and click
+**Sync runs but no signals appear** — open Effro's Signals page and click
 "Sync now". Check the timestamp on Settings → Integrations → Microsoft 365
 to confirm the last sync went through. If it shows an old time, your
 token may have expired silently — disconnect and reconnect.
 
 **"AADSTS70008: refresh token expired"** — happens roughly every 90 days
-of inactivity. Disconnect and reconnect in Trace's Microsoft 365 settings.
+of inactivity. Disconnect and reconnect in Effro's Microsoft 365 settings.
 
 ---
 
 ## Privacy & permissions notes
 
-- Trace only ever reads. There is no scope in the request list that allows
+- Effro only ever reads. There is no scope in the request list that allows
   write access to your calendar, mail, files, or anything else.
 - The scopes requested are exactly the three above. You can audit them at
   any time in your Microsoft account at
   [account.live.com → Privacy → Apps and services](https://account.live.com)
   (personal account) or your work admin's access panel (work account).
-- Your access + refresh tokens are stored Fernet-encrypted in Trace's
+- Your access + refresh tokens are stored Fernet-encrypted in Effro's
   local SQLite database. If your laptop is lost and you don't have full
   disk encryption, treat that database the same as your password manager.
-- To revoke Trace's access entirely: disconnect inside Trace, then revoke
+- To revoke Effro's access entirely: disconnect inside Effro, then revoke
   the app's consent in your Microsoft account at the URL above.

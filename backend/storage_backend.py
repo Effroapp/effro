@@ -1,5 +1,5 @@
 """
-Storage abstraction for Trace.
+Storage abstraction for Effro.
 
 The user picks a cloud backend in Settings → Storage (currently Nextcloud,
 others coming). Attachments are written locally first, then a background
@@ -165,7 +165,7 @@ def build_storage_backend(config: dict) -> StorageBackend:
             server_url=config.get("server_url", ""),
             username=config.get("username", ""),
             password=password,
-            remote_folder=config.get("remote_folder", "Trace"),
+            remote_folder=config.get("remote_folder", "Effro"),
         )
 
     return LocalBackend(UPLOAD_DIR)

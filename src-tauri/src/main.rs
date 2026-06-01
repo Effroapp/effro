@@ -26,7 +26,8 @@ const BETA_UPDATE_ENDPOINT: &str =
 const UPDATE_CHANNEL_KEY: &str = "update_channel";
 
 /// GitHub Personal Access Token baked in at build time (via build.rs). Read-
-/// only, scoped to the single private `lukeogh/Trace` repo. Used by the
+/// only, scoped to the single private `lukeogh/Trace` repo (will be renamed
+/// to `lukeogh/Effro` — GitHub redirects keep this URL working). Used by the
 /// frontend as a Bearer header on updater requests so we can fetch the
 /// manifest + bundle from the private releases endpoint.
 ///
@@ -77,7 +78,7 @@ fn find_free_port() -> u16 {
         .expect("failed to read assigned port")
         .port();
     eprintln!(
-        "Trace. backend fell back to dynamic port {} (8000-8010 all taken). \
+        "Effro. backend fell back to dynamic port {} (8000-8010 all taken). \
          Microsoft 365 sign-in will need the Azure redirect URI updated to match.",
         port
     );
@@ -103,12 +104,12 @@ fn wait_for_backend(port: u16) -> Result<(), String> {
             }
         }
         if attempt == 0 {
-            println!("Waiting for Trace. backend on port {}...", port);
+            println!("Waiting for Effro. backend on port {}...", port);
         }
         std::thread::sleep(delay);
     }
     Err(format!(
-        "Trace. backend did not respond on port {} within 30 seconds",
+        "Effro. backend did not respond on port {} within 30 seconds",
         port
     ))
 }
@@ -436,7 +437,7 @@ fn main() {
             let port = find_free_port();
             let data_dir = resolve_data_dir(&app.handle());
 
-            println!("Trace. starting on port {}", port);
+            println!("Effro. starting on port {}", port);
             println!("Data directory: {}", data_dir.display());
 
             std::fs::create_dir_all(&data_dir)?;
@@ -528,7 +529,7 @@ fn main() {
             }
         })
         .build(tauri::generate_context!())
-        .expect("error while building the Trace. desktop shell")
+        .expect("error while building the Effro. desktop shell")
         .run(move |_app, event| {
             if let tauri::RunEvent::Exit = event {
                 // Belt-and-braces cleanup - see nuke_sidecar() docs.

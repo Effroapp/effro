@@ -1,5 +1,5 @@
 """
-AI provider abstraction for Trace.
+AI provider abstraction for Effro.
 
 One factory, one interface, several adapters:
 

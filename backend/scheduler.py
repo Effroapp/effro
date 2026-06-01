@@ -222,7 +222,7 @@ def start():
     )
     # Microsoft 365 calendar → signal_items sync. Every 30 min, all day -
     # someone might add a meeting to your calendar at 23:00 and you want it
-    # in Trace by morning. Skips silently if MS isn't connected.
+    # in Effro by morning. Skips silently if MS isn't connected.
     _scheduler.add_job(
         run_microsoft_signal_sync,
         CronTrigger(minute="*/30", timezone="Europe/Brussels"),

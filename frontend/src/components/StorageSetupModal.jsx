@@ -77,7 +77,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
   const [serverUrl, setServerUrl] = useState(currentConfig?.server_url || '')
   const [username, setUsername] = useState(currentConfig?.username || '')
   const [password, setPassword] = useState('')
-  const [remoteFolder, setRemoteFolder] = useState(currentConfig?.remote_folder || 'Trace')
+  const [remoteFolder, setRemoteFolder] = useState(currentConfig?.remote_folder || 'Effro')
   const [backupEnabled, setBackupEnabled] = useState(currentConfig?.backup_enabled !== false)
 
   const [testing, setTesting] = useState(false)
@@ -363,7 +363,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                 value: remoteFolder,
                 set: v => { setRemoteFolder(v); setTestResult(null) },
                 type: 'text',
-                placeholder: 'Trace',
+                placeholder: 'Effro',
                 hint: "Effro will create this folder if it doesn't exist",
               },
             ].map(f => (
@@ -497,7 +497,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
               <div className="text-xs text-paper-500 dark:text-paper-600 leading-relaxed mb-3">
                 Daily encrypted snapshots stored under{' '}
                 <code className="text-[11px] bg-paper-100 dark:bg-pitch-800 px-1 py-0.5 rounded font-mono">
-                  {currentConfig?.remote_folder || 'Trace'}/backups/
+                  {currentConfig?.remote_folder || 'Effro'}/backups/
                 </code>{' '}
                 on your Nextcloud. Last 7 kept.
               </div>
