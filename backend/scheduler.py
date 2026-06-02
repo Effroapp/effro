@@ -96,6 +96,28 @@ def _refresh_area(db, area: models.Area, provider) -> bool:
     return True
 
 
+def run_jira_signal_sync():
+    """Cron entry point - 30-min Jira Cloud pull into signal_items.
+
+    Runs three JQL queries (assigned + mentioned + sprint), upserts results,
+    and runs an AI suggestion pass. Skips silently if not connected.
+    """
+    from database import SessionLocal
+    from services_jira import run_jira_sync
+    db = SessionLocal()
+    try:
+        result = run_jira_sync(db)
+        if not result.get("skipped"):
+            log.info(
+                "Jira signal sync: +%d new, %d updated",
+                result.get("added", 0), result.get("updated", 0),
+            )
+    except Exception as e:
+        log.warning("Jira signal sync failed: %s", e)
+    finally:
+        db.close()
+
+
 def run_microsoft_signal_sync():
     """Cron entry point - 30-min Microsoft 365 calendar pull into signal_items.
 
@@ -219,6 +241,14 @@ def start():
         id="daily-nudge-topup",
         replace_existing=True,
         misfire_grace_time=3600,
+    )
+    # Jira Cloud → signal_items sync.
+    _scheduler.add_job(
+        run_jira_signal_sync,
+        CronTrigger(minute="*/30", timezone="Europe/Brussels"),
+        id="jira-signal-sync",
+        replace_existing=True,
+        misfire_grace_time=1800,
     )
     # Microsoft 365 calendar → signal_items sync. Every 30 min, all day -
     # someone might add a meeting to your calendar at 23:00 and you want it

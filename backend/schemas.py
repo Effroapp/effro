@@ -552,3 +552,29 @@ class SignalNudgeSettingOut(BaseModel):
 
 class SignalNudgeSettingIn(BaseModel):
     mode: str
+
+
+# ─── Jira integration ──────────────────────────────────────────────────────────
+
+class JiraConfigIn(BaseModel):
+    """Atlassian OAuth 2.0 app credentials."""
+    client_id: str
+    client_secret: str
+
+
+class JiraConfigOut(BaseModel):
+    """Masked view — secret never leaves the server."""
+    client_id: Optional[str] = None
+    client_secret_masked: Optional[str] = None
+    is_configured: bool = False
+
+
+class JiraProfileOut(BaseModel):
+    """Connected Atlassian account, minimal profile."""
+    connected: bool
+    display_name: Optional[str] = None
+    email: Optional[str] = None
+    cloud_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    connected_at: Optional[str] = None
+    last_synced: Optional[str] = None

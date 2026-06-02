@@ -210,6 +210,37 @@ class StorageSyncLog(Base):
     occurred_at = Column(DateTime, server_default=func.now())
 
 
+class JiraIntegration(Base):
+    """
+    Connected Atlassian Jira Cloud account (one row, single-user).
+
+    Tokens are Fernet-encrypted at rest. cloud_id is the Atlassian Cloud
+    site identifier needed for all API calls; it's resolved once after OAuth
+    and stored here so every sync run doesn't need to re-fetch accessible resources.
+    """
+    __tablename__ = "jira_integrations"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # Atlassian user identity
+    atlassian_user_id = Column(String(256), unique=True, nullable=False)
+    cloud_id = Column(String(256), nullable=False)   # e.g. "a1b2c3..."
+    cloud_name = Column(String(256), nullable=True)  # e.g. "mycompany.atlassian.net"
+
+    # Encrypted tokens
+    access_token_enc = Column(Text, nullable=False)
+    refresh_token_enc = Column(Text, nullable=True)
+    token_expiry = Column(DateTime, nullable=True)
+
+    # Profile cache
+    display_name = Column(String(256), nullable=True)
+    email = Column(String(256), nullable=True)
+    avatar_url = Column(String(500), nullable=True)
+
+    connected_at = Column(DateTime, server_default=func.now())
+    last_synced = Column(DateTime, nullable=True)
+
+
 class MicrosoftIntegration(Base):
     """
     Connected Microsoft 365 account (one row, single-user app).
