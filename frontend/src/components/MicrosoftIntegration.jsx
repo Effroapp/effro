@@ -292,7 +292,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
           You need a free Azure app registration. The full walk-through is in {' '}
           <a
-            href="https://github.com/lukeogh/Trace/blob/main/docs/AZURE_SETUP.md"
+            href="https://github.com/Effroapp/effro/blob/main/docs/AZURE_SETUP.md"
             target="_blank"
             rel="noopener noreferrer"
             className="text-mint-700 dark:text-mint-300 font-medium hover:underline inline-flex items-center gap-0.5"

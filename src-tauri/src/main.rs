@@ -14,12 +14,12 @@ use tauri_plugin_store::StoreExt;
 
 /// Stable channel - `latest` redirects to the most recent non-prerelease.
 const STABLE_UPDATE_ENDPOINT: &str =
-    "https://github.com/lukeogh/Trace/releases/latest/download/latest.json";
+    "https://github.com/Effroapp/effro/releases/latest/download/latest.json";
 
 /// Beta channel - CI updates a sliding `beta` release tag on every push to
 /// `main`, so this URL always points at the most recent beta build.
 const BETA_UPDATE_ENDPOINT: &str =
-    "https://github.com/lukeogh/Trace/releases/download/beta/latest-beta.json";
+    "https://github.com/Effroapp/effro/releases/download/beta/latest-beta.json";
 
 /// Config-store key for the user's chosen update channel ("stable" | "beta").
 /// Defaults to "stable" if unset.

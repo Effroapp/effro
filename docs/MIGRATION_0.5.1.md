@@ -32,7 +32,7 @@ uninstall-and-reinstall below.
    next install. A reboot clears them in 30 seconds.
 
 3. **Download `Trace_0.5.1_x64-setup.exe`** from the
-   [v0.5.1 release page](https://github.com/lukeogh/Trace/releases/tag/v0.5.1).
+   [v0.5.1 release page](https://github.com/Effroapp/effro/releases/tag/v0.5.1).
 
 4. **Right-click the downloaded `.exe` → Properties → tick "Unblock" → OK.**
    This clears the Mark of the Web tag that triggers most Smart App Control

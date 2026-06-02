@@ -74,7 +74,7 @@ const INTEGRATIONS = [
     sectionId: null,
     statusFn: () => 'coming-soon',
     comingIn: 'planned',
-    learnMoreUrl: 'https://github.com/lukeogh/Trace/issues',
+    learnMoreUrl: 'https://github.com/Effroapp/effro/issues',
   },
   {
     key: 'request',
@@ -83,7 +83,7 @@ const INTEGRATIONS = [
     iconKey: 'plus',
     sectionId: null,
     statusFn: () => 'request',
-    learnMoreUrl: 'https://github.com/lukeogh/Trace/issues/new',
+    learnMoreUrl: 'https://github.com/Effroapp/effro/issues/new',
   },
 ]
 

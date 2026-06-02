@@ -1017,7 +1017,7 @@ function AboutSection() {
           label="What's new"
           value={
             <a
-              href="https://github.com/lukeogh/Trace/releases"
+              href="https://github.com/Effroapp/effro/releases"
               target="_blank"
               rel="noopener noreferrer"
               className="text-mint-700 dark:text-mint-300 hover:underline"
@@ -1030,12 +1030,12 @@ function AboutSection() {
           label="Source"
           value={
             <a
-              href="https://github.com/lukeogh/Trace"
+              href="https://github.com/Effroapp/effro"
               target="_blank"
               rel="noopener noreferrer"
               className="text-mint-700 dark:text-mint-300 hover:underline"
             >
-              github.com/lukeogh/Trace ↗
+              github.com/Effroapp/effro ↗
             </a>
           }
         />
