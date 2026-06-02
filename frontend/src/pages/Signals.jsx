@@ -7,6 +7,7 @@ import {
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import { listSignals, acceptSignal, reassignSignal, dismissSignal } from '../api/signals'
 import { syncNow } from '../api/microsoft'
+import { jiraSyncNow } from '../api/jira'
 import { areasApi } from '../api/client'
 
 /**
@@ -49,7 +50,9 @@ export default function Signals() {
     setIsSyncing(true)
     setError(null)
     try {
-      await syncNow()
+      // Sync all connected sources in parallel — failures are silenced
+      // per-source (a disconnected Jira shouldn't block an MS365 sync)
+      await Promise.allSettled([syncNow(), jiraSyncNow()])
       await refresh()
     } catch (e) {
       setError(e.message || 'Sync failed')
@@ -193,7 +196,10 @@ function SignalCard({
     `}>
       {/* Header row: title + status */}
       <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-0.5">
+            <SourceBadge source={signal.source} kind={signal.kind} />
+          </div>
           <h3 className="font-display font-medium text-base text-pitch-800 dark:text-white leading-tight">
             {signal.title}
           </h3>
@@ -224,6 +230,19 @@ function SignalCard({
         </>
       )}
     </div>
+  )
+}
+
+function SourceBadge({ source, kind }) {
+  const labels = {
+    microsoft: { label: 'Outlook', color: 'text-[#0078D4] bg-[#0078D4]/10 border-[#0078D4]/20' },
+    jira:      { label: kind ? `Jira · ${kind}` : 'Jira', color: 'text-[#0052CC] bg-[#0052CC]/10 border-[#0052CC]/20' },
+  }
+  const { label, color } = labels[source] || { label: source, color: 'text-paper-500 dark:text-paper-600 bg-paper-100 dark:bg-pitch-700 border-stone' }
+  return (
+    <span className={`inline-flex items-center text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${color}`}>
+      {label}
+    </span>
   )
 }
 

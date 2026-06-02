@@ -20,6 +20,7 @@ import { getStorageConfig } from '../api/storage'
 import StorageSetupModal from '../components/StorageSetupModal'
 import IntegrationsHub from '../components/IntegrationsHub'
 import MicrosoftIntegration from '../components/MicrosoftIntegration'
+import JiraIntegration from '../components/JiraIntegration'
 import { useAppVersion } from '../hooks/useAppVersion'
 import { notifyAIConfigChanged } from '../hooks/useAIConfigured'
 
@@ -71,6 +72,7 @@ export default function SystemSettings({ updater }) {
         <AISection id="integration-ai" />
         <StorageSection id="integration-storage" />
         <MicrosoftSection id="integration-microsoft" />
+        <JiraSection id="integration-jira" />
         {isTauri() && <UpdateSection updater={updater} />}
         <AboutSection />
       </main>
@@ -949,6 +951,42 @@ function MicrosoftLogo({ size = 16 }) {
       <rect x="13" y="1"  width="10" height="10" fill="#7FBA00"/>
       <rect x="1"  y="13" width="10" height="10" fill="#00A4EF"/>
       <rect x="13" y="13" width="10" height="10" fill="#FFB900"/>
+    </svg>
+  )
+}
+
+// ─── Jira ─────────────────────────────────────────────────────────────────────
+
+function JiraSection({ id }) {
+  return (
+    <Card id={id}>
+      <CardHeader
+        icon={JiraLogo}
+        title="Jira"
+        subtitle="Assigned issues, mentions, and current sprint via Signals. Read-only."
+      />
+      <JiraIntegration />
+    </Card>
+  )
+}
+
+function JiraLogo({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true" className="flex-shrink-0 mt-1">
+      <path d="M15.975 2L8 17.05l4.975 5.563L19.95 14.1 15.975 2z" fill="#2684FF"/>
+      <path d="M15.975 2L12 14.1l3.975 8.513L23.95 9.563 15.975 2z" fill="url(#jira-a)"/>
+      <path d="M15.975 30L24 14.95l-4.975-5.563L12.05 17.9 15.975 30z" fill="#2684FF"/>
+      <path d="M15.975 30L19.95 17.9l-3.975-8.513L8.05 22.437 15.975 30z" fill="url(#jira-b)"/>
+      <defs>
+        <linearGradient id="jira-a" x1="15.975" y1="8" x2="21" y2="14" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#0052CC"/>
+          <stop offset="1" stopColor="#2684FF"/>
+        </linearGradient>
+        <linearGradient id="jira-b" x1="15.975" y1="24" x2="11" y2="18" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#0052CC"/>
+          <stop offset="1" stopColor="#2684FF"/>
+        </linearGradient>
+      </defs>
     </svg>
   )
 }

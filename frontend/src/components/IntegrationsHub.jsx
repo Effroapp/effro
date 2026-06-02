@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Cpu, Cloud, Github, KanbanSquare, Plus, Check, Clock } from 'lucide-react'
 import { getStorageConfig } from '../api/storage'
 import { getMicrosoftProfile } from '../api/microsoft'
+import { getJiraProfile } from '../api/jira'
 import { useAIConfigured } from '../hooks/useAIConfigured'
 
 /**
@@ -58,20 +59,18 @@ const INTEGRATIONS = [
     statusFn: (state) => state.microsoftConnected ? 'connected' : 'unconfigured',
   },
   {
+    key: 'jira',
+    name: 'Jira',
+    tagline: 'Assigned, mentioned, sprint issues',
+    iconKey: 'kanban',
+    sectionId: 'integration-jira',
+    statusFn: (state) => state.jiraConnected ? 'connected' : 'unconfigured',
+  },
+  {
     key: 'github',
     name: 'GitHub',
     tagline: 'PR review requests, mentions',
     iconKey: 'github',
-    sectionId: null,
-    statusFn: () => 'coming-soon',
-    comingIn: 'planned',
-    learnMoreUrl: 'https://github.com/lukeogh/Trace/issues',
-  },
-  {
-    key: 'jira',
-    name: 'Jira',
-    tagline: 'Assigned tickets, watched issues',
-    iconKey: 'kanban',
     sectionId: null,
     statusFn: () => 'coming-soon',
     comingIn: 'planned',
@@ -109,6 +108,7 @@ export default function IntegrationsHub() {
   const { configured: aiConfigured } = useAIConfigured()
   const [storageConnected, setStorageConnected] = useState(false)
   const [microsoftConnected, setMicrosoftConnected] = useState(false)
+  const [jiraConnected, setJiraConnected] = useState(false)
 
   useEffect(() => {
     getStorageConfig()
@@ -117,12 +117,16 @@ export default function IntegrationsHub() {
     getMicrosoftProfile()
       .then((p) => setMicrosoftConnected(Boolean(p?.connected)))
       .catch(() => setMicrosoftConnected(false))
+    getJiraProfile()
+      .then((p) => setJiraConnected(Boolean(p?.connected)))
+      .catch(() => setJiraConnected(false))
   }, [])
 
   const state = {
     aiConfigured: aiConfigured === true,
     storageConnected,
     microsoftConnected,
+    jiraConnected,
   }
 
   return (

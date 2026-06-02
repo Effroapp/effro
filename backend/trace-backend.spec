@@ -109,6 +109,8 @@ a = Analysis(
         'storage_nextcloud',
         'microsoft_graph',
         'services_signals',
+        'jira_client',
+        'services_jira',
         'routers',
         'routers.areas',
         'routers.threads',
@@ -124,6 +126,7 @@ a = Analysis(
         'routers.insights',
         'routers.microsoft',
         'routers.signals',
+        'routers.jira',
         # MSAL + its lazy-loaded crypto helpers (Microsoft Graph OAuth).
         # PyInstaller doesn't always catch msal's internal `importlib.import_module`
         # calls.
