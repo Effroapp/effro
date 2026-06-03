@@ -1,7 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Trace",
-  "version": "0.9.1",
+  "productName": "Effro",
+  "version": "0.10.0",
+  "mainBinaryName": "effro",
   "identifier": "com.trace.app",
   "build": {
     "beforeDevCommand": "npm run dev --prefix frontend",
@@ -39,7 +40,7 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "binaries/trace-backend-x86_64-pc-windows-msvc": "binaries/trace-backend-x86_64-pc-windows-msvc"
+      "binaries/effro-backend-x86_64-pc-windows-msvc": "binaries/effro-backend-x86_64-pc-windows-msvc"
     },
     "windows": {
       "webviewInstallMode": {

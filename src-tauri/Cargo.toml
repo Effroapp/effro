@@ -1,6 +1,6 @@
 [package]
-name = "trace"
-version = "0.9.1"
+name = "effro"
+version = "0.10.0"
 description = "Effro. - Stay across everything. effro.io"
 authors = []
 edition = "2021"
@@ -8,7 +8,7 @@ edition = "2021"
 # Desktop-only: a single binary target is all we need. (If we ever add mobile
 # entry points later, Tauri's mobile scaffold will introduce a library target.)
 [[bin]]
-name = "trace"
+name = "effro"
 path = "src/main.rs"
 
 [build-dependencies]

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build the Trace. backend as a PyInstaller onedir bundle and stage it where
+Build the Effro. backend as a PyInstaller onedir bundle and stage it where
 Tauri's sidecar mechanism expects it.
 
 Tauri v2 sidecar naming convention:
@@ -106,7 +106,7 @@ def main() -> None:
     print("── Running PyInstaller...")
     subprocess.run(
         [sys.executable, "-m", "PyInstaller",
-         "backend/trace-backend.spec",
+         "backend/effro-backend.spec",
          "--noconfirm",
          "--clean"],
         cwd=repo_root,
@@ -115,12 +115,12 @@ def main() -> None:
 
     # 3. Resolve where Tauri will look for the sidecar
     triple = get_rust_triple()
-    dest_dir = os.path.join(repo_root, "src-tauri", "binaries", f"trace-backend-{triple}")
+    dest_dir = os.path.join(repo_root, "src-tauri", "binaries", f"effro-backend-{triple}")
     print(f"── Rust target triple: {triple}")
     print(f"── Copying binary to:  {dest_dir}")
 
     # 4. Copy the onedir output into src-tauri/binaries/
-    src_dir = os.path.join(repo_root, "dist", "trace-backend")
+    src_dir = os.path.join(repo_root, "dist", "effro-backend")
     if not os.path.exists(src_dir):
         raise RuntimeError(
             f"PyInstaller output not found at {src_dir}. "

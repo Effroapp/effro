@@ -101,24 +101,18 @@ async function getUpdaterAuthHeader() {
  *
  * We pass the endpoint override on every check because the tauri-plugin-
  * updater Rust Builder doesn't allow runtime endpoint changes - but the JS
- * `check({ endpoints, headers })` does. The Authorization header is what
- * lets us reach the private repo's releases.
+ * `check({ endpoints })` does.
+ *
+ * NB: NO Authorization header. The Effroapp/effro repo is PUBLIC, so release
+ * assets download anonymously. Sending a stale Bearer token (left over from
+ * when the repo was the private lukeogh/Trace) makes GitHub return 401 even
+ * for public files — which is exactly what broke auto-update through v0.9.x.
  */
 export async function checkForUpdate() {
   if (!isTauri()) return null
   const endpoint = await getUpdateEndpoint()
-  const authHeader = await getUpdaterAuthHeader()
   const options = {}
   if (endpoint) options.endpoints = [endpoint]
-  if (authHeader) {
-    options.headers = {
-      Authorization: authHeader,
-      // GitHub's API form for release-asset downloads requires this Accept
-      // header; the redirector form ignores it. Setting it on every
-      // request is harmless and forward-compatible.
-      Accept: 'application/octet-stream',
-    }
-  }
   const { check } = await import('@tauri-apps/plugin-updater')
   const update = await check(Object.keys(options).length ? options : undefined)
   if (!update) return { available: false }
