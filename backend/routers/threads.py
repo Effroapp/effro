@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from datetime import datetime, timezone
 
 import models
@@ -8,6 +9,54 @@ from database import get_db
 from audit import log_audit
 
 router = APIRouter(tags=["threads"])
+
+
+def _compute_thread_summary_meta(thread: models.Thread, db: Session) -> tuple[bool, int]:
+    """Mirror of the area version: stale if entries arrived after the summary
+    was generated. (False, 0) when there's no summary baseline yet."""
+    if not thread.summary_updated_at:
+        return False, 0
+    new_count = (
+        db.query(func.count(models.Entry.id))
+        .filter(
+            models.Entry.thread_id == thread.id,
+            models.Entry.created_at > thread.summary_updated_at,
+        )
+        .scalar()
+    ) or 0
+    return (new_count > 0), new_count
+
+
+def _thread_detail(thread: models.Thread, db: Session) -> schemas.ThreadDetail:
+    """Build the full ThreadDetail: links, entries, and summary freshness."""
+    outgoing = db.query(models.ThreadLink).filter(models.ThreadLink.from_thread_id == thread.id).all()
+    incoming = db.query(models.ThreadLink).filter(models.ThreadLink.to_thread_id == thread.id).all()
+    out_refs = [r for r in (_linked_ref(db, l, l.to_thread_id) for l in outgoing) if r is not None]
+    in_refs  = [r for r in (_linked_ref(db, l, l.from_thread_id) for l in incoming) if r is not None]
+    stale, new_count = _compute_thread_summary_meta(thread, db)
+    return schemas.ThreadDetail(
+        id=thread.id,
+        area_id=thread.area_id,
+        title=thread.title,
+        status=thread.status,
+        description=thread.description or "",
+        summary=thread.summary or "",
+        created_at=thread.created_at,
+        updated_at=thread.updated_at,
+        entries=[
+            schemas.EntryOut.model_validate(e)
+            for e in thread.entries
+            if e.parent_id is None
+        ],
+        attachments=[schemas.AttachmentOut.model_validate(a) for a in thread.attachments],
+        outgoing_links=out_refs,
+        incoming_links=in_refs,
+        summary_updated_at=thread.summary_updated_at,
+        summary_auto_generated=bool(thread.summary_auto_generated),
+        summary_auto_update=bool(thread.summary_auto_update),
+        summary_stale=stale,
+        summary_new_count=new_count,
+    )
 
 
 @router.get("/threads/all", response_model=list[schemas.AllThreadSummary])
@@ -57,33 +106,67 @@ def get_thread(thread_id: int, db: Session = Depends(get_db)):
     thread = db.query(models.Thread).filter(models.Thread.id == thread_id).first()
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
+    # Only top-level entries - subtasks (parent_id set) are nested under their
+    # parent todo, so excluding them here keeps them from rendering twice.
+    return _thread_detail(thread, db)
 
-    outgoing = db.query(models.ThreadLink).filter(models.ThreadLink.from_thread_id == thread_id).all()
-    incoming = db.query(models.ThreadLink).filter(models.ThreadLink.to_thread_id == thread_id).all()
 
-    out_refs = [r for r in (_linked_ref(db, l, l.to_thread_id) for l in outgoing) if r is not None]
-    in_refs  = [r for r in (_linked_ref(db, l, l.from_thread_id) for l in incoming) if r is not None]
-
-    return schemas.ThreadDetail(
-        id=thread.id,
-        area_id=thread.area_id,
-        title=thread.title,
-        status=thread.status,
-        description=thread.description or "",
-        created_at=thread.created_at,
-        updated_at=thread.updated_at,
-        # Only top-level entries - subtasks (parent_id set) are nested under
-        # their parent todo's `subtasks` field, so excluding them here keeps
-        # them from rendering twice in the timeline.
-        entries=[
-            schemas.EntryOut.model_validate(e)
-            for e in thread.entries
-            if e.parent_id is None
-        ],
-        attachments=[schemas.AttachmentOut.model_validate(a) for a in thread.attachments],
-        outgoing_links=out_refs,
-        incoming_links=in_refs,
+@router.post("/threads/auto-update-all", status_code=200)
+def set_thread_auto_update_all(payload: schemas.ThreadUpdate, db: Session = Depends(get_db)):
+    """Turn summary auto-update on/off for EVERY thread at once."""
+    enabled = bool(payload.auto_update)
+    db.query(models.Thread).update(
+        {models.Thread.summary_auto_update: enabled},
+        synchronize_session=False,
     )
+    db.commit()
+    return {"updated": True, "enabled": enabled}
+
+
+@router.post("/threads/{thread_id}/summary/suggest", response_model=schemas.SummarySuggestion)
+def suggest_thread_summary(thread_id: int, db: Session = Depends(get_db)):
+    thread = db.query(models.Thread).filter(models.Thread.id == thread_id).first()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    recent_entries = (
+        db.query(models.Entry)
+        .filter(models.Entry.thread_id == thread.id, models.Entry.parent_id.is_(None))
+        .order_by(models.Entry.created_at.desc())
+        .limit(15)
+        .all()
+    )
+    entry_lines = "\n".join(
+        f"- [{e.type}] {e.content[:200]}" for e in recent_entries
+    ) or "(no entries yet)"
+
+    system = (
+        "You write a concise status summary for a single thread of work.\n"
+        "Output exactly 2 sentences. No preamble, no formatting, no bullet points.\n"
+        "Sentence 1: the current state - what's happening, what's in motion.\n"
+        "Sentence 2: what's next or blocking - risks, pending decisions, what to watch.\n"
+        "Tone: direct, factual, suitable for a status board. Avoid filler like 'currently' or 'we are'.\n"
+        "Use commas or hyphens for punctuation, never em dashes."
+    )
+    user_msg = (
+        f"Thread: {thread.title}\n"
+        f"Current status: {thread.status}\n"
+        f"Description: {thread.description or '(none)'}\n"
+        f"Existing summary: {thread.summary or '(none)'}\n\n"
+        f"Recent activity:\n{entry_lines}"
+    )
+
+    from ai_provider import get_provider
+    provider = get_provider(db)
+    try:
+        text = provider.complete(
+            system=system,
+            messages=[{"role": "user", "content": user_msg}],
+            max_tokens=300,
+        )
+        return schemas.SummarySuggestion(summary=text.strip())
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e))
 
 
 @router.post("/threads/{thread_id}/links", response_model=schemas.LinkedThreadRef, status_code=201)
@@ -184,10 +267,23 @@ def update_thread(
             db.add(models.ActivityEvent(event_type="status_changed", thread_id=thread.id, detail=f"→ {payload.status}"))
         thread.status = payload.status
 
+    if payload.summary is not None and payload.summary != thread.summary:
+        log_audit(db, entity_type='thread', entity_id=thread.id, area_id=thread.area_id,
+                  thread_id=thread.id, action='updated', field='summary',
+                  old_value=(thread.summary or '')[:200], new_value=payload.summary[:200])
+        thread.summary = payload.summary
+        thread.summary_updated_at = datetime.utcnow()  # naive UTC for staleness comparison
+        thread.summary_auto_generated = False
+    elif payload.summary is not None:
+        thread.summary = payload.summary
+
+    if payload.auto_update is not None:
+        thread.summary_auto_update = bool(payload.auto_update)
+
     thread.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(thread)
-    return thread
+    return _thread_detail(thread, db)
 
 
 @router.get("/threads/{thread_id}/audit", response_model=list[schemas.AuditLogEntry])

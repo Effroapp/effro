@@ -89,6 +89,12 @@ export const threadsApi = {
   update: (id, payload) =>
     request(`/threads/${id}`, { method: 'PUT', body: payload }),
 
+  suggestSummary: (id) =>
+    request(`/threads/${id}/summary/suggest`, { method: 'POST' }),
+
+  setAutoUpdateAll: (enabled) =>
+    request('/threads/auto-update-all', { method: 'POST', body: { auto_update: enabled } }),
+
   delete: (id) =>
     request(`/threads/${id}`, { method: 'DELETE' }),
 

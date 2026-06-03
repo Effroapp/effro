@@ -5,6 +5,43 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── AI Overview "generating" shimmer ──────────────────────────────────────
+   Sweeps a mint highlight across the (dimmed) summary text while it regenerates
+   — calm, modern, no spinner/blur. Falls back to static dimmed text when the
+   user prefers reduced motion. */
+.ov-generating {
+  background: linear-gradient(90deg,
+    rgba(74,72,69,0.32) 0%, rgba(74,72,69,0.32) 35%,
+    rgba(4,120,87,0.95) 50%,
+    rgba(74,72,69,0.32) 65%, rgba(74,72,69,0.32) 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: ovShimmer 1.6s ease-in-out infinite;
+}
+.dark .ov-generating {
+  background: linear-gradient(90deg,
+    rgba(168,164,158,0.30) 0%, rgba(168,164,158,0.30) 35%,
+    rgba(52,211,153,0.95) 50%,
+    rgba(168,164,158,0.30) 65%, rgba(168,164,158,0.30) 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+@keyframes ovShimmer {
+  0%   { background-position: 220% 0; }
+  100% { background-position: -120% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ov-generating {
+    animation: none;
+    background: none;
+    -webkit-text-fill-color: currentColor;
+    color: inherit;
+    opacity: 0.4;
+  }
+}
+
 /* ─── Base ───────────────────────────────────────────────────────────────── */
 @layer base {
   html {

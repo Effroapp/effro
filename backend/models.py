@@ -41,6 +41,12 @@ class Thread(Base):
     # open | in-progress | resolved | parked
     status = Column(String(50), default="open", nullable=False)
     description = Column(Text, default="")
+    # AI Overview — same shape as Area.summary. `description` stays the user's
+    # own one-liner; `summary` is the generated/editable status overview.
+    summary = Column(Text, default="")
+    summary_updated_at = Column(DateTime, nullable=True)
+    summary_auto_generated = Column(Boolean, default=False, nullable=False)
+    summary_auto_update = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

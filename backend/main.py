@@ -132,6 +132,11 @@ def _init_db():
             "ALTER TABLE areas ADD COLUMN summary_updated_at DATETIME",
             "ALTER TABLE areas ADD COLUMN summary_auto_generated BOOLEAN DEFAULT 0",
             "ALTER TABLE areas ADD COLUMN summary_auto_update BOOLEAN DEFAULT 0",
+            # Thread AI Overview — same shape as areas
+            "ALTER TABLE threads ADD COLUMN summary TEXT DEFAULT ''",
+            "ALTER TABLE threads ADD COLUMN summary_updated_at DATETIME",
+            "ALTER TABLE threads ADD COLUMN summary_auto_generated BOOLEAN DEFAULT 0",
+            "ALTER TABLE threads ADD COLUMN summary_auto_update BOOLEAN DEFAULT 0",
         ]:
             try:
                 conn.execute(text(sql))

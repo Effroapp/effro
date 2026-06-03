@@ -14,9 +14,11 @@ import Modal from '../components/Modal'
 import ConfirmDialog from '../components/ConfirmDialog'
 import AddMeetingModal from '../components/AddMeetingModal'
 import StatusChangeModal from '../components/StatusChangeModal'
+import OverviewCard from '../components/OverviewCard'
 import { useToast } from '../components/Toast'
 import { THREAD_STATUSES, formatBytes, DUE_DATE_OPTIONS } from '../utils/status'
 import { useEntryAI } from '../hooks/useEntryAI'
+import { useAIConfigured } from '../hooks/useAIConfigured'
 import ActionSuggestionBanner from '../components/ActionSuggestionBanner'
 import SubtaskList from '../components/SubtaskList'
 import TaskDecompositionDrawer from '../components/TaskDecompositionDrawer'
@@ -40,6 +42,7 @@ export default function ThreadView() {
   const { threadId } = useParams()
   const navigate = useNavigate()
   const toast = useToast()
+  const { configured: aiConfigured } = useAIConfigured()
 
   const [thread, setThread] = useState(null)
   const [area, setArea] = useState(null)
@@ -692,6 +695,29 @@ export default function ThreadView() {
           </div>
         </div>
       </header>
+
+      {/* AI Overview — the same OverviewCard areas use, for consistency */}
+      <div className="max-w-5xl mx-auto px-8 pt-6">
+        <OverviewCard
+          data={thread}
+          aiConfigured={aiConfigured}
+          onSuggest={() => threadsApi.suggestSummary(threadId)}
+          onSave={(text) => threadsApi.update(threadId, { summary: text })}
+          onToggleAuto={(enabled) => threadsApi.update(threadId, { auto_update: enabled })}
+          onSetAutoAll={async () => { await threadsApi.setAutoUpdateAll(true); return threadsApi.get(threadId) }}
+          onChange={(updated) => setThread((t) => ({
+            ...updated,
+            entries: t.entries,
+            attachments: t.attachments,
+            outgoing_links: t.outgoing_links,
+            incoming_links: t.incoming_links,
+          }))}
+          onError={(e) => toast(e.message, 'error')}
+          scopeNoun="thread"
+          emptyHint="No overview yet. Click Update to summarise this thread, or write your own."
+          placeholder="Summarise what's happening in this thread..."
+        />
+      </div>
 
       {/* Body: two columns */}
       <div className="max-w-5xl mx-auto px-8 py-6 flex gap-8">

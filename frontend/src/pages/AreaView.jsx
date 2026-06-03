@@ -1,19 +1,13 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Plus, Check, X, Edit3, RefreshCw, History, ChevronDown, ChevronUp, Sparkles, Clock, Wand2 } from 'lucide-react'
-import { format, formatDistanceToNow } from 'date-fns'
-
-// Backend stores summary_updated_at as naive UTC; tag it as UTC so the
-// browser doesn't misread it as local time (which would skew "x ago").
-function parseUTC(s) {
-  if (!s) return null
-  return new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z')
-}
+import { format } from 'date-fns'
 import { areasApi } from '../api/client'
 import StatusBadge from '../components/StatusBadge'
 import ThreadCard from '../components/ThreadCard'
 import Modal from '../components/Modal'
 import IconPicker, { AreaIcon } from '../components/IconPicker'
+import OverviewCard from '../components/OverviewCard'
 import { useToast } from '../components/Toast'
 import { useAIConfigured } from '../hooks/useAIConfigured'
 import { AREA_STATUSES, THREAD_STATUSES } from '../utils/status'
@@ -241,13 +235,15 @@ export default function AreaView() {
                 </button>
               )}
             </IconPicker>
-            <h1 className="font-display font-bold text-2xl uppercase tracking-widest text-pitch-800 dark:text-white truncate">
-              {area.name}
-            </h1>
+            <div className="min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <h1 className="font-display font-bold text-2xl uppercase tracking-widest text-pitch-800 dark:text-white truncate">
+                  {area.name}
+                </h1>
 
-            {/* Status badge - click to change */}
-            <div className="relative">
-              <button onClick={() => setEditingStatus((v) => !v)}>
+                {/* Status badge - click to change */}
+                <div className="relative">
+                  <button onClick={() => setEditingStatus((v) => !v)}>
                 <StatusBadge status={area.status} type="area" />
               </button>
 
@@ -274,6 +270,15 @@ export default function AreaView() {
               {editingStatus && (
                 <div className="fixed inset-0 z-10" onClick={() => setEditingStatus(false)} />
               )}
+                </div>
+              </div>
+              {/* Subtle description under the title — the same text the
+                  dashboard area card shows, for quick orientation. */}
+              {area.summary && (
+                <p className="font-lexend text-[13px] text-paper-500 dark:text-pitch-100 truncate normal-case tracking-normal mt-1 max-w-2xl">
+                  {area.summary.split('\n')[0]}
+                </p>
+              )}
             </div>
           </div>
 
@@ -293,187 +298,21 @@ export default function AreaView() {
       </header>
 
       <div className="max-w-4xl mx-auto px-8 py-6">
-        {/* Overview - boxed, with freshness + auto-update */}
-        <section className="mb-8 rounded-xl border border-paper-300 dark:border-pitch-600 bg-paper-200/40 dark:bg-pitch-700/30 overflow-hidden">
-          {/* Header row: label + sync status (left), controls (right) */}
-          <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-paper-300/70 dark:border-pitch-600/70">
-            <div className="flex items-center gap-2 min-w-0">
-              {(() => {
-                const OverviewIcon = SECTION_ICONS.overview
-                return <OverviewIcon size={13} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
-              })()}
-              <span className="text-xs font-display uppercase tracking-widest text-paper-500 dark:text-pitch-100">
-                Overview
-              </span>
-              {/* Sync status pill — only once a summary has actually been generated */}
-              {area.summary && area.summary_updated_at && (
-                area.summary_stale ? (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 whitespace-nowrap">
-                    {area.summary_new_count > 0
-                      ? `${area.summary_new_count} new update${area.summary_new_count === 1 ? '' : 's'} since`
-                      : 'Out of sync'}
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-mint-50 dark:bg-mint-900/30 text-mint-700 dark:text-mint-300 border border-mint/20 whitespace-nowrap">
-                    Up to date
-                  </span>
-                )
-              )}
-            </div>
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <button
-                onClick={toggleAutoUpdate}
-                disabled={togglingAuto || aiConfigured === false}
-                title={
-                  aiConfigured === false
-                    ? 'Set up an AI engine in Settings to use auto-update'
-                    : area.summary_auto_update
-                      ? 'Auto-update is on. Click to turn off.'
-                      : 'Keep this Overview refreshed automatically each day'
-                }
-                className={`flex items-center gap-1.5 text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  area.summary_auto_update
-                    ? 'text-mint-600 dark:text-mint-400'
-                    : 'text-paper-500 dark:text-pitch-100 hover:text-paper-700 dark:hover:text-paper-200'
-                }`}
-              >
-                <Wand2 size={12} />
-                Auto {area.summary_auto_update ? 'on' : 'off'}
-              </button>
-              <button
-                onClick={suggestSummary}
-                disabled={suggestingSummary || aiConfigured === false}
-                title={
-                  aiConfigured === false
-                    ? 'Set up an AI engine in Settings to use this'
-                    : 'Regenerate the Overview from recent activity'
-                }
-                className="flex items-center gap-1.5 text-xs text-paper-500 dark:text-pitch-100 hover:text-paper-700 dark:hover:text-paper-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <Sparkles size={12} />
-                {suggestingSummary ? 'Updating…' : 'Update'}
-              </button>
-              {!editingSummary && (
-                <button
-                  onClick={() => setEditingSummary(true)}
-                  className="flex items-center gap-1.5 text-xs text-paper-500 dark:text-pitch-100 hover:text-paper-700 dark:hover:text-paper-200 transition-colors"
-                >
-                  <Edit3 size={12} />
-                  Edit
-                </button>
-              )}
-            </div>
-          </div>
+        {/* Overview - shared OverviewCard (identical for areas and threads) */}
+        <OverviewCard
+          data={area}
+          aiConfigured={aiConfigured}
+          onSuggest={() => areasApi.suggestSummary(areaId)}
+          onSave={(text) => areasApi.update(areaId, { summary: text })}
+          onToggleAuto={(enabled) => areasApi.update(areaId, { auto_update: enabled })}
+          onSetAutoAll={async () => { await areasApi.setAutoUpdateAll(true); return areasApi.get(areaId) }}
+          onChange={(updated) => setArea(updated)}
+          onError={(e) => toast(e.message, 'error')}
+          scopeNoun="area"
+          emptyHint="No overview yet. Click Update to generate one, or write your own."
+          placeholder="Describe what's happening in this area..."
+        />
 
-          {/* Freshness line: when, and whether it was auto-generated */}
-          {area.summary_updated_at && (
-            <div className="px-4 pt-2.5 flex items-center gap-1.5 text-[11px] font-mono text-paper-500 dark:text-pitch-200">
-              <Clock size={11} className="flex-shrink-0" />
-              <span>
-                {area.summary_auto_generated ? 'Auto-generated' : 'Updated'}{' '}
-                {formatDistanceToNow(parseUTC(area.summary_updated_at))} ago
-              </span>
-              {area.summary_auto_generated && (
-                <span className="text-mint-600/80 dark:text-mint-400/80">· on last activity</span>
-              )}
-            </div>
-          )}
-
-          {/* "Apply to all areas?" prompt, shown when enabling auto-update */}
-          {autoPrompt && (
-            <div className="mx-4 mt-3 rounded-lg bg-mint-50/60 dark:bg-mint-900/15 border border-mint/20 px-3 py-2.5">
-              <p className="text-xs text-pitch-600 dark:text-paper-300 mb-2">
-                Keep this Overview refreshed automatically each day. Apply to every area too?
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={setAutoForAllAreas}
-                  disabled={togglingAuto}
-                  className="px-3 py-1.5 text-xs rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-60 transition-colors"
-                >
-                  All areas
-                </button>
-                <button
-                  onClick={() => setAutoForThisArea(true)}
-                  disabled={togglingAuto}
-                  className="px-3 py-1.5 text-xs rounded-md bg-paper-200 dark:bg-pitch-600 text-pitch-700 dark:text-paper-200 hover:bg-paper-300 dark:hover:bg-pitch-500 disabled:opacity-60 transition-colors"
-                >
-                  Just this area
-                </button>
-                <button
-                  onClick={() => setAutoPrompt(false)}
-                  className="px-3 py-1.5 text-xs rounded-md text-paper-600 dark:text-pitch-100 hover:bg-paper-200 dark:hover:bg-pitch-600 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Body - wrapped in a relative container so the loading overlay
-              can sit over it */}
-          <div className="relative px-4 py-3">
-            {editingSummary ? (
-              <div>
-                <textarea
-                  ref={summaryRef}
-                  value={summaryDraft}
-                  onChange={(e) => setSummaryDraft(e.target.value)}
-                  rows={5}
-                  placeholder="Describe what's happening in this area..."
-                  className="
-                    w-full text-sm bg-paper-100 dark:bg-pitch-700
-                    border border-paper-300 dark:border-pitch-500
-                    rounded-lg px-3 py-2.5 resize-none
-                    text-pitch-700 dark:text-paper-200
-                    placeholder:text-paper-400 dark:placeholder:text-paper-700
-                    focus:outline-none focus:ring-2 focus:ring-mint-500
-                    transition-colors
-                  "
-                />
-                <div className="flex justify-end gap-2 mt-2">
-                  <button onClick={cancelSummary} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md text-paper-600 dark:text-paper-500 hover:bg-paper-200 dark:hover:bg-pitch-500 transition-colors">
-                    <X size={12} /> Cancel
-                  </button>
-                  <button
-                    onClick={saveSummary}
-                    disabled={savingSummary}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-60 transition-colors"
-                  >
-                    <Check size={12} />
-                    {savingSummary ? 'Saving…' : 'Save'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <p
-                className={`
-                  text-base text-pitch-700 dark:text-paper-200 leading-relaxed whitespace-pre-wrap cursor-text
-                  transition-[filter] duration-200
-                  ${suggestingSummary ? 'blur-sm pointer-events-none select-none' : ''}
-                `}
-                onClick={() => setEditingSummary(true)}
-              >
-                {area.summary || (
-                  <span className="italic text-paper-400 dark:text-paper-700">
-                    No overview yet. Click Update to generate one, or write your own.
-                  </span>
-                )}
-              </p>
-            )}
-
-            {/* Loading overlay during Update */}
-            {suggestingSummary && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
-                <TraceMarkSpinner />
-                <ProgressIndeterminate />
-                <span className="font-display uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
-                  Updating from recent activity…
-                </span>
-              </div>
-            )}
-          </div>
-        </section>
 
         {/* Threads section */}
         <div>

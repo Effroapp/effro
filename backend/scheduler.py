@@ -100,6 +100,48 @@ def _refresh_area(db, area: models.Area, provider) -> bool:
     return True
 
 
+def _refresh_thread(db, thread: models.Thread, provider) -> bool:
+    """Regenerate thread.summary via the AI provider. Returns True on success."""
+    recent = (
+        db.query(models.Entry)
+        .filter(models.Entry.thread_id == thread.id, models.Entry.parent_id.is_(None))
+        .order_by(models.Entry.created_at.desc())
+        .limit(15)
+        .all()
+    )
+    entry_lines = "\n".join(f"- [{e.type}] {e.content[:200]}" for e in recent) or "(no entries yet)"
+    system = (
+        "You write a concise status summary for a single thread of work.\n"
+        "Output exactly 2 sentences. No preamble, no formatting, no bullet points.\n"
+        "Sentence 1: the current state. Sentence 2: what's next or blocking.\n"
+        "Tone: direct, factual. Use commas or hyphens, never em dashes."
+    )
+    user_msg = (
+        f"Thread: {thread.title}\nStatus: {thread.status}\n"
+        f"Description: {thread.description or '(none)'}\n"
+        f"Existing summary: {thread.summary or '(none)'}\n\nRecent activity:\n{entry_lines}"
+    )
+    try:
+        text = provider.complete(system=system, messages=[{"role": "user", "content": user_msg}], max_tokens=300)
+    except Exception as e:
+        log.warning("Failed to refresh thread %s: %s", thread.title, e)
+        return False
+    text = (text or "").strip()
+    if not text or text == (thread.summary or ""):
+        return False
+    prev = thread.summary or ""
+    thread.summary = text
+    thread.summary_updated_at = datetime.utcnow()
+    thread.summary_auto_generated = True
+    thread.updated_at = datetime.now(timezone.utc)
+    log_audit(db, entity_type="thread", entity_id=thread.id, area_id=thread.area_id,
+              thread_id=thread.id, action="updated", field="summary",
+              old_value=prev[:200], new_value=text[:200])
+    db.commit()
+    log.info("Refreshed Overview for thread %s", thread.title)
+    return True
+
+
 def run_jira_signal_sync():
     """Cron entry point - 30-min Jira Cloud pull into signal_items.
 
@@ -203,24 +245,33 @@ def refresh_all_overviews():
             .order_by(models.Area.id)
             .all()
         )
-        if not areas:
+        threads = (
+            db.query(models.Thread)
+            .filter(models.Thread.summary_auto_update == True)  # noqa: E712
+            .order_by(models.Thread.id)
+            .all()
+        )
+        if not areas and not threads:
             return  # nobody opted in — don't even spin up the provider
 
         provider = get_provider(db)
-        # Quick sanity-check before iterating areas - saves N failed calls
-        # if the provider is unconfigured or unreachable.
+        # Quick sanity-check before iterating - saves N failed calls if the
+        # provider is unconfigured or unreachable.
         ok, msg = provider.test()
         if not ok:
             log.info("Skipping Overview refresh: %s", msg)
             return
 
-        log.info("Lunchtime refresh: %d auto-update areas to consider", len(areas))
+        log.info("Lunchtime refresh: %d areas + %d threads opted in", len(areas), len(threads))
         for area in areas:
             if _refresh_area(db, area, provider):
                 refreshed += 1
+        for thread in threads:
+            if _refresh_thread(db, thread, provider):
+                refreshed += 1
     finally:
         db.close()
-    log.info("Lunchtime refresh complete: %d areas updated", refreshed)
+    log.info("Lunchtime refresh complete: %d summaries updated", refreshed)
 
 
 def start():

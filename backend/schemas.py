@@ -92,6 +92,17 @@ class ReorderRequest(BaseModel):
     order: List[ReorderItem]
 
 
+# Shared AI-summary freshness fields, mixed into both Area and Thread schemas
+# so the Overview behaves identically for each.
+class _SummaryMeta(BaseModel):
+    summary_updated_at: Optional[datetime] = None
+    summary_auto_generated: bool = False
+    summary_auto_update: bool = False
+    # Computed: is there activity newer than the summary, and how much?
+    summary_stale: bool = False
+    summary_new_count: int = 0
+
+
 # ── Threads ───────────────────────────────────────────────────────────────────
 
 class ThreadCreate(BaseModel):
@@ -104,6 +115,8 @@ class ThreadUpdate(BaseModel):
     title: Optional[str] = None
     status: Optional[str] = None
     description: Optional[str] = None
+    summary: Optional[str] = None
+    auto_update: Optional[bool] = None
 
 
 class ThreadSummary(BaseModel):
@@ -136,13 +149,14 @@ class ThreadLinkCreate(BaseModel):
     kind: str  # blocks | relates_to
 
 
-class ThreadDetail(BaseModel):
+class ThreadDetail(_SummaryMeta):
     """Full thread with all entries and attachments."""
     id: int
     area_id: int
     title: str
     status: str
     description: str
+    summary: str = ""
     created_at: datetime
     updated_at: datetime
     entries: List[EntryOut] = []
@@ -170,16 +184,6 @@ class AreaUpdate(BaseModel):
 
 class SummarySuggestion(BaseModel):
     summary: str
-
-
-# Shared summary-freshness fields, mixed into both Area schemas.
-class _SummaryMeta(BaseModel):
-    summary_updated_at: Optional[datetime] = None
-    summary_auto_generated: bool = False
-    summary_auto_update: bool = False
-    # Computed: is there activity newer than the summary, and how much?
-    summary_stale: bool = False
-    summary_new_count: int = 0
 
 
 class AreaSummary(_SummaryMeta):
