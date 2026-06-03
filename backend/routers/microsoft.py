@@ -183,7 +183,9 @@ async def _complete_auth(db: Session, code: str) -> None:
     if not integration:
         integration = models.MicrosoftIntegration(microsoft_user_id=ms_user_id)
         db.add(integration)
-        db.flush()
+        # NB: no db.flush() here. access_token_enc is NOT NULL and is only
+        # populated by store_tokens() below. Flushing now would fire the
+        # INSERT with a NULL token and crash. Set every field, then commit once.
 
     graph.store_tokens(
         db,

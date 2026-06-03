@@ -148,7 +148,10 @@ async def _complete_auth(db: Session, code: str) -> None:
             cloud_id=cloud_id,
         )
         db.add(integration)
-        db.flush()
+        # NB: no db.flush() here. The integration row has NOT NULL token
+        # columns that store_tokens() populates below. Flushing now would
+        # fire the INSERT before access_token_enc is set and crash with an
+        # IntegrityError. We set every field first, then commit() once.
 
     jira.store_tokens(
         db,
