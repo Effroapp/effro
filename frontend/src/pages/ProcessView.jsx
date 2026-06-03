@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { BrainCircuit, Check, X, RotateCcw, Upload, FileText, Mail, Calendar } from 'lucide-react'
 import { areasApi, generateApi, entriesApi, ingestApi } from '../api/client'
+import PageHeader from '../components/PageHeader'
 import { useToast } from '../components/Toast'
 import Spinner from '../components/Spinner'
 import AIRequiredCard from '../components/AIRequiredCard'
@@ -556,18 +557,13 @@ export default function ProcessView() {
   return (
     <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800 bg-grid-light dark:bg-grid-dark">
       {/* Header */}
-      <header className="
-        sticky top-0 z-10 px-8 py-5
-        bg-paper-100/90 dark:bg-pitch-800/90 backdrop-blur-md
-        border-b border-paper-200 dark:border-pitch-700
-      ">
-        <div className="max-w-3xl mx-auto flex items-center gap-3 pr-14">
-          <BrainCircuit size={28} className="text-paper-700 dark:text-paper-200 flex-shrink-0" />
-          <h1 className="font-display font-bold text-2xl uppercase tracking-widest text-pitch-800 dark:text-white">
-            Smart Generate
-          </h1>
-        </div>
-      </header>
+      <div className="max-w-3xl mx-auto px-8 pt-8">
+        <PageHeader
+          icon={BrainCircuit}
+          title="Smart Generate"
+          subtitle="Turn emails, notes, and files into structured items."
+        />
+      </div>
 
       {/* AI gate - show the empty state instead of the form when no engine
           is configured. Don't flash the form while we're still loading the

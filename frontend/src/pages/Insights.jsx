@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Flame, Moon, CalendarClock, ListChecks, CalendarDays,
-  ArrowUpRight, ExternalLink, Sparkles,
+  ArrowUpRight, ExternalLink, Sparkles, Telescope,
 } from 'lucide-react'
+import PageHeader from '../components/PageHeader'
 import {
   format, formatDistanceToNow, formatDistanceStrict,
   isToday, isTomorrow, parseISO, differenceInCalendarDays,
@@ -63,21 +64,22 @@ export default function Insights() {
   return (
     <div className="max-w-4xl mx-auto px-6 md:px-10 py-8">
       {/* Header */}
-      <div className="flex items-baseline justify-between mb-1">
-        <h1 className="font-display font-medium text-2xl tracking-tighter text-pitch-800 dark:text-white">
-          Insights
-        </h1>
-        <span className="font-mono text-xs text-paper-500 dark:text-paper-700">
-          {format(new Date(), 'EEE d MMM')}
-        </span>
-      </div>
+      <PageHeader
+        icon={Telescope}
+        title="Insights"
+        subtitle="Trends across your areas."
+        right={
+          <span className="font-mono text-xs text-paper-500 dark:text-paper-200">
+            {format(new Date(), 'EEE d MMM')}
+          </span>
+        }
+      />
       {nudge && (
-        <p className="text-sm text-paper-600 dark:text-paper-500 italic mb-7 flex items-start gap-1.5">
+        <p className="text-sm text-paper-600 dark:text-paper-500 italic mb-7 flex items-start gap-1.5 -mt-2">
           <Sparkles size={13} className="mt-0.5 flex-shrink-0 text-mint/70" />
           {nudge}
         </p>
       )}
-      {!nudge && <div className="mb-7" />}
 
       {error && (
         <div className="rounded-lg border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">

@@ -5,6 +5,7 @@ import {
   MapPin, User, ChevronRight, RefreshCw, ExternalLink, Sparkles,
 } from 'lucide-react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
+import PageHeader from '../components/PageHeader'
 import { listSignals, acceptSignal, reassignSignal, dismissSignal } from '../api/signals'
 import { syncNow } from '../api/microsoft'
 import { jiraSyncNow } from '../api/jira'
@@ -64,36 +65,34 @@ export default function Signals() {
   return (
     <div className="max-w-4xl mx-auto px-6 md:px-10 py-8">
       {/* Header */}
-      <div className="flex items-baseline justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <Radar size={22} className="text-mint" />
-          <h1 className="font-display font-medium text-2xl tracking-tighter text-pitch-800 dark:text-white">
-            Signals
-          </h1>
-          {data && data.pending_count > 0 && (
-            <span className="ml-2 text-xs font-mono px-2 py-0.5 rounded-full bg-mint-50 dark:bg-mint-900/30 text-mint-700 dark:text-mint-300">
-              {data.pending_count} pending
-            </span>
-          )}
-        </div>
-        <button
-          onClick={handleSyncNow}
-          disabled={isSyncing}
-          className="
-            flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs
-            text-paper-700 dark:text-paper-300
-            hover:bg-paper-200 dark:hover:bg-pitch-700
-            disabled:opacity-40
-            font-display uppercase tracking-wide transition-colors
-          "
-        >
-          {isSyncing ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
-          {isSyncing ? 'Syncing…' : 'Sync now'}
-        </button>
-      </div>
-      <p className="text-sm text-paper-600 dark:text-paper-500 italic mb-7">
-        Things that came in from your connected tools. Sort each one when you have a moment.
-      </p>
+      <PageHeader
+        icon={Radar}
+        title="Signals"
+        subtitle="What needs your attention, from your connected tools."
+        right={
+          <>
+            {data && data.pending_count > 0 && (
+              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-mint-50 dark:bg-mint-900/30 text-mint-700 dark:text-mint-300">
+                {data.pending_count} pending
+              </span>
+            )}
+            <button
+              onClick={handleSyncNow}
+              disabled={isSyncing}
+              className="
+                flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs
+                text-paper-700 dark:text-paper-200
+                hover:bg-paper-200 dark:hover:bg-pitch-700
+                disabled:opacity-40
+                font-display uppercase tracking-wide transition-colors
+              "
+            >
+              {isSyncing ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+              {isSyncing ? 'Syncing…' : 'Sync now'}
+            </button>
+          </>
+        }
+      />
 
       {error && (
         <div className="mb-4 rounded-lg border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">

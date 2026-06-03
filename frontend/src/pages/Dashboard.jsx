@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MessageSquare, ArrowRight, RefreshCw, Clock, Sparkles, RotateCcw, Leaf, ChevronDown } from 'lucide-react'
+import { MessageSquare, ArrowRight, RefreshCw, Clock, Sparkles, RotateCcw, Leaf, ChevronDown, X } from 'lucide-react'
 import { formatDistanceToNow, format, differenceInDays, differenceInCalendarDays, parseISO } from 'date-fns'
 import { areasApi, entriesApi } from '../api/client'
 import { getTodayNudge, getRandomNudge } from '../api/nudges'
@@ -57,6 +57,17 @@ export default function Dashboard() {
   // ask the backend for a nudge that isn't the one currently on screen.
   const [nudge, setNudge] = useState(null)
   const [shufflingNudge, setShufflingNudge] = useState(false)
+  // Dismissed-for-today flag. The nudge rotates daily, so a dismissal is
+  // scoped to the current date — it reappears (with a fresh nudge) tomorrow.
+  const todayKey = () => new Date().toISOString().slice(0, 10)
+  const [nudgeDismissed, setNudgeDismissed] = useState(
+    () => localStorage.getItem('nudgeDismissed') === todayKey()
+  )
+
+  const dismissNudge = () => {
+    localStorage.setItem('nudgeDismissed', todayKey())
+    setNudgeDismissed(true)
+  }
 
   useEffect(() => {
     getTodayNudge()
@@ -187,34 +198,54 @@ export default function Dashboard() {
       {/* ── Area grid ── */}
       <main className="max-w-[1600px] mx-auto px-8 py-8">
         {/* Daily nudge - a calm, rotating usage reminder. Quiet by design:
-            soft tint, small leaf mark, no call to action. A subtle refresh
-            icon on the right lets the user flick through the pool. */}
-        {nudge?.text && (
+            soft tint, titled "Helpful insight", a shuffle icon to flick
+            through the pool, and a subtle dismiss cross (scoped to today). */}
+        {nudge?.text && !nudgeDismissed && (
           <div className="
-            flex items-start gap-3 mb-6 px-4 py-3 rounded-xl
+            mb-6 px-4 py-3 rounded-xl
             bg-mint-50/60 dark:bg-mint-900/10
             border border-mint/20
           ">
-            <Leaf size={15} className="flex-shrink-0 mt-0.5 text-mint-700/80 dark:text-mint-300/80" />
-            <p className="flex-1 text-sm leading-relaxed text-pitch-600 dark:text-paper-300">
+            {/* Title row: label left, controls right */}
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <Leaf size={12} className="text-mint-700/80 dark:text-mint-300/80" />
+                <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-mint-700/90 dark:text-mint-300/90">
+                  Helpful insight
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleShuffleNudge}
+                  disabled={shufflingNudge}
+                  title="Show another"
+                  aria-label="Show another insight"
+                  className="
+                    p-1 rounded text-paper-500 dark:text-paper-600
+                    hover:text-pitch-700 dark:hover:text-paper-300
+                    opacity-50 hover:opacity-100
+                    disabled:cursor-not-allowed transition-all
+                  "
+                >
+                  <RefreshCw size={12} className={shufflingNudge ? 'animate-spin' : ''} />
+                </button>
+                <button
+                  onClick={dismissNudge}
+                  title="Dismiss for today"
+                  aria-label="Dismiss insight"
+                  className="
+                    p-1 rounded text-paper-500 dark:text-paper-600
+                    hover:text-pitch-700 dark:hover:text-paper-300
+                    opacity-50 hover:opacity-100 transition-all
+                  "
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            </div>
+            <p className="text-sm leading-relaxed text-pitch-600 dark:text-paper-300">
               {nudge.text}
             </p>
-            <button
-              onClick={handleShuffleNudge}
-              disabled={shufflingNudge}
-              title="Show another"
-              aria-label="Show another nudge"
-              className="
-                flex-shrink-0 p-1 rounded
-                text-paper-500 dark:text-paper-600
-                hover:text-pitch-700 dark:hover:text-paper-300
-                opacity-50 hover:opacity-100
-                disabled:cursor-not-allowed
-                transition-all
-              "
-            >
-              <RefreshCw size={13} className={shufflingNudge ? 'animate-spin' : ''} />
-            </button>
           </div>
         )}
 
