@@ -128,6 +128,10 @@ def _init_db():
             # External provenance on Entry (Signals → committed meetings)
             "ALTER TABLE entries ADD COLUMN external_id VARCHAR(256)",
             "CREATE INDEX IF NOT EXISTS idx_entries_external_id ON entries(external_id)",
+            # Area summary freshness + auto-update opt-in
+            "ALTER TABLE areas ADD COLUMN summary_updated_at DATETIME",
+            "ALTER TABLE areas ADD COLUMN summary_auto_generated BOOLEAN DEFAULT 0",
+            "ALTER TABLE areas ADD COLUMN summary_auto_update BOOLEAN DEFAULT 0",
         ]:
             try:
                 conn.execute(text(sql))

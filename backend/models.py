@@ -13,6 +13,15 @@ class Area(Base):
     # stable | active | review | blocked
     status = Column(String(50), default="stable", nullable=False)
     summary = Column(Text, default="")
+    # When the summary was last (re)generated or saved. Distinct from
+    # updated_at (which moves on any field change) so the UI can show how old
+    # the *summary specifically* is, and detect when it's out of sync.
+    summary_updated_at = Column(DateTime, nullable=True)
+    # Was the last summary write produced by the auto-refresh job (True) or
+    # written/approved by the user (False)?
+    summary_auto_generated = Column(Boolean, default=False, nullable=False)
+    # Per-area opt-in: does the daily refresher keep this summary current?
+    summary_auto_update = Column(Boolean, default=False, nullable=False)
     # lucide-react icon name (e.g. "Code", "Database"). null = no icon set.
     icon = Column(String(64), nullable=True)
     created_at = Column(DateTime, server_default=func.now())

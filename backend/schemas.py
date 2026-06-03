@@ -165,13 +165,24 @@ class AreaUpdate(BaseModel):
     status: Optional[str] = None
     summary: Optional[str] = None
     icon: Optional[str] = None
+    auto_update: Optional[bool] = None
 
 
 class SummarySuggestion(BaseModel):
     summary: str
 
 
-class AreaSummary(BaseModel):
+# Shared summary-freshness fields, mixed into both Area schemas.
+class _SummaryMeta(BaseModel):
+    summary_updated_at: Optional[datetime] = None
+    summary_auto_generated: bool = False
+    summary_auto_update: bool = False
+    # Computed: is there activity newer than the summary, and how much?
+    summary_stale: bool = False
+    summary_new_count: int = 0
+
+
+class AreaSummary(_SummaryMeta):
     """Area card data for the dashboard."""
     id: int
     name: str
@@ -187,7 +198,7 @@ class AreaSummary(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class AreaDetail(BaseModel):
+class AreaDetail(_SummaryMeta):
     """Area detail without threads (threads fetched separately)."""
     id: int
     name: str

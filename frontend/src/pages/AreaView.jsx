@@ -1,7 +1,14 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Plus, Check, X, Edit3, RefreshCw, History, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
-import { format } from 'date-fns'
+import { Plus, Check, X, Edit3, RefreshCw, History, ChevronDown, ChevronUp, Sparkles, Clock, Wand2 } from 'lucide-react'
+import { format, formatDistanceToNow } from 'date-fns'
+
+// Backend stores summary_updated_at as naive UTC; tag it as UTC so the
+// browser doesn't misread it as local time (which would skew "x ago").
+function parseUTC(s) {
+  if (!s) return null
+  return new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z')
+}
 import { areasApi } from '../api/client'
 import StatusBadge from '../components/StatusBadge'
 import ThreadCard from '../components/ThreadCard'
@@ -30,6 +37,10 @@ export default function AreaView() {
   const [suggestingSummary, setSuggestingSummary] = useState(false)
 
   const [editingStatus, setEditingStatus] = useState(false)
+
+  // Auto-update toggle + the "apply to all areas?" inline prompt
+  const [autoPrompt, setAutoPrompt] = useState(false)
+  const [togglingAuto, setTogglingAuto] = useState(false)
 
   // New thread modal
   const [newThreadOpen, setNewThreadOpen] = useState(false)
@@ -97,6 +108,47 @@ export default function AreaView() {
       toast(e.message, 'error')
     } finally {
       setSuggestingSummary(false)
+    }
+  }
+
+  // ── Auto-update summaries ─────────────────────────────────────────────────────
+
+  const toggleAutoUpdate = () => {
+    if (area.summary_auto_update) {
+      // Currently on → turn it off for this area, no prompt needed.
+      setAutoForThisArea(false)
+    } else {
+      // Turning on → ask whether to apply to all areas.
+      setAutoPrompt(true)
+    }
+  }
+
+  const setAutoForThisArea = async (enabled) => {
+    setTogglingAuto(true)
+    setAutoPrompt(false)
+    try {
+      const updated = await areasApi.update(areaId, { auto_update: enabled })
+      setArea(updated)
+      toast(enabled ? 'Auto-update on for this area' : 'Auto-update off')
+    } catch (e) {
+      toast(e.message, 'error')
+    } finally {
+      setTogglingAuto(false)
+    }
+  }
+
+  const setAutoForAllAreas = async () => {
+    setTogglingAuto(true)
+    setAutoPrompt(false)
+    try {
+      await areasApi.setAutoUpdateAll(true)
+      const fresh = await areasApi.get(areaId)
+      setArea(fresh)
+      toast('Auto-update on for all areas')
+    } catch (e) {
+      toast(e.message, 'error')
+    } finally {
+      setTogglingAuto(false)
     }
   }
 
@@ -241,19 +293,53 @@ export default function AreaView() {
       </header>
 
       <div className="max-w-4xl mx-auto px-8 py-6">
-        {/* Overview - de-boxed, section-header pattern */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3 pb-2 border-b border-paper-200 dark:border-pitch-700">
-            <div className="flex items-center gap-2">
+        {/* Overview - boxed, with freshness + auto-update */}
+        <section className="mb-8 rounded-xl border border-paper-300 dark:border-pitch-600 bg-paper-200/40 dark:bg-pitch-700/30 overflow-hidden">
+          {/* Header row: label + sync status (left), controls (right) */}
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-paper-300/70 dark:border-pitch-600/70">
+            <div className="flex items-center gap-2 min-w-0">
               {(() => {
                 const OverviewIcon = SECTION_ICONS.overview
-                return <OverviewIcon size={14} className="text-paper-500 dark:text-paper-600" />
+                return <OverviewIcon size={13} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
               })()}
-              <span className="text-xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600">
+              <span className="text-xs font-display uppercase tracking-widest text-paper-500 dark:text-pitch-100">
                 Overview
               </span>
+              {/* Sync status pill — only once a summary has actually been generated */}
+              {area.summary && area.summary_updated_at && (
+                area.summary_stale ? (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 whitespace-nowrap">
+                    {area.summary_new_count > 0
+                      ? `${area.summary_new_count} new update${area.summary_new_count === 1 ? '' : 's'} since`
+                      : 'Out of sync'}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-mint-50 dark:bg-mint-900/30 text-mint-700 dark:text-mint-300 border border-mint/20 whitespace-nowrap">
+                    Up to date
+                  </span>
+                )
+              )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <button
+                onClick={toggleAutoUpdate}
+                disabled={togglingAuto || aiConfigured === false}
+                title={
+                  aiConfigured === false
+                    ? 'Set up an AI engine in Settings to use auto-update'
+                    : area.summary_auto_update
+                      ? 'Auto-update is on. Click to turn off.'
+                      : 'Keep this Overview refreshed automatically each day'
+                }
+                className={`flex items-center gap-1.5 text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  area.summary_auto_update
+                    ? 'text-mint-600 dark:text-mint-400'
+                    : 'text-paper-500 dark:text-pitch-100 hover:text-paper-700 dark:hover:text-paper-200'
+                }`}
+              >
+                <Wand2 size={12} />
+                Auto {area.summary_auto_update ? 'on' : 'off'}
+              </button>
               <button
                 onClick={suggestSummary}
                 disabled={suggestingSummary || aiConfigured === false}
@@ -262,7 +348,7 @@ export default function AreaView() {
                     ? 'Set up an AI engine in Settings to use this'
                     : 'Regenerate the Overview from recent activity'
                 }
-                className="flex items-center gap-1.5 text-xs text-paper-500 dark:text-paper-600 hover:text-paper-700 dark:hover:text-paper-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1.5 text-xs text-paper-500 dark:text-pitch-100 hover:text-paper-700 dark:hover:text-paper-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Sparkles size={12} />
                 {suggestingSummary ? 'Updating…' : 'Update'}
@@ -270,7 +356,7 @@ export default function AreaView() {
               {!editingSummary && (
                 <button
                   onClick={() => setEditingSummary(true)}
-                  className="flex items-center gap-1.5 text-xs text-paper-500 dark:text-paper-600 hover:text-paper-700 dark:hover:text-paper-200 transition-colors"
+                  className="flex items-center gap-1.5 text-xs text-paper-500 dark:text-pitch-100 hover:text-paper-700 dark:hover:text-paper-200 transition-colors"
                 >
                   <Edit3 size={12} />
                   Edit
@@ -279,9 +365,54 @@ export default function AreaView() {
             </div>
           </div>
 
+          {/* Freshness line: when, and whether it was auto-generated */}
+          {area.summary_updated_at && (
+            <div className="px-4 pt-2.5 flex items-center gap-1.5 text-[11px] font-mono text-paper-500 dark:text-pitch-200">
+              <Clock size={11} className="flex-shrink-0" />
+              <span>
+                {area.summary_auto_generated ? 'Auto-generated' : 'Updated'}{' '}
+                {formatDistanceToNow(parseUTC(area.summary_updated_at))} ago
+              </span>
+              {area.summary_auto_generated && (
+                <span className="text-mint-600/80 dark:text-mint-400/80">· on last activity</span>
+              )}
+            </div>
+          )}
+
+          {/* "Apply to all areas?" prompt, shown when enabling auto-update */}
+          {autoPrompt && (
+            <div className="mx-4 mt-3 rounded-lg bg-mint-50/60 dark:bg-mint-900/15 border border-mint/20 px-3 py-2.5">
+              <p className="text-xs text-pitch-600 dark:text-paper-300 mb-2">
+                Keep this Overview refreshed automatically each day. Apply to every area too?
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={setAutoForAllAreas}
+                  disabled={togglingAuto}
+                  className="px-3 py-1.5 text-xs rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-60 transition-colors"
+                >
+                  All areas
+                </button>
+                <button
+                  onClick={() => setAutoForThisArea(true)}
+                  disabled={togglingAuto}
+                  className="px-3 py-1.5 text-xs rounded-md bg-paper-200 dark:bg-pitch-600 text-pitch-700 dark:text-paper-200 hover:bg-paper-300 dark:hover:bg-pitch-500 disabled:opacity-60 transition-colors"
+                >
+                  Just this area
+                </button>
+                <button
+                  onClick={() => setAutoPrompt(false)}
+                  className="px-3 py-1.5 text-xs rounded-md text-paper-600 dark:text-pitch-100 hover:bg-paper-200 dark:hover:bg-pitch-600 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Body - wrapped in a relative container so the loading overlay
               can sit over it */}
-          <div className="relative">
+          <div className="relative px-4 py-3">
             {editingSummary ? (
               <div>
                 <textarea

@@ -52,6 +52,9 @@ export const areasApi = {
   suggestSummary: (id) =>
     request(`/areas/${id}/summary/suggest`, { method: 'POST' }),
 
+  setAutoUpdateAll: (enabled) =>
+    request('/areas/auto-update-all', { method: 'POST', body: { auto_update: enabled } }),
+
   listThreads: (areaId) =>
     request(`/areas/${areaId}/threads`),
 

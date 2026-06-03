@@ -85,6 +85,10 @@ def _refresh_area(db, area: models.Area, provider) -> bool:
 
     prev = area.summary or ""
     area.summary = text
+    # Naive UTC to match Entry.created_at for the staleness comparison; flag
+    # this as an automatic update so the card can say "Auto-generated …".
+    area.summary_updated_at = datetime.utcnow()
+    area.summary_auto_generated = True
     area.updated_at = datetime.now(timezone.utc)
     log_audit(
         db, entity_type="area", entity_id=area.id, area_id=area.id,
@@ -184,14 +188,24 @@ def run_nightly_backup():
 
 
 def refresh_all_overviews():
-    """Cron entry point - iterate non-stable areas and refresh via the
-    configured AI provider. Skips silently if the provider isn't ready
-    (e.g. user hasn't configured one in Settings → AI Engine)."""
+    """Cron entry point - refresh the Overview for every area the user has
+    OPTED IN to auto-update (summary_auto_update = True), via the configured
+    AI provider. Skips silently if the provider isn't ready (e.g. user hasn't
+    configured one in Settings → AI Engine) or no area has auto-update on."""
     from ai_provider import get_provider
 
     db = SessionLocal()
     refreshed = 0
     try:
+        areas = (
+            db.query(models.Area)
+            .filter(models.Area.summary_auto_update == True)  # noqa: E712
+            .order_by(models.Area.id)
+            .all()
+        )
+        if not areas:
+            return  # nobody opted in — don't even spin up the provider
+
         provider = get_provider(db)
         # Quick sanity-check before iterating areas - saves N failed calls
         # if the provider is unconfigured or unreachable.
@@ -200,13 +214,7 @@ def refresh_all_overviews():
             log.info("Skipping Overview refresh: %s", msg)
             return
 
-        areas = (
-            db.query(models.Area)
-            .filter(models.Area.status != "stable")
-            .order_by(models.Area.id)
-            .all()
-        )
-        log.info("Lunchtime refresh: %d non-stable areas to consider", len(areas))
+        log.info("Lunchtime refresh: %d auto-update areas to consider", len(areas))
         for area in areas:
             if _refresh_area(db, area, provider):
                 refreshed += 1

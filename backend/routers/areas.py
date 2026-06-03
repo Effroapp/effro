@@ -27,6 +27,57 @@ def _unique_slug(db: Session, base: str) -> str:
     return slug
 
 
+def _compute_summary_meta(area: models.Area, db: Session) -> tuple[bool, int]:
+    """
+    Is the summary out of sync with the area's activity, and by how much?
+
+    Stale = there's an entry created, or a thread touched, AFTER the summary
+    was last generated. `new_count` is the number of entries newer than the
+    summary. Returns (False, 0) when the summary has never been generated
+    (no baseline to compare against — we don't cry wolf on legacy summaries).
+    """
+    if not area.summary_updated_at:
+        return False, 0
+    new_count = (
+        db.query(func.count(models.Entry.id))
+        .join(models.Thread, models.Entry.thread_id == models.Thread.id)
+        .filter(
+            models.Thread.area_id == area.id,
+            models.Entry.created_at > area.summary_updated_at,
+        )
+        .scalar()
+    ) or 0
+    newer_thread = (
+        db.query(models.Thread.id)
+        .filter(
+            models.Thread.area_id == area.id,
+            models.Thread.updated_at > area.summary_updated_at,
+        )
+        .first()
+    )
+    return (new_count > 0 or newer_thread is not None), new_count
+
+
+def _summary_meta_fields(area: models.Area, db: Session) -> dict:
+    stale, new_count = _compute_summary_meta(area, db)
+    return dict(
+        summary_updated_at=area.summary_updated_at,
+        summary_auto_generated=bool(area.summary_auto_generated),
+        summary_auto_update=bool(area.summary_auto_update),
+        summary_stale=stale,
+        summary_new_count=new_count,
+    )
+
+
+def _area_detail(area: models.Area, db: Session) -> schemas.AreaDetail:
+    return schemas.AreaDetail(
+        id=area.id, name=area.name, slug=area.slug, status=area.status,
+        summary=area.summary or "", icon=area.icon,
+        created_at=area.created_at, updated_at=area.updated_at,
+        **_summary_meta_fields(area, db),
+    )
+
+
 def _area_summary(area: models.Area, db: Session) -> schemas.AreaSummary:
     """Build an AreaSummary including computed thread counts."""
     thread_count = (
@@ -53,6 +104,7 @@ def _area_summary(area: models.Area, db: Session) -> schemas.AreaSummary:
         updated_at=area.updated_at,
         thread_count=thread_count,
         open_thread_count=open_count,
+        **_summary_meta_fields(area, db),
     )
 
 
@@ -96,7 +148,20 @@ def get_area(area_id: int, db: Session = Depends(get_db)):
     area = db.query(models.Area).filter(models.Area.id == area_id).first()
     if not area:
         raise HTTPException(status_code=404, detail="Area not found")
-    return area
+    return _area_detail(area, db)
+
+
+@router.post("/areas/auto-update-all", status_code=200)
+def set_auto_update_all(payload: schemas.AreaUpdate, db: Session = Depends(get_db)):
+    """Turn the per-area summary auto-update on/off for EVERY area at once.
+    Used by the 'apply to all areas' choice on the Overview card."""
+    enabled = bool(payload.auto_update)
+    db.query(models.Area).update(
+        {models.Area.summary_auto_update: enabled},
+        synchronize_session=False,
+    )
+    db.commit()
+    return {"updated": True, "enabled": enabled}
 
 
 @router.put("/areas/{area_id}", response_model=schemas.AreaDetail)
@@ -119,6 +184,11 @@ def update_area(area_id: int, payload: schemas.AreaUpdate, db: Session = Depends
                   action='updated', field='summary',
                   old_value=(area.summary or '')[:200], new_value=payload.summary[:200])
         area.summary = payload.summary
+        # A summary saved through the UI is, by definition, a manual update:
+        # stamp it now and clear the auto-generated flag so the card reads
+        # "Updated …" rather than "Auto-generated …".
+        area.summary_updated_at = datetime.utcnow()
+        area.summary_auto_generated = False
     elif payload.summary is not None:
         area.summary = payload.summary
 
@@ -128,10 +198,13 @@ def update_area(area_id: int, payload: schemas.AreaUpdate, db: Session = Depends
                   old_value=area.icon, new_value=payload.icon or None)
         area.icon = payload.icon or None
 
+    if payload.auto_update is not None:
+        area.summary_auto_update = bool(payload.auto_update)
+
     area.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(area)
-    return area
+    return _area_detail(area, db)
 
 
 @router.post("/areas/{area_id}/summary/suggest", response_model=schemas.SummarySuggestion)
