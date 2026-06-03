@@ -49,3 +49,4 @@ src-tauri/binaries/
 *.spec.backup
 
 .claude/
+.build-assets/

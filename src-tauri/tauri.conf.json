@@ -48,7 +48,10 @@
       },
       "nsis": {
         "installMode": "currentUser",
-        "installerHooks": "installer/hooks.nsi"
+        "installerHooks": "installer/hooks.nsi",
+        "installerIcon": "icons/icon.ico",
+        "headerImage": "installer/header.bmp",
+        "sidebarImage": "installer/sidebar.bmp"
       }
     },
     "createUpdaterArtifacts": true
