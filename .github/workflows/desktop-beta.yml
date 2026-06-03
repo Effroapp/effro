@@ -64,10 +64,10 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
-          key: ${{ matrix.platform }}-cargo-beta-${{ hashFiles('src-tauri/Cargo.lock') }}
+          key: ${{ matrix.platform }}-cargo-beta-v2-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
-            ${{ matrix.platform }}-cargo-beta-
-            ${{ matrix.platform }}-cargo-
+            ${{ matrix.platform }}-cargo-beta-v2-
+            ${{ matrix.platform }}-cargo-v2-
 
       # ── Compute beta version ────────────────────────────────────────────
       - name: Compute beta version

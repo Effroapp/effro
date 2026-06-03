@@ -83,9 +83,12 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
-          key: ${{ matrix.platform }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          # v2 prefix busts the cache after the Trace→Effro repo rename.
+          # Absolute paths baked into the old target/ artifacts no longer
+          # match the new D:\a\effro\effro runner path.
+          key: ${{ matrix.platform }}-cargo-v2-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
-            ${{ matrix.platform }}-cargo-
+            ${{ matrix.platform }}-cargo-v2-
 
       # ── Dependencies ────────────────────────────────────────────────────
       - name: Install backend Python deps + PyInstaller
