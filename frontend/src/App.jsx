@@ -13,6 +13,7 @@ import QuickCapture from './components/QuickCapture'
 import QuickSwitcher from './components/QuickSwitcher'
 import NewAreaModal from './components/NewAreaModal'
 import SplashScreen from './components/SplashScreen'
+import OnboardingWizard, { useOnboarding } from './components/OnboardingWizard'
 import Sidebar from './components/Sidebar'
 import Dashboard from './pages/Dashboard'
 import Insights from './pages/Insights'
@@ -119,12 +120,22 @@ export default function App() {
 function Shell({ onOpenSwitcher, onOpenNewArea, updater, systemSettingsBadge }) {
   const [areas, setAreas] = useState([])
   const location = useLocation()
+  const { shouldShow } = useOnboarding()
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   const loadAreas = useCallback(() => {
     areasApi.list().then(setAreas).catch(() => {})
   }, [])
 
   useEffect(() => { loadAreas() }, [location.pathname, loadAreas])
+
+  // Fire wizard after the splash screen has cleared (250ms buffer)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (shouldShow()) setShowOnboarding(true)
+    }, 250)
+    return () => clearTimeout(t)
+  }, [shouldShow])
 
   return (
     <div className="flex min-h-screen bg-white dark:bg-pitch-800">
@@ -134,7 +145,7 @@ function Shell({ onOpenSwitcher, onOpenNewArea, updater, systemSettingsBadge }) 
         onOpenNewArea={onOpenNewArea}
         systemSettingsBadge={systemSettingsBadge}
       />
-      <main className="flex-1 min-w-0">
+      <main data-onboarding="main-content" className="flex-1 min-w-0">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/insights" element={<Insights />} />
@@ -146,6 +157,11 @@ function Shell({ onOpenSwitcher, onOpenNewArea, updater, systemSettingsBadge }) 
           <Route path="/settings" element={<SystemSettings updater={updater} />} />
         </Routes>
       </main>
+
+      {/* Onboarding wizard — fires once on first run, replayable from Help */}
+      {showOnboarding && (
+        <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
+      )}
     </div>
   )
 }

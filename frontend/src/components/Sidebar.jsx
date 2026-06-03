@@ -194,15 +194,19 @@ export default function Sidebar({
       <div className={`${collapsed ? 'px-2' : 'px-3'} pt-3 pb-1 space-y-0.5`}>
         <NavLink to="/" icon={LayoutDashboard} label="Dashboard" active={location.pathname === '/'} collapsed={collapsed} />
         <NavLink to="/insights" icon={Telescope} label="Insights" active={location.pathname === '/insights'} collapsed={collapsed} />
-        <NavLink
-          to="/signals"
-          icon={Radar}
-          label="Signals"
-          active={location.pathname === '/signals'}
-          collapsed={collapsed}
-          badge={signalsPending}
-        />
-        <NavLink to="/process" icon={BrainCircuit} label="Smart Generate" active={location.pathname === '/process'} collapsed={collapsed} />
+        <div data-onboarding="signals-nav">
+          <NavLink
+            to="/signals"
+            icon={Radar}
+            label="Signals"
+            active={location.pathname === '/signals'}
+            collapsed={collapsed}
+            badge={signalsPending}
+          />
+        </div>
+        <div data-onboarding="smart-gen-nav">
+          <NavLink to="/process" icon={BrainCircuit} label="Smart Generate" active={location.pathname === '/process'} collapsed={collapsed} />
+        </div>
       </div>
 
       {/* Areas section header (hidden when collapsed - icons alone provide the hierarchy) */}
@@ -215,7 +219,7 @@ export default function Sidebar({
       )}
 
       {/* Area list + inline Add area */}
-      <nav className={`flex-1 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'} pb-3 space-y-0.5 ${collapsed ? 'pt-3' : ''}`}>
+      <nav data-onboarding="sidebar-areas" className={`flex-1 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'} pb-3 space-y-0.5 ${collapsed ? 'pt-3' : ''}`}>
         {areas.map((area) => {
           const config = getAreaStatus(area.status)
           const isActive = areaId && parseInt(areaId) === area.id
