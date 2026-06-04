@@ -292,7 +292,7 @@ function StatusPill({ status, comingIn }) {
       <span className="
         inline-flex items-center
         text-[9px] font-mono uppercase tracking-wider
-        text-amber-600 dark:text-amber-400
+        text-mustard
         flex-shrink-0
       ">
         set up

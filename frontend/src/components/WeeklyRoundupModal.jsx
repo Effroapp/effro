@@ -90,10 +90,10 @@ export default function WeeklyRoundupModal({ isOpen, onClose }) {
           </p>
 
           {staleAreas.length > 0 && (
-            <div className="mb-4 px-3 py-2.5 rounded-lg bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/30 dark:border-amber-500/30">
+            <div className="mb-4 px-3 py-2.5 rounded-lg bg-mustard/5 dark:bg-mustard/10 border border-mustard/30">
               <div className="flex items-center gap-1.5 mb-1.5">
-                <Clock size={12} className="text-amber-500 dark:text-amber-400" />
-                <span className="font-display uppercase tracking-widest text-xs text-amber-600 dark:text-amber-400">
+                <Clock size={12} className="text-mustard" />
+                <span className="font-display uppercase tracking-widest text-xs text-mustard">
                   Quiet · 14+ days
                 </span>
               </div>
@@ -152,7 +152,7 @@ export default function WeeklyRoundupModal({ isOpen, onClose }) {
 
       {phase === 'error' && (
         <div className="py-6 flex flex-col items-center gap-4">
-          <p className="text-sm text-red-500 text-center">{error}</p>
+          <p className="text-sm text-terracotta text-center">{error}</p>
           <button
             onClick={handleGenerate}
             className="

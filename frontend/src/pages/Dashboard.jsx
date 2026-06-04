@@ -342,7 +342,7 @@ function AreaCard({ area }) {
 
           <div className="flex items-center gap-2">
               {daysSinceUpdate >= INACTIVITY_THRESHOLD_DAYS && area.status !== 'stable' && (
-                <span className="flex items-center gap-1 font-mono text-xs text-amber-500 dark:text-amber-400">
+                <span className="flex items-center gap-1 font-mono text-xs text-mustard">
                   <Clock size={11} />
                   {daysSinceUpdate}d quiet
                 </span>
@@ -378,7 +378,7 @@ function ErrorState({ message, onRetry }) {
   return (
     <div className="flex-1 flex items-center justify-center min-h-screen bg-paper-100 dark:bg-pitch-800">
       <div className="text-center">
-        <p className="text-sm text-red-500 mb-3">{message}</p>
+        <p className="text-sm text-terracotta mb-3">{message}</p>
         <button onClick={onRetry} className="flex items-center gap-2 px-4 py-2 rounded-md bg-paper-200 dark:bg-pitch-700 text-sm text-pitch-500 dark:text-paper-300 hover:bg-paper-300 dark:hover:bg-pitch-500 transition-colors mx-auto">
           <RefreshCw size={13} /> Retry
         </button>

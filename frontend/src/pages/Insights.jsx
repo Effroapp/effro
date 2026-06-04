@@ -206,7 +206,7 @@ export default function Insights() {
                     })}
                   </ul>
                 ) : (
-                  <EmptyHint>Nothing due — you're clear</EmptyHint>
+                  <EmptyHint>Nothing due. You're clear.</EmptyHint>
                 )}
               </RaisedCard>
             </div>

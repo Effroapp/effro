@@ -48,8 +48,8 @@ function Toast({ toast, onRemove }) {
         pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-lg shadow-lg
         border text-sm font-medium animate-slide-in
         ${isSuccess
-          ? 'bg-white dark:bg-pitch-700 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
-          : 'bg-white dark:bg-pitch-700 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+          ? 'bg-white dark:bg-pitch-700 border-mint/30 text-mint-700 dark:text-mint-300'
+          : 'bg-white dark:bg-pitch-700 border-terracotta/40 text-terracotta'
         }
       `}
     >

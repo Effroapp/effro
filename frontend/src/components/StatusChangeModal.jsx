@@ -81,7 +81,7 @@ export default function StatusChangeModal({
         <div>
           <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
             {isBlocking ? (
-              <>Reason <span className="text-red-500">*</span></>
+              <>Reason <span className="text-terracotta">*</span></>
             ) : (
               <>Note <span className="text-paper-400 dark:text-paper-700 normal-case font-mono">- optional</span></>
             )}

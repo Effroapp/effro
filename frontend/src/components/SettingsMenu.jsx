@@ -161,7 +161,7 @@ export default function SettingsMenu({
               </div>
             </div>
             {uploadError && (
-              <p className="mt-1.5 text-[10px] text-red-500 font-mono">
+              <p className="mt-1.5 text-[10px] text-terracotta font-mono">
                 {uploadError}
               </p>
             )}

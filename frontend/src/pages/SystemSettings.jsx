@@ -135,7 +135,7 @@ function AISummaryCard({ config, onEdit }) {
     return (
       <div className="flex items-center justify-between gap-3 p-4 rounded-lg bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500">
         <div className="flex items-start gap-3 min-w-0">
-          <AlertCircle size={16} className="flex-shrink-0 mt-0.5 text-amber-500" />
+          <AlertCircle size={16} className="flex-shrink-0 mt-0.5 text-mustard" />
           <div className="min-w-0">
             <p className="text-sm font-medium text-pitch-800 dark:text-white">
               AI not configured yet
@@ -553,7 +553,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
           flex items-start gap-2 p-3 rounded-lg text-xs leading-snug
           ${testResult.ok
             ? 'bg-mint-50 dark:bg-mint-900/20 text-mint-700 dark:text-mint-300 border border-mint/40'
-            : 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800'
+            : 'bg-terracotta/10 dark:bg-terracotta/15 text-terracotta border border-terracotta/30'
           }
         `}>
           {testResult.ok
@@ -565,7 +565,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
       )}
 
       {error && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400">
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-terracotta/10 dark:bg-terracotta/15 border border-terracotta/30 text-xs text-terracotta">
           <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
           {error}
         </div>
@@ -703,9 +703,9 @@ function UpdateSection({ updater }) {
       )}
 
       {updater?.status === 'error' && (
-        <div className="rounded-lg p-3 mb-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 flex items-start gap-2">
-          <AlertCircle size={11} className="flex-shrink-0 mt-0.5 text-red-500" />
-          <p className="text-xs text-red-500 leading-snug">
+        <div className="rounded-lg p-3 mb-4 bg-terracotta/10 dark:bg-terracotta/15 border border-terracotta/30 flex items-start gap-2">
+          <AlertCircle size={11} className="flex-shrink-0 mt-0.5 text-terracotta" />
+          <p className="text-xs text-terracotta leading-snug">
             Update failed: {updater.error}
           </p>
         </div>
@@ -840,14 +840,14 @@ function StorageSection({ id }) {
 
             {error && (
               <div className="mt-2 flex items-start gap-1.5">
-                <AlertCircle size={12} className="flex-shrink-0 mt-0.5 text-red-500" />
-                <p className="text-xs text-red-500 leading-snug">{error}</p>
+                <AlertCircle size={12} className="flex-shrink-0 mt-0.5 text-terracotta" />
+                <p className="text-xs text-terracotta leading-snug">{error}</p>
               </div>
             )}
 
             {restartPending && (
-              <div className="mt-2 rounded-lg p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
-                <p className="text-sm text-amber-700 dark:text-amber-400 mb-2 leading-snug">
+              <div className="mt-2 rounded-lg p-3 bg-mustard/10 dark:bg-mustard/15 border border-mustard/30">
+                <p className="text-sm text-mustard mb-2 leading-snug">
                   Data moved. Effro needs to restart to use the new location.
                 </p>
                 <button

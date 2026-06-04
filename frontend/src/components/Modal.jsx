@@ -118,7 +118,7 @@ export default function Modal({ isOpen, onClose, title, children, width = 'max-w
               shadow-2xl p-5
             ">
               <div className="flex gap-3 mb-4">
-                <AlertTriangle size={18} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                <AlertTriangle size={18} className="text-mustard flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-display uppercase tracking-wide text-xs text-pitch-800 dark:text-white mb-1">
                     Discard changes?
@@ -145,7 +145,7 @@ export default function Modal({ isOpen, onClose, title, children, width = 'max-w
                   onClick={confirmDiscard}
                   className="
                     px-3 py-1.5 text-xs rounded-md font-display uppercase tracking-wide
-                    text-white bg-red-600 hover:bg-red-700
+                    text-white bg-terracotta hover:opacity-90
                     transition-colors
                   "
                 >

@@ -41,7 +41,7 @@ export default function AddMeetingModal({ isOpen, onClose, onSubmit, submitting 
       <form onSubmit={submit} className="space-y-4">
         <div>
           <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
-            Title <span className="text-red-500">*</span>
+            Title <span className="text-terracotta">*</span>
           </label>
           <input
             ref={titleRef}
@@ -60,7 +60,7 @@ export default function AddMeetingModal({ isOpen, onClose, onSubmit, submitting 
 
         <div>
           <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
-            When <span className="text-red-500">*</span>
+            When <span className="text-terracotta">*</span>
           </label>
           <div className="flex items-center gap-2">
             <Calendar size={14} className="text-paper-500 dark:text-paper-600 flex-shrink-0" />

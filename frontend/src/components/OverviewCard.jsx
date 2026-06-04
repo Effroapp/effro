@@ -122,8 +122,8 @@ export default function OverviewCard({
         {/* Subtle sync state — a small dot, not a pill. */}
         {hasSummary && (
           data.summary_stale ? (
-            <span className="flex items-center gap-1 text-amber-600/90 dark:text-amber-400/90">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+            <span className="flex items-center gap-1 text-mustard">
+              <span className="w-1.5 h-1.5 rounded-full bg-mustard flex-shrink-0" />
               {data.summary_new_count > 0
                 ? `${data.summary_new_count} new since`
                 : 'out of sync'}

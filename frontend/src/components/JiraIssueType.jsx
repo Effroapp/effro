@@ -30,7 +30,7 @@ export default function JiraIssueType({ kind, showLabel = true, size = 15 }) {
   return (
     <span className="inline-flex items-center gap-1.5 align-middle" title={`Jira ${t.label}`}>
       <span
-        className="inline-flex items-center justify-center rounded-[3px] flex-shrink-0"
+        className="inline-flex items-center justify-center rounded-sm flex-shrink-0"
         style={{ backgroundColor: t.bg, width: size, height: size }}
       >
         <Icon size={Math.round(size * 0.66)} color="#ffffff" strokeWidth={3} />

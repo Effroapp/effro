@@ -436,7 +436,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                 flex items-start gap-2 p-3 rounded-lg text-xs leading-snug border
                 ${testResult.ok
                   ? 'bg-mint-50 dark:bg-mint-900/20 text-mint-700 dark:text-mint-300 border-mint/40'
-                  : 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800'}
+                  : 'bg-terracotta/10 dark:bg-terracotta/15 text-terracotta border-terracotta/30'}
               `}>
                 {testResult.ok
                   ? <CheckCircle2 size={14} className="flex-shrink-0 mt-0.5" />
@@ -468,7 +468,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
             )}
 
             {error && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400">
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-terracotta/10 dark:bg-terracotta/15 border border-terracotta/30 text-xs text-terracotta">
                 <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
                 {error}
               </div>
@@ -511,7 +511,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                         flex items-center gap-2 px-3 py-2 rounded-lg text-xs border
                         ${entry.status === 'success'
                           ? 'bg-mint-50 dark:bg-mint-900/20 border-mint/30 text-mint-700 dark:text-mint-300'
-                          : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900 text-red-600 dark:text-red-400'}
+                          : 'bg-terracotta/10 dark:bg-terracotta/15 border-terracotta/30 text-terracotta'}
                       `}
                     >
                       {entry.status === 'success'
@@ -583,9 +583,9 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                 onClick={handleDisconnect}
                 className="
                   w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs
-                  border border-red-200 dark:border-red-900
-                  text-red-600 dark:text-red-400
-                  hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors
+                  border border-terracotta/30
+                  text-terracotta
+                  hover:bg-terracotta/10 transition-colors
                 "
               >
                 <Unplug size={12} /> Disconnect
@@ -596,7 +596,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400">
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-terracotta/10 dark:bg-terracotta/15 border border-terracotta/30 text-xs text-terracotta">
                 <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
                 {error}
               </div>

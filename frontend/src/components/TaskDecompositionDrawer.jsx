@@ -253,7 +253,7 @@ function SubtaskEditRow({ item, index, onUpdateTitle, onRemove, isLast }) {
       {!isLast && (
         <button
           onClick={() => onRemove(item._id)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 mt-0.5 flex-shrink-0 text-paper-400 dark:text-paper-600 hover:text-red-500"
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 mt-0.5 flex-shrink-0 text-paper-400 dark:text-paper-600 hover:text-terracotta"
           aria-label="Remove subtask"
         >
           <Trash2 size={13} />

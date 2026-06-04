@@ -165,7 +165,7 @@ export default function SubtaskList({
 
                 <button
                   onClick={() => handleDelete(subtask.id)}
-                  className="opacity-0 group-hover/row:opacity-100 transition-opacity p-0.5 flex-shrink-0 text-paper-400 dark:text-paper-600 hover:text-red-500"
+                  className="opacity-0 group-hover/row:opacity-100 transition-opacity p-0.5 flex-shrink-0 text-paper-400 dark:text-paper-600 hover:text-terracotta"
                   aria-label="Delete subtask"
                 >
                   <X size={12} />

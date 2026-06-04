@@ -171,7 +171,7 @@ export default function MicrosoftIntegration() {
           </button>
         </div>
         {error && (
-          <div className="flex items-start gap-2 p-2 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400">
+          <div className="flex items-start gap-2 p-2 rounded-md bg-terracotta/10 dark:bg-terracotta/15 border border-terracotta/30 text-xs text-terracotta">
             <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
             {error}
           </div>
@@ -237,8 +237,8 @@ export default function MicrosoftIntegration() {
           onClick={handleDisconnect}
           className="
             ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs
-            text-red-500/80 hover:text-red-500
-            hover:bg-red-50 dark:hover:bg-red-950/30
+            text-terracotta/80 hover:text-terracotta
+            hover:bg-terracotta/10
             font-display uppercase tracking-wide transition-colors
           "
         >
@@ -248,7 +248,7 @@ export default function MicrosoftIntegration() {
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 p-2 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400">
+        <div className="flex items-start gap-2 p-2 rounded-md bg-terracotta/10 dark:bg-terracotta/15 border border-terracotta/30 text-xs text-terracotta">
           <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
           {error}
         </div>
@@ -299,7 +299,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
           >
             docs/AZURE_SETUP.md <ExternalLink size={10} />
           </a>
-          {' '}— takes about 5 minutes. Paste the values it tells you to copy below.
+          {' '}takes about 5 minutes. Paste the values it tells you to copy below.
           Your client secret is encrypted before it touches disk.
         </div>
       </div>
@@ -332,7 +332,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
       />
 
       {error && (
-        <div className="flex items-start gap-2 p-2 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400">
+        <div className="flex items-start gap-2 p-2 rounded-md bg-terracotta/10 dark:bg-terracotta/15 border border-terracotta/30 text-xs text-terracotta">
           <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
           {error}
         </div>

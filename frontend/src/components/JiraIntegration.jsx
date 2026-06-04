@@ -209,8 +209,8 @@ export default function JiraIntegration() {
           onClick={handleDisconnect}
           className="
             ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs
-            text-red-500/80 hover:text-red-500
-            hover:bg-red-50 dark:hover:bg-red-950/30
+            text-terracotta/80 hover:text-terracotta
+            hover:bg-terracotta/10
             font-display uppercase tracking-wide transition-colors
           "
         >
@@ -262,7 +262,7 @@ export default function JiraIntegration() {
           })}
         </div>
         <p className="mt-2 text-[11px] text-paper-500 dark:text-paper-600 leading-snug">
-          Syncs every 30 minutes into Signals for triage. Read-only — Effro never writes to Jira. Changing this re-syncs now; issues already in Signals stay until you dismiss them.
+          Syncs every 30 minutes into Signals for triage. Read-only, so Effro never writes to Jira. Changing this re-syncs now; issues already in Signals stay until you dismiss them.
         </p>
       </div>
     </div>
@@ -299,7 +299,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
           >
             docs/JIRA_SETUP.md <ExternalLink size={10} />
           </a>
-          {' '}— takes about 5 minutes. Your client secret is Fernet-encrypted before it touches disk.
+          {' '}takes about 5 minutes. Your client secret is Fernet-encrypted before it touches disk.
         </div>
       </div>
 
@@ -385,7 +385,7 @@ function Field({ label, hint, value, onChange, placeholder, type = 'text', autoC
 
 function ErrorBanner({ message }) {
   return (
-    <div className="flex items-start gap-2 p-2 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400">
+    <div className="flex items-start gap-2 p-2 rounded-md bg-terracotta/10 dark:bg-terracotta/15 border border-terracotta/30 text-xs text-terracotta">
       <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
       {message}
     </div>

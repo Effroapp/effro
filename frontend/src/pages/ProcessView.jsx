@@ -49,9 +49,9 @@ function isoDateTimeOrNull(s) {
 // ─── Source chip ──────────────────────────────────────────────────────────────
 
 const KIND_META = {
-  pdf:  { Icon: FileText, label: 'PDF',      tint: 'text-red-500    dark:text-red-400'    },
-  eml:  { Icon: Mail,     label: 'Email',    tint: 'text-violet-500 dark:text-violet-400' },
-  ics:  { Icon: Calendar, label: 'Calendar', tint: 'text-emerald-500 dark:text-emerald-400' },
+  pdf:  { Icon: FileText, label: 'PDF',      tint: 'text-terracotta    dark:text-terracotta'    },
+  eml:  { Icon: Mail,     label: 'Email',    tint: 'text-lavender' },
+  ics:  { Icon: Calendar, label: 'Calendar', tint: 'text-sage' },
   text: { Icon: FileText, label: 'Text',     tint: 'text-paper-600   dark:text-paper-500'   },
 }
 
@@ -80,7 +80,7 @@ function SourceChip({ source, onRemove }) {
       <button
         onClick={onRemove}
         title="Remove source reference (text stays)"
-        className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-red-500 transition-colors flex-shrink-0"
+        className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-terracotta transition-colors flex-shrink-0"
       >
         <X size={12} />
       </button>
@@ -316,7 +316,7 @@ function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApprov
               title="Reject this item"
               className="
                 flex items-center justify-center
-                bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500/20
+                bg-terracotta/10 text-terracotta hover:bg-terracotta/20
                 rounded-md p-2 transition-colors
               "
             >
@@ -933,7 +933,7 @@ export default function ProcessView() {
           {/* Area selector */}
           <div className="mb-4">
             <p className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
-              Area <span className="text-red-500">*</span>
+              Area <span className="text-terracotta">*</span>
             </p>
             <div className={`
               flex flex-wrap gap-2 p-1 -m-1 rounded-md transition-colors
@@ -1052,8 +1052,8 @@ export default function ProcessView() {
 
           {/* Error state */}
           {error && (
-            <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-200 dark:border-red-900/50">
-              <p className="text-sm text-red-500">{error}</p>
+            <div className="mt-4 p-3 rounded-lg bg-terracotta/10 border border-terracotta/30">
+              <p className="text-sm text-terracotta">{error}</p>
               <button
                 onClick={() => { setError(null); handleProcess() }}
                 className="mt-2 text-xs font-display uppercase tracking-wide text-paper-500 hover:text-pitch-500 dark:hover:text-paper-300 transition-colors"

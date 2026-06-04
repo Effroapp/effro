@@ -38,16 +38,16 @@ export default function ActionSuggestionBanner({ actions, threadId, onCreateTodo
       mt-2 rounded-lg border transition-colors
       ${allCreated
         ? 'bg-mint-50 dark:bg-mint-900/20 border-mint/40'
-        : 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50'}
+        : 'bg-mustard/10 dark:bg-mustard/15 border-mustard/30'}
     `}>
       {/* Header */}
       <div className="flex items-center justify-between px-3.5 pt-3 pb-2">
         <div className="flex items-center gap-2">
           {allCreated
             ? <Check size={13} className="text-mint-700 dark:text-mint-300 flex-shrink-0" />
-            : <ListChecks size={13} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />}
+            : <ListChecks size={13} className="text-mustard flex-shrink-0" />}
           <span className={`text-xs font-display uppercase tracking-wide ${
-            allCreated ? 'text-mint-700 dark:text-mint-300' : 'text-amber-700 dark:text-amber-400'
+            allCreated ? 'text-mint-700 dark:text-mint-300' : 'text-mustard'
           }`}>
             {allCreated
               ? 'To-dos added'
@@ -99,9 +99,9 @@ export default function ActionSuggestionBanner({ actions, threadId, onCreateTodo
                   className="
                     flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded
                     text-xs font-medium
-                    bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400
-                    border border-amber-200 dark:border-amber-800
-                    hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors
+                    bg-mustard/15 dark:bg-mustard/20 text-mustard
+                    border border-mustard/30
+                    hover:bg-mustard/25 transition-colors
                   "
                 >
                   <Plus size={12} />

@@ -6,9 +6,9 @@ import { areasApi } from '../api/client'
 
 const ACTION_BADGE = {
   created:     'bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-200',
-  updated:     'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  deleted:     'bg-red-500/10 text-red-500 dark:text-red-400',
-  completed:   'bg-sky-500/10 text-sky-500 dark:text-sky-400',
+  updated:     'bg-mustard/10 text-mustard',
+  deleted:     'bg-terracotta/10 text-terracotta',
+  completed:   'bg-mint/10 text-mint-600 dark:text-mint-300',
   uncompleted: 'bg-paper-300/50 text-paper-600 dark:bg-pitch-500/50 dark:text-paper-500',
 }
 
@@ -163,7 +163,7 @@ export default function LogView() {
           <LogSkeleton />
         ) : error ? (
           <div className="text-center py-16">
-            <p className="text-sm text-red-500 mb-3">{error}</p>
+            <p className="text-sm text-terracotta mb-3">{error}</p>
             <button
               onClick={load}
               className="flex items-center gap-2 px-4 py-2 rounded-md bg-paper-200 dark:bg-pitch-700 text-sm mx-auto hover:bg-paper-300 dark:hover:bg-pitch-500 transition-colors"

@@ -34,8 +34,8 @@ const ENTRY_TYPES = ENTITY_TYPES.filter((t) => t.key !== 'meeting')
 
 function getDueDateClass(dueDateStr) {
   const today = format(new Date(), 'yyyy-MM-dd')
-  if (dueDateStr === today) return 'text-amber-500 font-semibold'
-  if (dueDateStr < today)  return 'text-red-500 font-semibold'
+  if (dueDateStr === today) return 'text-mustard font-semibold'
+  if (dueDateStr < today)  return 'text-terracotta font-semibold'
   return 'text-paper-500 dark:text-paper-600'
 }
 
@@ -534,7 +534,7 @@ export default function ThreadView() {
   if (error) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm text-red-500">{error}</p>
+        <p className="text-sm text-terracotta">{error}</p>
       </div>
     )
   }
@@ -608,7 +608,7 @@ export default function ThreadView() {
                       text-pitch-800 dark:text-white outline-none px-0
                     "
                   />
-                  <button onClick={saveTitle} className="p-1 text-green-500 hover:text-green-600"><Check size={16} /></button>
+                  <button onClick={saveTitle} className="p-1 text-mint-600 hover:text-mint-700"><Check size={16} /></button>
                   <button onClick={() => { setTitleDraft(thread.title); setEditingTitle(false) }} className="p-1 text-paper-500 hover:text-paper-700"><X size={16} /></button>
                 </div>
               ) : (
@@ -655,7 +655,7 @@ export default function ThreadView() {
               {/* Delete thread */}
               <button
                 onClick={() => setDeleteThreadOpen(true)}
-                className="p-2 rounded text-paper-400 dark:text-paper-700 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                className="p-2 rounded text-paper-400 dark:text-paper-700 hover:text-terracotta hover:bg-terracotta/10 transition-colors"
                 title="Delete thread"
               >
                 <Trash2 size={15} />
@@ -677,7 +677,7 @@ export default function ThreadView() {
                     text-paper-700 dark:text-paper-400 outline-none resize-none
                   "
                 />
-                <button onClick={saveDescription} className="p-1 text-green-500"><Check size={14} /></button>
+                <button onClick={saveDescription} className="p-1 text-mint-600"><Check size={14} /></button>
                 <button onClick={() => { setDescDraft(thread.description); setEditingDescription(false) }} className="p-1 text-paper-500"><X size={14} /></button>
               </div>
             ) : (
@@ -1342,7 +1342,7 @@ function ThreadLinksList({ outgoing, incoming, onRemove }) {
               <button
                 onClick={() => onRemove(row.link_id)}
                 title="Remove link"
-                className="p-1 rounded opacity-0 group-hover:opacity-100 text-paper-400 dark:text-paper-700 hover:text-red-500 transition-all"
+                className="p-1 rounded opacity-0 group-hover:opacity-100 text-paper-400 dark:text-paper-700 hover:text-terracotta transition-all"
               >
                 <X size={11} />
               </button>
@@ -1410,7 +1410,7 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
       {/* Timeline dot */}
       <div className={`
         absolute left-3 top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-pitch-800 z-10
-        ${isDecision ? 'bg-amber-400' : 'bg-mint'}
+        ${isDecision ? 'bg-amber-muted' : 'bg-mint'}
       `} />
 
       <div className={`
@@ -1426,7 +1426,7 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
       `}>
         {/* Type accent bar */}
         {isDecision && (
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400 rounded-l-xl" />
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-muted rounded-l-xl" />
         )}
         {isMeeting && (
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-lavender rounded-l-xl" />
@@ -1439,7 +1439,7 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
         <div className={`flex items-center justify-between px-4 py-2.5 border-b border-paper-100 dark:border-pitch-500 ${isBlockage ? 'bg-terracotta/5 dark:bg-terracotta/10' : 'bg-paper-100/50 dark:bg-pitch-800/30'} ${(isDecision || isMeeting || isBlockage) ? 'pl-5' : ''}`}>
           <div className="flex items-center gap-2">
             {isDecision && (
-              <span className="font-display uppercase text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded">
+              <span className="font-display uppercase text-xs bg-amber-muted/10 text-amber-muted px-1.5 py-0.5 rounded">
                 Decision
               </span>
             )}
@@ -1470,7 +1470,7 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
             >
               <Edit3 size={12} />
             </button>
-            <button onClick={onDelete} className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+            <button onClick={onDelete} className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-terracotta hover:bg-terracotta/10 transition-colors">
               <Trash2 size={12} />
             </button>
           </div>
@@ -1611,7 +1611,7 @@ function FileItem({ file, onDelete }) {
       </a>
       <button
         onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 p-0.5 text-paper-400 hover:text-red-500 transition-all"
+        className="opacity-0 group-hover:opacity-100 p-0.5 text-paper-400 hover:text-terracotta transition-all"
       >
         <X size={11} />
       </button>
@@ -1636,7 +1636,7 @@ function LinkItem({ link, onDelete }) {
       </a>
       <button
         onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 p-0.5 text-paper-400 hover:text-red-500 transition-all"
+        className="opacity-0 group-hover:opacity-100 p-0.5 text-paper-400 hover:text-terracotta transition-all"
       >
         <X size={11} />
       </button>

@@ -462,7 +462,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
                 text-pitch-800 dark:text-white
               "
             >
-              <option value="">— pick an area —</option>
+              <option value="">Pick an area</option>
               {areas.map((a) => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
@@ -484,7 +484,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
                   text-pitch-800 dark:text-white
                 "
               >
-                <option value="">— new thread named "{signal.title.slice(0, 40)}{signal.title.length > 40 ? '…' : ''}" —</option>
+                <option value="">New thread named "{signal.title.slice(0, 40)}{signal.title.length > 40 ? '…' : ''}"</option>
                 {threadsInArea.map((t) => (
                   <option key={t.id} value={t.id}>{t.title}</option>
                 ))}
