@@ -216,7 +216,7 @@ def suggest_area_summary(area_id: int, db: Session = Depends(get_db)):
     threads = (
         db.query(models.Thread)
         .filter(models.Thread.area_id == area.id)
-        .order_by(models.Thread.updated_at.desc())
+        .order_by(models.Thread.position.asc().nulls_last(), models.Thread.updated_at.desc())
         .limit(10)
         .all()
     )
@@ -278,7 +278,7 @@ def list_area_threads(area_id: int, db: Session = Depends(get_db)):
     threads = (
         db.query(models.Thread)
         .filter(models.Thread.area_id == area_id)
-        .order_by(models.Thread.updated_at.desc())
+        .order_by(models.Thread.position.asc().nulls_last(), models.Thread.updated_at.desc())
         .all()
     )
 
@@ -349,6 +349,27 @@ def create_thread(area_id: int, payload: schemas.ThreadCreate, db: Session = Dep
         entry_count=0,
         attachment_count=0,
     )
+
+
+@router.put("/areas/{area_id}/threads/reorder", status_code=200)
+def reorder_threads(area_id: int, payload: schemas.ThreadReorder, db: Session = Depends(get_db)):
+    """Persist a manual thread order within an area. The client sends the full
+    list of thread ids in their new display order; we write each one's position
+    as its index."""
+    area = db.query(models.Area).filter(models.Area.id == area_id).first()
+    if not area:
+        raise HTTPException(status_code=404, detail="Area not found")
+
+    by_id = {
+        t.id: t
+        for t in db.query(models.Thread).filter(models.Thread.area_id == area_id).all()
+    }
+    for index, thread_id in enumerate(payload.ordered_ids):
+        thread = by_id.get(thread_id)
+        if thread is not None:
+            thread.position = index
+    db.commit()
+    return {"ok": True, "count": len(payload.ordered_ids)}
 
 
 def _build_audit_context(rows):

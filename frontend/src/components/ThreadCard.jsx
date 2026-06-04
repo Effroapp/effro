@@ -11,6 +11,7 @@ export default function ThreadCard({ thread, areaId }) {
   return (
     <Link
       to={`/thread/${thread.id}`}
+      draggable={false}
       className="
         group block rounded-lg border transition-all duration-200
         bg-white dark:bg-pitch-700

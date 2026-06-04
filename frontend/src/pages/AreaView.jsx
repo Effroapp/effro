@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Plus, Check, X, Edit3, RefreshCw, History, ChevronDown, ChevronUp, Sparkles, Clock, Wand2 } from 'lucide-react'
+import { Plus, Check, X, Edit3, RefreshCw, History, ChevronDown, ChevronUp, Sparkles, Clock, Wand2, GripVertical } from 'lucide-react'
 import { format } from 'date-fns'
 import { areasApi } from '../api/client'
 import StatusBadge from '../components/StatusBadge'
@@ -62,6 +62,37 @@ export default function AreaView() {
   }
 
   useEffect(() => { load() }, [areaId])
+
+  // ── Drag-to-reorder threads ──────────────────────────────────────────────────
+  const [dragIndex, setDragIndex] = useState(null)
+  const [overIndex, setOverIndex] = useState(null)
+
+  const handleDragStart = (e, index) => {
+    setDragIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', String(index))  // Firefox needs a payload
+  }
+  const handleDragOver = (e, index) => {
+    if (dragIndex === null) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (overIndex !== index) setOverIndex(index)
+  }
+  const handleDragEnd = () => { setDragIndex(null); setOverIndex(null) }
+  const handleDrop = (e, index) => {
+    e.preventDefault()
+    const from = dragIndex
+    setDragIndex(null); setOverIndex(null)
+    if (from === null || from === index) return
+    const next = [...threads]
+    const [moved] = next.splice(from, 1)
+    next.splice(index, 0, moved)
+    setThreads(next)  // optimistic
+    areasApi.reorderThreads(areaId, next.map((t) => t.id)).catch((err) => {
+      toast(err.message || 'Could not save the new order', 'error')
+      load()  // revert to server truth
+    })
+  }
 
   useEffect(() => {
     if (editingSummary && summaryRef.current) {
@@ -339,8 +370,38 @@ export default function AreaView() {
             </div>
           ) : (
             <div className="space-y-3">
-              {threads.map((thread) => (
-                <ThreadCard key={thread.id} thread={thread} areaId={areaId} />
+              {threads.map((thread, index) => (
+                <div
+                  key={thread.id}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDrop={(e) => handleDrop(e, index)}
+                  className={`group/row flex items-stretch gap-1 rounded-lg transition-all ${
+                    dragIndex === index ? 'opacity-40' : ''
+                  } ${
+                    overIndex === index && dragIndex !== null && dragIndex !== index
+                      ? 'ring-2 ring-mint/50'
+                      : ''
+                  }`}
+                >
+                  {/* Reorder handle - invisible until the row is hovered */}
+                  <div
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragEnd={handleDragEnd}
+                    title="Drag to reorder"
+                    className="
+                      flex-shrink-0 flex items-center justify-center w-5
+                      cursor-grab active:cursor-grabbing
+                      text-paper-400 dark:text-paper-600
+                      opacity-0 group-hover/row:opacity-100 transition-opacity
+                    "
+                  >
+                    <GripVertical size={16} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <ThreadCard thread={thread} areaId={areaId} />
+                  </div>
+                </div>
               ))}
             </div>
           )}

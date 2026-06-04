@@ -40,6 +40,9 @@ class Thread(Base):
     title = Column(String(200), nullable=False)
     # open | in-progress | resolved | parked
     status = Column(String(50), default="open", nullable=False)
+    # Manual sort order within the area (set by drag-to-reorder). NULL = never
+    # reordered; such threads fall back to most-recent-activity ordering.
+    position = Column(Integer, nullable=True)
     description = Column(Text, default="")
     # AI Overview — same shape as Area.summary. `description` stays the user's
     # own one-liner; `summary` is the generated/editable status overview.

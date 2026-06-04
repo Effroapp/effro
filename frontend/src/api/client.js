@@ -70,6 +70,9 @@ export const areasApi = {
   createThread: (areaId, payload) =>
     request(`/areas/${areaId}/threads`, { method: 'POST', body: payload }),
 
+  reorderThreads: (areaId, orderedIds) =>
+    request(`/areas/${areaId}/threads/reorder`, { method: 'PUT', body: { ordered_ids: orderedIds } }),
+
   getActivity: (limit = 10) =>
     request(`/activity?limit=${limit}`),
 

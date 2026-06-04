@@ -137,6 +137,7 @@ def _init_db():
             "ALTER TABLE threads ADD COLUMN summary_updated_at DATETIME",
             "ALTER TABLE threads ADD COLUMN summary_auto_generated BOOLEAN DEFAULT 0",
             "ALTER TABLE threads ADD COLUMN summary_auto_update BOOLEAN DEFAULT 0",
+            "ALTER TABLE threads ADD COLUMN position INTEGER",
         ]:
             try:
                 conn.execute(text(sql))

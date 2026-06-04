@@ -119,6 +119,11 @@ class ThreadUpdate(BaseModel):
     auto_update: Optional[bool] = None
 
 
+class ThreadReorder(BaseModel):
+    """Full list of thread ids in their new display order within an area."""
+    ordered_ids: List[int]
+
+
 class ThreadSummary(BaseModel):
     """Lightweight thread representation used in area views."""
     id: int
