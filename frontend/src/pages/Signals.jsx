@@ -51,9 +51,17 @@ export default function Signals() {
     setIsSyncing(true)
     setError(null)
     try {
-      // Sync all connected sources in parallel — failures are silenced
-      // per-source (a disconnected Jira shouldn't block an MS365 sync)
-      await Promise.allSettled([syncNow(), jiraSyncNow()])
+      // Sync all connected sources in parallel — a disconnected Jira shouldn't
+      // block an MS365 sync. But DO surface a real Jira API failure: the sync
+      // returns {skipped, reason:'api_error'} as a *resolved* promise, so a
+      // broken endpoint/token would otherwise fail completely silently.
+      const [, jiraResult] = await Promise.allSettled([syncNow(), jiraSyncNow()])
+      const jira = jiraResult?.status === 'fulfilled' ? jiraResult.value : null
+      if (jira?.skipped && jira.reason === 'api_error') {
+        setError(`Jira sync failed: ${jira.error || 'the Jira API rejected the request'}`)
+      } else if (jiraResult?.status === 'rejected') {
+        setError(`Jira sync failed: ${jiraResult.reason?.message || 'unknown error'}`)
+      }
       await refresh()
     } catch (e) {
       setError(e.message || 'Sync failed')

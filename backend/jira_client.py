@@ -318,8 +318,14 @@ async def search_issues(
         "assignee", "reporter", "project", "sprint",
         "duedate", "updated", "created", "labels",
     ]
+    # NB: the legacy POST /rest/api/3/search was removed by Atlassian on
+    # 2025-05-01. The current endpoint is /search/jql, which takes the same
+    # jql/maxResults/fields body and still returns the matching issues under
+    # "issues" (pagination is now nextPageToken-based, unused here — one page
+    # of up to maxResults is plenty for a signals sync). `fields` MUST be sent
+    # explicitly on the new endpoint or only issue ids come back.
     resp = await _client().post(
-        _jira_url(cloud_id, "/search"),
+        _jira_url(cloud_id, "/search/jql"),
         headers={
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
