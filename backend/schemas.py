@@ -294,8 +294,13 @@ class ProcessRequest(BaseModel):
     # source (e.g. ics → produce a meeting item first).
     source_kind: Optional[str] = None
     # Existing thread titles in the area, surfaced so the AI can reuse one
-    # rather than invent a duplicate.
+    # rather than invent a duplicate. Superseded by area_id below, which lets
+    # the backend build far richer context (descriptions + recent entries).
     existing_threads: Optional[List[str]] = None
+    # When supplied, the backend reads the area's existing threads and their
+    # recent entries from the DB and gives the AI that context so it can file
+    # items into the right existing thread instead of inventing duplicates.
+    area_id: Optional[int] = None
 
 
 class ProcessedItem(BaseModel):

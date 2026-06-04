@@ -497,6 +497,7 @@ export default function ProcessView() {
         inputText,
         parseSource?.kind || null,
         areaThreads.map((t) => t.title),
+        selectedAreaId,
       )
       setProgressDone(true)
       setTimeout(() => {

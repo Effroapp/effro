@@ -13,6 +13,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+import models
 import schemas
 from database import get_db
 from ai_provider import get_provider
@@ -54,6 +55,71 @@ def _normalise_item(item: dict) -> dict:
     return item
 
 
+# Limits that keep the existing-threads context useful without bloating the
+# prompt (and the token bill) on areas with lots of history.
+_MAX_THREADS_CONTEXT = 30
+_MAX_ENTRIES_PER_THREAD = 4
+_ENTRY_SNIPPET_CHARS = 100
+_DESC_SNIPPET_CHARS = 160
+
+
+def _snippet(text: str, limit: int) -> str:
+    text = " ".join((text or "").split())
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0] or text[:limit]
+
+
+def _build_threads_context(db: Session, area_id: int) -> tuple[str, list[str]]:
+    """Read the area's existing threads + their recent entries and render an
+    AI-readable digest, so the model can file items into the right existing
+    thread instead of minting a duplicate.
+
+    Returns (prompt_block, exact_titles). exact_titles is the list the model is
+    told to match against verbatim.
+    """
+    threads = (
+        db.query(models.Thread)
+        .filter(models.Thread.area_id == area_id)
+        .order_by(models.Thread.updated_at.desc())
+        .limit(_MAX_THREADS_CONTEXT)
+        .all()
+    )
+    if not threads:
+        return "", []
+
+    titles: list[str] = []
+    lines: list[str] = []
+    for t in threads:
+        titles.append(t.title)
+        # One-line context: prefer the user's description, fall back to the
+        # AI overview/summary, so the model knows what the thread is about.
+        context = _snippet(t.description or t.summary or "", _DESC_SNIPPET_CHARS)
+        status = (t.status or "open").strip()
+        header = f'- "{t.title}" [{status}]'
+        if context:
+            header += f" - {context}"
+        lines.append(header)
+
+        # A few recent top-level entries give the model concrete signal about
+        # what already lives in the thread. Entries are ordered oldest-first, so
+        # take the tail for the most recent.
+        recent = [e for e in t.entries if e.parent_id is None][-_MAX_ENTRIES_PER_THREAD:]
+        for e in recent:
+            snip = _snippet(e.content, _ENTRY_SNIPPET_CHARS)
+            if snip:
+                lines.append(f"    - ({e.type}) {snip}")
+
+    block = (
+        "\n\nExisting threads in this area (with recent items). PREFER filing an "
+        "extracted item into one of these when it clearly belongs - set "
+        "suggested_thread to the EXACT title shown in quotes (match case and "
+        "punctuation). Only invent a new thread title when none of these is a "
+        "good fit:\n" + "\n".join(lines)
+    )
+    return block, titles
+
+
 @router.post("/generate/process", response_model=schemas.ProcessResponse)
 def generate_process(payload: schemas.ProcessRequest, db: Session = Depends(get_db)):
     provider = get_provider(db)
@@ -80,8 +146,12 @@ This input is a parsed calendar invite (.ics). The FIRST item you return MUST be
 
 Then continue extracting any other actionable items (todos / decisions / context entries) from the agenda or description as normal."""
 
+    # Prefer the rich, DB-sourced context (descriptions + recent entries) when
+    # we know the area id; fall back to the title-only list the client sends.
     threads_addendum = ""
-    if payload.existing_threads:
+    if payload.area_id is not None:
+        threads_addendum, _ = _build_threads_context(db, payload.area_id)
+    elif payload.existing_threads:
         # De-dupe + cap so we don't bloat the prompt on areas with hundreds of threads.
         seen = set()
         titles = []
