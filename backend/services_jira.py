@@ -116,8 +116,12 @@ def run_jira_sync(db: Session) -> dict:
     integration.last_synced = datetime.utcnow()
     db.commit()
 
-    log.info("Jira sync: +%d new, %d updated, %d AI-suggested", added, updated, suggested)
+    log.info(
+        "Jira sync: %d fetched, +%d new, %d updated, %d AI-suggested",
+        len(all_issues), added, updated, suggested,
+    )
     return {
+        "fetched": len(all_issues),   # issues the JQL queries returned this run
         "added": added,
         "updated": updated,
         "ai_suggested": suggested,

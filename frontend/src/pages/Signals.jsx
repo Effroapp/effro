@@ -30,6 +30,7 @@ export default function Signals() {
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [syncNote, setSyncNote] = useState(null)  // neutral post-sync readout (e.g. "Jira: 3 found")
   const [isSyncing, setIsSyncing] = useState(false)
   const [activePicker, setActivePicker] = useState(null)  // signal id whose picker is open
 
@@ -50,17 +51,30 @@ export default function Signals() {
   const handleSyncNow = async () => {
     setIsSyncing(true)
     setError(null)
+    setSyncNote(null)
     try {
       // Sync all connected sources in parallel — a disconnected Jira shouldn't
-      // block an MS365 sync. But DO surface a real Jira API failure: the sync
-      // returns {skipped, reason:'api_error'} as a *resolved* promise, so a
-      // broken endpoint/token would otherwise fail completely silently.
+      // block an MS365 sync. Crucially, REPORT the Jira outcome: the sync
+      // returns {skipped, reason} as a *resolved* promise, so without this a
+      // token/endpoint problem (or a query that finds nothing) is invisible.
       const [, jiraResult] = await Promise.allSettled([syncNow(), jiraSyncNow()])
       const jira = jiraResult?.status === 'fulfilled' ? jiraResult.value : null
-      if (jira?.skipped && jira.reason === 'api_error') {
-        setError(`Jira sync failed: ${jira.error || 'the Jira API rejected the request'}`)
-      } else if (jiraResult?.status === 'rejected') {
+      if (jiraResult?.status === 'rejected') {
         setError(`Jira sync failed: ${jiraResult.reason?.message || 'unknown error'}`)
+      } else if (jira?.skipped) {
+        if (jira.reason === 'not_connected') {
+          setError('Jira: the saved login has expired. Reconnect in Settings → Integrations.')
+        } else if (jira.reason === 'api_error') {
+          setError(`Jira sync failed: ${jira.error || 'the Jira API rejected the request'}`)
+        }
+      } else if (jira && !jira.skipped) {
+        const f = jira.fetched ?? 0
+        const n = jira.added ?? 0
+        setSyncNote(
+          f === 0
+            ? 'Jira: connected, but no matching issues found (assigned, watching, or in an open sprint, and not Done).'
+            : `Jira: ${f} issue${f === 1 ? '' : 's'} found${n ? `, ${n} new` : ' (already up to date)'}.`
+        )
       }
       await refresh()
     } catch (e) {
@@ -106,6 +120,12 @@ export default function Signals() {
         <div className="mb-4 rounded-lg border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">
           {error}
         </div>
+      )}
+
+      {syncNote && !error && (
+        <p className="mb-4 font-mono text-xs text-paper-500 dark:text-pitch-100">
+          {syncNote}
+        </p>
       )}
 
       {loading && !data && (
