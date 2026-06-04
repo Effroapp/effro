@@ -302,7 +302,10 @@ class ProcessedItem(BaseModel):
     type: str
     content: str
     rationale: str
-    suggested_thread: str
+    # The model sometimes omits this or returns null (e.g. an item it doesn't
+    # think belongs to any thread). Tolerate it here; the router fills a derived
+    # fallback so the frontend always has a usable title.
+    suggested_thread: Optional[str] = None
     due_date: Optional[str] = None
     meeting_at: Optional[str] = None
 

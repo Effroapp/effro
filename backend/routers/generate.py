@@ -25,6 +25,35 @@ def _provider_error(e: Exception) -> HTTPException:
     return HTTPException(status_code=502, detail=str(e))
 
 
+def _derive_thread_title(content: str) -> str:
+    """A short, clean thread title from an item's content, for when the model
+    didn't supply one. Cuts on a word boundary so we never truncate mid-word."""
+    text = " ".join((content or "").split())
+    if not text:
+        return "General notes"
+    if len(text) <= 60:
+        return text
+    return text[:60].rsplit(" ", 1)[0] or text[:60]
+
+
+def _normalise_item(item: dict) -> dict:
+    """Make a raw model item safe to construct a ProcessedItem from.
+
+    The model occasionally omits suggested_thread or returns null (an item it
+    doesn't think belongs to any thread). Rather than 422 the whole batch, we
+    derive a usable title from the content so the item stays actionable.
+    """
+    if not isinstance(item, dict):
+        raise ValueError("each item must be a JSON object")
+    item = dict(item)
+    st = item.get("suggested_thread")
+    if not isinstance(st, str) or not st.strip():
+        item["suggested_thread"] = _derive_thread_title(item.get("content", ""))
+    else:
+        item["suggested_thread"] = st.strip()
+    return item
+
+
 @router.post("/generate/process", response_model=schemas.ProcessResponse)
 def generate_process(payload: schemas.ProcessRequest, db: Session = Depends(get_db)):
     provider = get_provider(db)
@@ -35,10 +64,11 @@ Each item must have exactly these fields:
   type:             "todo" | "entry" | "decision" | "meeting"
   content:          string (clear and actionable; for meetings, the meeting subject/title)
   rationale:        string (one sentence explaining why you extracted this)
-  suggested_thread: string (a short thread title this item belongs in)
+  suggested_thread: string (a short thread title this item belongs in; ALWAYS provide one, never null)
   due_date:         string | null (ISO date YYYY-MM-DD if applicable, else null)
   meeting_at:       string | null (ISO datetime YYYY-MM-DDTHH:MM if known, meetings only, else null)
-Maximum 8 items. Prioritise actionable items over contextual ones."""
+Maximum 8 items. Prioritise actionable items over contextual ones.
+Group related items under the same suggested_thread so they land together rather than each in its own thread."""
 
     ics_addendum = """
 
@@ -89,8 +119,16 @@ Then continue extracting any other actionable items (todos / decisions / context
         raise _provider_error(e)
 
     try:
-        items = json.loads(text)
-        return schemas.ProcessResponse(items=[schemas.ProcessedItem(**item) for item in items])
+        raw = json.loads(text)
+        # Some models wrap the list in an object, e.g. {"items": [...]}.
+        if isinstance(raw, dict):
+            raw = raw.get("items") or raw.get("results") or raw.get("data") or []
+        if not isinstance(raw, list):
+            raise ValueError("expected a JSON array of items")
+        items = [schemas.ProcessedItem(**_normalise_item(it)) for it in raw]
+        return schemas.ProcessResponse(items=items)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Failed to parse AI response: {str(e)}")
 
