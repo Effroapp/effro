@@ -218,7 +218,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.name }}
-          name: Trace. ${{ steps.tag.outputs.name }}
+          name: Effro ${{ steps.tag.outputs.name }}
           draft: false
           prerelease: ${{ steps.tag.outputs.prerelease }}
           generate_release_notes: true
