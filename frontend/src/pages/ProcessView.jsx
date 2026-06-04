@@ -159,8 +159,13 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, re
 
   // Trigger from parent bulk approve. bulkScope is either 'all' or a specific
   // group key, so "Approve all in this thread" only fires that thread's cards.
+  // The ref guard means we only act when the signal actually CHANGES after this
+  // card mounted, never on mount. So an item that streams in AFTER you pressed
+  // "Approve all" is left for you to review, not silently auto-approved.
+  const bulkSeenRef = useRef(bulkSignal)
   useEffect(() => {
-    if (!bulkSignal) return
+    if (bulkSignal === bulkSeenRef.current) return
+    bulkSeenRef.current = bulkSignal
     if (bulkScope === 'all' || bulkScope === groupKey) {
       approveRef.current()
     }
@@ -620,8 +625,13 @@ export default function ProcessView() {
         const fresh = (resp.items || []).slice(0, limit)
         if (fresh.length === 0) break
 
-        fresh.forEach((it) => collected.push({ ...it, _id: idCounter++ }))
-        setItems([...collected])
+        // `collected` is the full fetched ledger (drives `exclude` + stable ids).
+        // We APPEND each wave's new items rather than replacing the whole list,
+        // so anything you approve or reject mid-extraction is never clobbered by
+        // a later wave.
+        const freshWithIds = fresh.map((it) => ({ ...it, _id: idCounter++ }))
+        collected.push(...freshWithIds)
+        setItems((prev) => [...prev, ...freshWithIds])
         setHasExtracted(true)
         setWaveLoading(false)
 
@@ -1016,7 +1026,7 @@ export default function ProcessView() {
                   group={group}
                   collapsed={!!collapsedGroups[group.key]}
                   onToggle={() => toggleGroup(group.key)}
-                  onApproveAll={processing ? null : () => handleApproveGroup(group)}
+                  onApproveAll={() => handleApproveGroup(group)}
                   busy={bulkApproving}
                 >
                   {group.items.map((item) => (
@@ -1033,7 +1043,6 @@ export default function ProcessView() {
                       bulkScope={bulkScope}
                       groupKey={group.key}
                       grouped
-                      readOnly={processing}
                     />
                   ))}
                 </ThreadGroup>
@@ -1047,7 +1056,7 @@ export default function ProcessView() {
               )}
             </div>
 
-            {!processing && items.length > 0 && (
+            {items.length > 0 && (
               <button
                 onClick={handleBulkApprove}
                 disabled={bulkApproving}
@@ -1060,7 +1069,9 @@ export default function ProcessView() {
               >
                 {bulkApproving && bulkScope === 'all'
                   ? `Approving ${bulkRemaining} items…`
-                  : 'Approve all remaining'}
+                  : processing
+                    ? 'Approve all so far'
+                    : 'Approve all remaining'}
               </button>
             )}
           </div>
