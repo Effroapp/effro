@@ -46,7 +46,7 @@ export default function SystemSettings({ updater }) {
         bg-paper-100/90 dark:bg-pitch-800/90 backdrop-blur-md
         border-b border-paper-300 dark:border-pitch-700
       ">
-        <div className="max-w-3xl mx-auto pr-14">
+        <div className="max-w-5xl mx-auto pr-14">
           <Link
             to="/"
             className="
@@ -67,7 +67,7 @@ export default function SystemSettings({ updater }) {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-8 py-8 space-y-6">
+      <main className="max-w-5xl mx-auto px-8 py-8 space-y-6">
         <IntegrationsHub />
         <AISection id="integration-ai" />
         <StorageSection id="integration-storage" />

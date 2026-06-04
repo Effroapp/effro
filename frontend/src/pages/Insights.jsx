@@ -62,7 +62,7 @@ export default function Insights() {
   }, [])
 
   return (
-    <div className="max-w-4xl mx-auto px-6 md:px-10 py-8">
+    <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
       {/* Header */}
       <PageHeader
         icon={Telescope}

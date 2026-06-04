@@ -203,7 +203,7 @@ export default function AreaView() {
         bg-paper-100/90 dark:bg-pitch-800/90 backdrop-blur-md
         border-b border-paper-200 dark:border-pitch-700
       ">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4 pr-14">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 pr-14">
           <div className="flex items-center gap-3 min-w-0">
             <IconPicker
               value={area.icon}
@@ -298,7 +298,7 @@ export default function AreaView() {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-8 py-6">
+      <div className="max-w-5xl mx-auto px-8 py-6">
         {/* Overview - shared OverviewCard (identical for areas and threads) */}
         <OverviewCard
           data={area}
@@ -539,7 +539,7 @@ function AreaAuditPanel({ areaId }) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-8 pb-10">
+    <div className="max-w-5xl mx-auto px-8 pb-10">
       <button
         onClick={open ? () => setOpen(false) : expand}
         className="
@@ -579,7 +579,7 @@ function AreaAuditPanel({ areaId }) {
 function AreaSkeleton() {
   return (
     <div className="flex-1 min-h-screen bg-white dark:bg-pitch-800 p-8">
-      <div className="max-w-4xl mx-auto space-y-4">
+      <div className="max-w-5xl mx-auto space-y-4">
         <div className="h-8 w-48 rounded bg-paper-200 dark:bg-pitch-700 animate-pulse" />
         <div className="h-24 rounded-xl bg-paper-200 dark:bg-pitch-700 animate-pulse" />
         <div className="space-y-3">
