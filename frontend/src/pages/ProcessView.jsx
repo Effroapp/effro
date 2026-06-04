@@ -238,8 +238,9 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, re
               </span>
             )}
           </div>
-          {currentItem.due_date && (
-            <span className="font-mono text-xs text-amber-500 flex-shrink-0">
+          {currentItem.due_date && !['null', 'none', 'n/a', 'na', 'tbd'].includes(String(currentItem.due_date).trim().toLowerCase()) && (
+            <span className="font-mono text-xs text-amber-500 flex-shrink-0 inline-flex items-center gap-1">
+              <Calendar size={11} />
               {currentItem.due_date}
             </span>
           )}
@@ -400,9 +401,9 @@ function WaveLoader({ count, label }) {
 // real thread will wear once it exists.
 function NewThreadPill() {
   return (
-    <span className="inline-flex items-center gap-1 font-display font-medium rounded uppercase tracking-wide text-xs px-1.5 py-0.5 text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/25 border border-mint/30">
+    <span className="inline-flex items-center gap-1 flex-shrink-0 whitespace-nowrap font-display font-medium rounded uppercase tracking-wide text-xs px-1.5 py-0.5 text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/25 border border-mint/30">
       <Plus size={10} strokeWidth={3} />
-      New thread
+      New
     </span>
   )
 }
@@ -418,10 +419,10 @@ function ThreadGroup({ group, collapsed, onToggle, onApproveAll, busy, children 
   return (
     <div className="rounded-xl border border-paper-300 dark:border-pitch-500 bg-white dark:bg-pitch-700 overflow-hidden">
       {/* Thread header - mirrors a thread card */}
-      <div className="flex items-center justify-between gap-2 px-4 py-3 bg-paper-100/50 dark:bg-pitch-800/30 border-b border-paper-200 dark:border-pitch-500">
+      <div className="flex items-center justify-between gap-3 px-4 py-3.5 bg-paper-100/50 dark:bg-pitch-800/30 border-b border-paper-200 dark:border-pitch-500">
         <button
           onClick={onToggle}
-          className="flex items-center gap-2.5 min-w-0 text-left"
+          className="flex items-center gap-2.5 min-w-0 flex-1 text-left"
           title={collapsed ? 'Expand thread' : 'Collapse thread'}
         >
           <ChevronRight
@@ -429,11 +430,11 @@ function ThreadGroup({ group, collapsed, onToggle, onApproveAll, busy, children 
             className={`flex-shrink-0 text-paper-400 dark:text-paper-600 transition-transform ${collapsed ? '' : 'rotate-90'}`}
           />
           <MessageSquare size={15} className="flex-shrink-0 text-paper-500 dark:text-paper-400" />
-          <span className="font-display font-medium text-[15px] text-pitch-800 dark:text-white truncate">
+          <span className="font-display font-medium text-[15px] text-pitch-800 dark:text-white truncate min-w-0">
             {group.title}
           </span>
           {group.isExisting
-            ? <StatusBadge status={group.status} type="thread" size="xs" />
+            ? <span className="flex-shrink-0"><StatusBadge status={group.status} type="thread" size="xs" /></span>
             : <NewThreadPill />}
           <span className="flex-shrink-0 font-mono text-xs text-paper-400 dark:text-paper-600 tabular-nums">
             {n} item{n === 1 ? '' : 's'}
@@ -444,7 +445,7 @@ function ThreadGroup({ group, collapsed, onToggle, onApproveAll, busy, children 
             onClick={onApproveAll}
             disabled={busy}
             title={`Approve all ${n} items in this thread`}
-            className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-display uppercase tracking-wide text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/20 hover:bg-mint-100 dark:hover:bg-mint-900/35 disabled:opacity-50 transition-colors"
+            className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-display uppercase tracking-wide text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/20 hover:bg-mint-100 dark:hover:bg-mint-900/35 disabled:opacity-50 transition-colors"
           >
             <CheckCheck size={12} />
             Approve all
@@ -749,7 +750,7 @@ export default function ProcessView() {
   return (
     <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800 bg-grid-light dark:bg-grid-dark">
       {/* Header */}
-      <div className="max-w-3xl mx-auto px-8 pt-8">
+      <div className="max-w-5xl mx-auto px-6 md:px-8 pt-8">
         <PageHeader
           icon={BrainCircuit}
           title="Smart Generate"
@@ -761,7 +762,7 @@ export default function ProcessView() {
           is configured. Don't flash the form while we're still loading the
           status - wait until we know one way or the other. */}
       {aiLoading ? (
-        <div className="max-w-3xl mx-auto px-8 py-12 flex justify-center">
+        <div className="max-w-5xl mx-auto px-6 md:px-8 py-12 flex justify-center">
           <Spinner />
         </div>
       ) : !aiConfigured ? (
@@ -769,7 +770,7 @@ export default function ProcessView() {
           <AIRequiredCard feature="Smart Generate" />
         </div>
       ) : (
-      <div className="max-w-3xl mx-auto px-8 py-6 space-y-6">
+      <div className="max-w-5xl mx-auto px-6 md:px-8 py-6 space-y-6">
         {/* Intro - short tagline + three-step "how it works" */}
         <div className="space-y-4">
           <p className="text-base leading-relaxed text-pitch-700 dark:text-paper-200 max-w-2xl">
@@ -1008,7 +1009,7 @@ export default function ProcessView() {
               </span>
             </div>
 
-            <div className="space-y-3 mt-3">
+            <div className="space-y-4 mt-4">
               {groups.map((group) => (
                 <ThreadGroup
                   key={group.key}

@@ -52,6 +52,12 @@ def _normalise_item(item: dict) -> dict:
         item["suggested_thread"] = _derive_thread_title(item.get("content", ""))
     else:
         item["suggested_thread"] = st.strip()
+    # Models sometimes emit the literal string "null"/"none" instead of JSON
+    # null for empty optional fields, which then renders as the word "null".
+    for k in ("due_date", "meeting_at"):
+        v = item.get(k)
+        if isinstance(v, str) and v.strip().lower() in ("", "null", "none", "n/a", "na", "tbd"):
+            item[k] = None
     return item
 
 
