@@ -137,11 +137,13 @@ def _build_threads_context(db: Session, area_id: int) -> tuple[str, list[str]]:
                 lines.append(f"    - ({e.type}) {snip}")
 
     block = (
-        "\n\nExisting threads in this area (with recent items). PREFER filing an "
-        "extracted item into one of these when it clearly belongs - set "
-        "suggested_thread to the EXACT title shown in quotes (match case and "
-        "punctuation). Only invent a new thread title when none of these is a "
-        "good fit:\n" + "\n".join(lines)
+        "\n\nFor reference only, these threads already exist in this area (with "
+        "recent items). Reuse one ONLY when an item is unmistakably part of that "
+        "same line of work - then set suggested_thread to its EXACT title (match "
+        "case and punctuation). If this input is about a different subject from "
+        "the threads below, create new threads instead. Do NOT file an item into "
+        "an existing thread just because a word or acronym overlaps; the item "
+        "must genuinely continue that thread's work:\n" + "\n".join(lines)
     )
     return block, titles
 
@@ -154,6 +156,13 @@ def generate_process(payload: schemas.ProcessRequest, db: Session = Depends(get_
     max_n = max(1, min(8, max_n))  # keep each pass to a sane wave size
 
     base_system = f"""You extract structured work items from unstructured text for Effro., a personal log for tracking work across multiple parallel areas of responsibility.
+
+HOW TO WORK:
+1. First read the ENTIRE input as one connected piece and understand its overall subject, goal, and the work it describes. Form that understanding before extracting anything.
+2. From that understanding, decide a small number of coherent threads that reflect THIS input's own topics. A thread is a strand of related work named for what it is about.
+3. Then extract the work items and place each under the thread it genuinely belongs to, based on meaning - not on a single shared keyword.
+Derive threads from the content of this text. Do not invent threads, and do not bend items toward a thread they are not really about.
+
 Respond with a JSON array only. No preamble, no explanation, no markdown code fences.
 Each item must have exactly these fields:
   type:             "todo" | "entry" | "decision" | "meeting"
@@ -163,7 +172,7 @@ Each item must have exactly these fields:
   due_date:         string | null (a STRICT ISO date YYYY-MM-DD only; never a relative phrase like "next week" or "Weeks 1-2"; use null if no exact date)
   meeting_at:       string | null (STRICT ISO datetime YYYY-MM-DDTHH:MM, meetings only, else null)
 Maximum {max_n} items. Prioritise actionable items over contextual ones.
-Group related items under the same suggested_thread so they land together rather than each in its own thread."""
+Group related items under the same suggested_thread, and prefer a few well-scoped threads over many tiny ones."""
 
     ics_addendum = """
 
