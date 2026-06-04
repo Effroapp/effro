@@ -59,8 +59,8 @@ export default function SystemSettings({ updater }) {
             <ArrowLeft size={11} /> Back
           </Link>
           <div className="flex items-center gap-3">
-            <SettingsIcon size={22} className="text-paper-500 dark:text-paper-600" />
-            <h1 className="font-display font-medium text-3xl tracking-tight text-pitch-800 dark:text-white leading-tight">
+            <SettingsIcon size={20} strokeWidth={1.75} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
+            <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 leading-tight">
               Settings
             </h1>
           </div>

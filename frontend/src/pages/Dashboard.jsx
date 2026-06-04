@@ -145,7 +145,7 @@ export default function Dashboard() {
           <div className="min-w-0">
             {/* Greeting + date. Personal anchor - orients the eye and the
                 hour. First-name only so the line stays short and warm. */}
-            <h1 className="font-display font-medium text-3xl tracking-tight text-pitch-800 dark:text-white leading-tight">
+            <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 leading-tight">
               {getTimeGreeting()}
               {firstName(displayName) && (
                 <>, <span className="text-pitch-600 dark:text-paper-300">{firstName(displayName)}</span></>

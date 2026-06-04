@@ -237,7 +237,7 @@ export default function AreaView() {
             </IconPicker>
             <div className="min-w-0">
               <div className="flex items-center gap-3 min-w-0">
-                <h1 className="font-display font-bold text-2xl uppercase tracking-widest text-pitch-800 dark:text-white truncate">
+                <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 truncate">
                   {area.name}
                 </h1>
 

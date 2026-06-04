@@ -603,7 +603,7 @@ export default function ThreadView() {
                     onChange={(e) => setTitleDraft(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') setEditingTitle(false) }}
                     className="
-                      flex-1 font-display font-bold text-xl uppercase tracking-wider
+                      flex-1 font-display font-semibold text-xl tracking-[-0.01em]
                       bg-transparent border-b-2 border-mint-500
                       text-pitch-800 dark:text-white outline-none px-0
                     "
@@ -613,7 +613,7 @@ export default function ThreadView() {
                 </div>
               ) : (
                 <div className="flex items-center gap-3 group">
-                  <h1 className="font-display font-bold text-xl uppercase tracking-wider text-pitch-800 dark:text-white truncate">
+                  <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 truncate">
                     {thread.title}
                   </h1>
                   <button
