@@ -4,7 +4,8 @@ import {
   Plus, Edit3, Trash2, Check, X,
   Paperclip, Link2, Upload, ExternalLink, UploadCloud,
   RefreshCw, FileText, GitBranch, ArrowRight, ArrowLeft,
-  ChevronDown, ChevronUp, Calendar, Ban
+  ChevronDown, ChevronUp, Calendar, Ban,
+  MessageSquare, ListTodo, Activity
 } from 'lucide-react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import ReactMarkdown from 'react-markdown'
@@ -723,9 +724,10 @@ export default function ThreadView() {
       <div className="max-w-5xl mx-auto px-8 py-6 flex gap-8">
         {/* ── Left: Entry log ─────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600">
-              Entries <span className="font-mono text-paper-400 dark:text-paper-700">({thread.entries.length})</span>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="flex items-center gap-2 text-[13px] font-display font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
+              <MessageSquare size={15} className="text-paper-500 dark:text-pitch-100" />
+              Add an entry
             </h2>
           </div>
 
@@ -843,11 +845,12 @@ export default function ThreadView() {
           {/* Open tasks section */}
           {openTasks.length > 0 && (
             <div className="mb-6">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="font-display uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
+              <div className="flex items-center gap-2 mb-3">
+                <ListTodo size={15} className="text-paper-500 dark:text-pitch-100" />
+                <h3 className="text-[13px] font-display font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
                   Open Tasks
-                </span>
-                <span className="font-mono text-xs text-paper-400 dark:text-paper-700">
+                </h3>
+                <span className="font-mono text-xs text-paper-400 dark:text-pitch-200">
                   {openTasks.length}
                 </span>
               </div>
@@ -876,6 +879,16 @@ export default function ThreadView() {
             </div>
           )}
 
+          {/* Divider, then the thread's own chronological record */}
+          <div className="border-t border-paper-200 dark:border-pitch-600 mt-2 mb-5" />
+          <div className="flex items-center gap-2 mb-4">
+            <Activity size={15} className="text-paper-500 dark:text-pitch-100" />
+            <h2 className="text-[13px] font-display font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
+              Timeline
+            </h2>
+            <span className="font-mono text-xs text-paper-400 dark:text-pitch-200">{thread.entries.length}</span>
+          </div>
+
           {/* Entry timeline */}
           {thread.entries.length === 0 ? (
             <div className="text-center py-12 text-sm text-paper-500 dark:text-paper-700 italic">
@@ -883,8 +896,8 @@ export default function ThreadView() {
             </div>
           ) : (
             <div className="relative">
-              {/* Timeline line */}
-              <div className="absolute left-4 top-0 bottom-0 w-px bg-paper-200 dark:bg-pitch-700" />
+              {/* Connector line that visually threads the entry dots together */}
+              <div className="absolute left-4 top-1 bottom-2 w-px bg-paper-300 dark:bg-pitch-500" />
 
               <div className="space-y-1">
                 {sortedEntries.map((entry) => (

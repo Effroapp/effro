@@ -275,7 +275,7 @@ export default function AreaView() {
               {/* Subtle description under the title — the same text the
                   dashboard area card shows, for quick orientation. */}
               {area.summary && (
-                <p className="font-lexend text-[13px] text-paper-500 dark:text-pitch-100 truncate normal-case tracking-normal mt-1 max-w-2xl">
+                <p className="font-lexend text-[13px] leading-snug text-paper-500 dark:text-pitch-100 normal-case tracking-normal mt-1 max-w-2xl line-clamp-2">
                   {area.summary.split('\n')[0]}
                 </p>
               )}
@@ -285,13 +285,14 @@ export default function AreaView() {
           <button
             onClick={() => setNewThreadOpen(true)}
             className="
-              flex items-center gap-2 px-4 py-2 rounded-md text-sm font-display font-medium uppercase tracking-wide
+              flex-shrink-0 self-start whitespace-nowrap
+              flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display font-medium uppercase tracking-wide
               bg-mint-700 hover:bg-mint-800 text-white
               shadow-sm hover:shadow-mint-500/25
               transition-all duration-150
             "
           >
-            <Plus size={15} />
+            <Plus size={13} />
             New Thread
           </button>
         </div>
