@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Radar, Check, X, Pencil, Loader2, AlertCircle, Calendar,
-  MapPin, User, ChevronRight, RefreshCw, ExternalLink, Sparkles,
+  MapPin, User, ChevronRight, RefreshCw, ExternalLink, Sparkles, Clock,
 } from 'lucide-react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import PageHeader from '../components/PageHeader'
@@ -97,6 +97,15 @@ export default function Signals() {
             {data && data.pending_count > 0 && (
               <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-mint-50 dark:bg-mint-900/30 text-mint-700 dark:text-mint-300">
                 {data.pending_count} pending
+              </span>
+            )}
+            {data?.last_synced && !isSyncing && (
+              <span
+                className="hidden sm:flex items-center gap-1.5 text-[11px] font-mono text-paper-500 dark:text-pitch-200"
+                title={`Last synced ${format(parseUTC(data.last_synced), 'EEE d MMM, HH:mm')}`}
+              >
+                <Clock size={11} className="flex-shrink-0" />
+                Synced {formatDistanceToNow(parseUTC(data.last_synced))} ago
               </span>
             )}
             <button
@@ -301,6 +310,12 @@ function MetaRow({ signal }) {
       )}
     </div>
   )
+}
+
+// Backend timestamps are naive UTC; tag them so the browser localises correctly.
+function parseUTC(s) {
+  if (!s) return null
+  return new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z')
 }
 
 function formatMeetingTime(iso, allDay) {

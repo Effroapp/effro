@@ -537,6 +537,9 @@ class SignalListOut(BaseModel):
     items: List[SignalItemOut]
     pending_count: int
     ai_configured: bool
+    # Most recent successful pull across connected sources (Outlook + Jira),
+    # so the page can show "synced a few minutes ago". Null if never synced.
+    last_synced: Optional[datetime] = None
 
 
 class SignalAcceptIn(BaseModel):

@@ -94,10 +94,21 @@ def list_signals(db: Session = Depends(get_db)):
     # an area" vs "AI is unconfigured" with the right copy.
     ai_configured = _is_ai_configured(db)
 
+    # Freshness: the most recent successful pull across connected sources, so
+    # the page can show "synced a few minutes ago".
+    sync_times = [
+        t for t in (
+            db.query(models.MicrosoftIntegration.last_synced).scalar(),
+            db.query(models.JiraIntegration.last_synced).scalar(),
+        ) if t is not None
+    ]
+    last_synced = max(sync_times) if sync_times else None
+
     return schemas.SignalListOut(
         items=items,
         pending_count=pending,
         ai_configured=ai_configured,
+        last_synced=last_synced,
     )
 
 
