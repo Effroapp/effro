@@ -584,6 +584,14 @@ class JiraConfigOut(BaseModel):
     is_configured: bool = False
 
 
+class JiraScopeIn(BaseModel):
+    scope: str  # "assigned" | "mine" | "all"
+
+
+class JiraScopeOut(BaseModel):
+    scope: str
+
+
 class JiraProfileOut(BaseModel):
     """Connected Atlassian account, minimal profile."""
     connected: bool

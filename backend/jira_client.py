@@ -110,6 +110,40 @@ def save_config(db: Session, *, client_id: str, client_secret: str) -> None:
     db.commit()
 
 
+# ─── Signal scope (which JQL sets to pull) ────────────────────────────────────
+# "assigned" : only issues assigned to you
+# "mine"     : assigned + issues you watch / are mentioned in   (default)
+# "all"      : assigned + watched + the WHOLE current sprint (other people too)
+_JIRA_SCOPE_KEY = "jira_signal_scope"
+VALID_SCOPES = ("assigned", "mine", "all")
+
+
+def get_signal_scope(db: Session) -> str:
+    row = (
+        db.query(models.AppSettings)
+        .filter(models.AppSettings.key == _JIRA_SCOPE_KEY)
+        .first()
+    )
+    if row and row.value in VALID_SCOPES:
+        return row.value
+    return "mine"
+
+
+def set_signal_scope(db: Session, scope: str) -> None:
+    if scope not in VALID_SCOPES:
+        raise ValueError(f"scope must be one of {VALID_SCOPES}")
+    row = (
+        db.query(models.AppSettings)
+        .filter(models.AppSettings.key == _JIRA_SCOPE_KEY)
+        .first()
+    )
+    if row:
+        row.value = scope
+    else:
+        db.add(models.AppSettings(key=_JIRA_SCOPE_KEY, value=scope))
+    db.commit()
+
+
 def get_redirect_uri() -> str:
     import os
     port = os.environ.get("BACKEND_PORT", "8000")

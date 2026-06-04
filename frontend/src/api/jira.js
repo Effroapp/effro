@@ -33,6 +33,25 @@ export async function getJiraProfile() {
   return res.json()
 }
 
+export async function getJiraScope() {
+  const res = await fetch(`${BASE}/scope`)
+  if (!res.ok) throw new Error('Failed to load Jira scope')
+  return res.json()  // { scope }
+}
+
+export async function setJiraScope(scope) {
+  const res = await fetch(`${BASE}/scope`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scope }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.detail || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
 export function loginUrl() {
   return `${BASE}/auth/login`
 }

@@ -3,7 +3,15 @@ import { Check, ExternalLink, Loader2, AlertCircle, RefreshCw, LogOut, KanbanSqu
 import {
   getJiraConfig, saveJiraConfig,
   getJiraProfile, loginUrl, disconnectJira, jiraSyncNow,
+  getJiraScope, setJiraScope,
 } from '../api/jira'
+
+// Which Jira issues land in Signals. Personal preference — defaults to "mine".
+const SCOPE_OPTIONS = [
+  { key: 'mine',     label: "Only what's mine", desc: 'Issues assigned to you, plus ones you watch or are mentioned in.' },
+  { key: 'assigned', label: 'Assigned to me',   desc: 'Strictly issues where you are the assignee. The quietest.' },
+  { key: 'all',      label: 'Everything',        desc: 'Assigned + watched + the entire current sprint (includes other people).' },
+]
 
 /**
  * Jira Cloud integration settings card.
@@ -22,16 +30,35 @@ export default function JiraIntegration() {
   const [error, setError] = useState(null)
   const [isSyncing, setIsSyncing] = useState(false)
   const [lastSync, setLastSync] = useState(null)
+  const [scope, setScope] = useState('mine')
+  const [savingScope, setSavingScope] = useState(false)
 
   const refresh = useCallback(async () => {
     try {
-      const [c, p] = await Promise.all([getJiraConfig(), getJiraProfile()])
+      const [c, p, s] = await Promise.all([getJiraConfig(), getJiraProfile(), getJiraScope()])
       setConfig(c)
       setProfile(p)
+      setScope(s.scope)
     } catch (e) {
       setError(e.message || 'Failed to load')
     }
   }, [])
+
+  const handleScopeChange = async (next) => {
+    if (next === scope || savingScope) return
+    setSavingScope(true)
+    setScope(next)  // optimistic
+    try {
+      await setJiraScope(next)
+      // Re-sync so Signals reflects the new scope right away
+      const result = await jiraSyncNow()
+      setLastSync(result)
+    } catch (e) {
+      setError(e.message || 'Could not update scope')
+    } finally {
+      setSavingScope(false)
+    }
+  }
 
   useEffect(() => {
     refresh()
@@ -194,9 +221,50 @@ export default function JiraIntegration() {
 
       {error && <ErrorBanner message={error} />}
 
-      <p className="text-[11px] text-paper-500 dark:text-paper-600 leading-snug">
-        Effro pulls three sets of Jira issues every 30 minutes: <strong className="font-medium">assigned to you</strong>, <strong className="font-medium">issues you're watching</strong>, and <strong className="font-medium">current sprint</strong>. Each appears in Signals for triage. Only read access is requested — Effro never writes to Jira.
-      </p>
+      {/* Which issues land in Signals — personal preference */}
+      <div className="pt-1">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600">
+            Bring into Signals
+          </span>
+          {savingScope && <Loader2 size={11} className="animate-spin text-paper-400 dark:text-paper-600" />}
+        </div>
+        <div className="space-y-1.5">
+          {SCOPE_OPTIONS.map((opt) => {
+            const active = scope === opt.key
+            return (
+              <button
+                key={opt.key}
+                onClick={() => handleScopeChange(opt.key)}
+                disabled={savingScope}
+                className={`
+                  w-full text-left flex items-start gap-2.5 px-3 py-2 rounded-lg border transition-colors disabled:cursor-wait
+                  ${active
+                    ? 'border-mint/40 bg-mint-50/60 dark:bg-mint-900/15'
+                    : 'border-paper-300 dark:border-pitch-500 hover:border-paper-400 dark:hover:border-pitch-400'
+                  }
+                `}
+              >
+                <span className={`mt-0.5 flex-shrink-0 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center
+                  ${active ? 'border-mint-600 dark:border-mint-400' : 'border-paper-400 dark:border-pitch-400'}`}>
+                  {active && <span className="w-1.5 h-1.5 rounded-full bg-mint-600 dark:bg-mint-400" />}
+                </span>
+                <span className="min-w-0">
+                  <span className={`block text-xs font-medium ${active ? 'text-pitch-800 dark:text-white' : 'text-pitch-700 dark:text-paper-300'}`}>
+                    {opt.label}
+                  </span>
+                  <span className="block text-[11px] text-paper-500 dark:text-paper-600 leading-snug">
+                    {opt.desc}
+                  </span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+        <p className="mt-2 text-[11px] text-paper-500 dark:text-paper-600 leading-snug">
+          Syncs every 30 minutes into Signals for triage. Read-only — Effro never writes to Jira. Changing this re-syncs now; issues already in Signals stay until you dismiss them.
+        </p>
+      </div>
     </div>
   )
 }

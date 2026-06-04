@@ -42,12 +42,11 @@ def run_jira_sync(db: Session) -> dict:
         return {"synced": 0, "skipped": True, "reason": "not_connected"}
 
     cloud_id = integration.cloud_id
+    scope = jira.get_signal_scope(db)
 
-    # Run all three queries concurrently
+    # Run the queries the user's scope calls for, concurrently
     try:
-        assigned, mentioned, sprint = asyncio.run(
-            _fetch_all(access_token, cloud_id)
-        )
+        groups = asyncio.run(_fetch_all(access_token, cloud_id, scope))
     except Exception as e:
         log.warning("Jira sync fetch failed: %s", e)
         return {"synced": 0, "skipped": True, "reason": "api_error", "error": str(e)}
@@ -55,7 +54,7 @@ def run_jira_sync(db: Session) -> dict:
     # Build a deduplicated set — a single issue might appear in multiple queries
     seen_keys: set[str] = set()
     all_issues: list[dict] = []
-    for issue in assigned + mentioned + sprint:
+    for issue in (i for group in groups for i in group):
         key = jira.issue_external_id(issue)
         if key and key not in seen_keys:
             seen_keys.add(key)
@@ -129,14 +128,19 @@ def run_jira_sync(db: Session) -> dict:
     }
 
 
-async def _fetch_all(access_token: str, cloud_id: str):
-    """Run the three JQL queries concurrently and return their results."""
-    return await asyncio.gather(
-        jira.fetch_assigned_issues(access_token, cloud_id),
-        jira.fetch_mentioned_issues(access_token, cloud_id),
-        jira.fetch_sprint_issues(access_token, cloud_id),
-        return_exceptions=False,
-    )
+async def _fetch_all(access_token: str, cloud_id: str, scope: str = "mine"):
+    """Run the JQL queries the chosen scope calls for, concurrently.
+
+    assigned -> just your assigned issues
+    mine     -> assigned + watched/mentioned
+    all      -> assigned + watched + the whole current sprint (everyone's)
+    """
+    tasks = [jira.fetch_assigned_issues(access_token, cloud_id)]
+    if scope in ("mine", "all"):
+        tasks.append(jira.fetch_mentioned_issues(access_token, cloud_id))
+    if scope == "all":
+        tasks.append(jira.fetch_sprint_issues(access_token, cloud_id))
+    return await asyncio.gather(*tasks, return_exceptions=False)
 
 
 def _suggest_areas(db: Session) -> int:

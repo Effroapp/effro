@@ -52,6 +52,22 @@ def save_jira_config(payload: schemas.JiraConfigIn, db: Session = Depends(get_db
     return get_jira_config(db)
 
 
+# ─── Signal scope ─────────────────────────────────────────────────────────────
+
+@router.get("/scope", response_model=schemas.JiraScopeOut)
+def get_jira_scope(db: Session = Depends(get_db)):
+    return schemas.JiraScopeOut(scope=jira.get_signal_scope(db))
+
+
+@router.put("/scope", response_model=schemas.JiraScopeOut)
+def set_jira_scope(payload: schemas.JiraScopeIn, db: Session = Depends(get_db)):
+    try:
+        jira.set_signal_scope(db, payload.scope)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return schemas.JiraScopeOut(scope=payload.scope)
+
+
 # ─── Profile ─────────────────────────────────────────────────────────────────
 
 @router.get("/profile", response_model=schemas.JiraProfileOut)
