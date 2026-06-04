@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import PageHeader from '../components/PageHeader'
+import JiraIssueType from '../components/JiraIssueType'
 import { listSignals, acceptSignal, reassignSignal, dismissSignal } from '../api/signals'
 import { syncNow } from '../api/microsoft'
 import { jiraSyncNow } from '../api/jira'
@@ -261,9 +262,13 @@ function SignalCard({
 }
 
 function SourceBadge({ source, kind }) {
+  // Jira items show their native issue-type tile (Epic/Story/Task/Sub-task/Bug)
+  // so they read exactly like they do inside Jira.
+  if (source === 'jira') {
+    return <JiraIssueType kind={kind} />
+  }
   const labels = {
     microsoft: { label: 'Outlook', color: 'text-[#0078D4] bg-[#0078D4]/10 border-[#0078D4]/20' },
-    jira:      { label: kind ? `Jira · ${kind}` : 'Jira', color: 'text-[#0052CC] bg-[#0052CC]/10 border-[#0052CC]/20' },
   }
   const { label, color } = labels[source] || { label: source, color: 'text-paper-500 dark:text-paper-600 bg-paper-100 dark:bg-pitch-700 border-stone' }
   return (

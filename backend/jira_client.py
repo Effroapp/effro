@@ -411,10 +411,13 @@ def issue_to_signal_fields(issue: dict) -> dict:
     """Extract the standard signal_items fields from a Jira issue object."""
     fields = issue.get("fields", {})
 
-    # Map Jira issue types to our kind vocabulary
-    issue_type = (fields.get("issuetype") or {}).get("name", "Task").lower()
-    kind_map = {"bug": "bug", "story": "story", "epic": "epic", "sub-task": "task"}
-    kind = kind_map.get(issue_type, "task")
+    # Map Jira issue types to our kind vocabulary. Normalise first so the many
+    # spellings Jira uses ("Sub-task", "Subtask", "Sub task") all collapse to
+    # one key, then keep Epic/Story/Task/Sub-task/Bug distinct for the UI tile.
+    raw_type = (fields.get("issuetype") or {}).get("name", "Task").lower()
+    normalized = raw_type.replace("-", "").replace(" ", "")
+    kind_map = {"bug": "bug", "story": "story", "epic": "epic", "subtask": "subtask"}
+    kind = kind_map.get(normalized, "task")
 
     # Due date (Jira returns YYYY-MM-DD or null)
     due_raw = fields.get("duedate")
