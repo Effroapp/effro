@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { BrainCircuit, Check, X, RotateCcw, Upload, FileText, Mail, Calendar, ChevronRight, MessagesSquare, CheckCheck } from 'lucide-react'
+import { BrainCircuit, Check, X, RotateCcw, Upload, FileText, Mail, Calendar, ChevronRight, MessageSquare, CheckCheck, Plus } from 'lucide-react'
 import { areasApi, generateApi, entriesApi, ingestApi } from '../api/client'
 import PageHeader from '../components/PageHeader'
+import StatusBadge from '../components/StatusBadge'
 import { useToast } from '../components/Toast'
 import Spinner from '../components/Spinner'
 import AIRequiredCard from '../components/AIRequiredCard'
@@ -190,13 +191,29 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, re
   const borderLeft = meta.borderLeft
   const badge = meta.badge
   const TypeIcon = meta.Icon
+  // Timeline dot colour by type, matching the entry dots on the Threads page.
+  const DOT_CLASS = {
+    entry: 'bg-mint',
+    todo: 'bg-sky-muted',
+    decision: 'bg-amber-muted',
+    meeting: 'bg-lavender',
+    blockage: 'bg-terracotta',
+  }
+  const dotClass = DOT_CLASS[currentItem.type] || 'bg-mint'
 
   return (
     <div
-      className={`overflow-hidden transition-all duration-400 ${
+      className={`relative ${grouped ? 'pl-10' : ''} overflow-hidden transition-all duration-400 ${
         collapsed ? 'max-h-0 opacity-0' : 'max-h-[500px] opacity-100'
       }`}
     >
+      {/* Timeline dot - sits on the group's connector rail (grouped view only).
+          Border matches the thread-card body so it reads as punching through. */}
+      {grouped && (
+        <span
+          className={`absolute left-3 top-[15px] w-2.5 h-2.5 rounded-full border-2 border-white dark:border-pitch-700 z-10 ${dotClass}`}
+        />
+      )}
       <div
         className={`
           bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 rounded-xl overflow-hidden
@@ -208,8 +225,9 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, re
         {/* Header strip */}
         <div className="px-4 py-2.5 bg-paper-100/50 dark:bg-pitch-800/30 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <span className={`font-display uppercase text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${badge}`}>
-              {currentItem.type}
+            <span className={`font-display uppercase text-xs px-1.5 py-0.5 rounded flex-shrink-0 inline-flex items-center gap-1 ${badge}`}>
+              <TypeIcon size={10} />
+              {meta.label}
             </span>
             {/* In grouped mode the thread is shown by the group header, so we
                 don't repeat it here. Only show a thread label when ungrouped, or
@@ -378,39 +396,47 @@ function WaveLoader({ count, label }) {
   )
 }
 
+// A "this thread will be created for you" pill, shaped like the StatusBadge the
+// real thread will wear once it exists.
+function NewThreadPill() {
+  return (
+    <span className="inline-flex items-center gap-1 font-display font-medium rounded uppercase tracking-wide text-xs px-1.5 py-0.5 text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/25 border border-mint/30">
+      <Plus size={10} strokeWidth={3} />
+      New thread
+    </span>
+  )
+}
+
 // ─── Thread group ─────────────────────────────────────────────────────────────
-// Chunks extracted items by their destination thread so the reviewer sees one
-// thread at a time instead of a flat wall of cards (kinder on working memory).
+// Each destination thread is drawn as a real thread card: the same header (title
+// + status pill) you see on the Threads page, and the items below sit on the
+// connected-dot timeline that thread entries use. The review screen becomes a
+// faithful preview of what the thread will look like once filed.
 
 function ThreadGroup({ group, collapsed, onToggle, onApproveAll, busy, children }) {
   const n = group.items.length
   return (
-    <div className="rounded-xl border border-paper-300 dark:border-pitch-500 overflow-hidden">
-      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-paper-100/60 dark:bg-pitch-800/40 border-b border-paper-200 dark:border-pitch-600">
+    <div className="rounded-xl border border-paper-300 dark:border-pitch-500 bg-white dark:bg-pitch-700 overflow-hidden">
+      {/* Thread header - mirrors a thread card */}
+      <div className="flex items-center justify-between gap-2 px-4 py-3 bg-paper-100/50 dark:bg-pitch-800/30 border-b border-paper-200 dark:border-pitch-500">
         <button
           onClick={onToggle}
-          className="flex items-center gap-2 min-w-0 text-left group/th"
-          title={collapsed ? 'Expand' : 'Collapse'}
+          className="flex items-center gap-2.5 min-w-0 text-left"
+          title={collapsed ? 'Expand thread' : 'Collapse thread'}
         >
           <ChevronRight
-            size={14}
+            size={15}
             className={`flex-shrink-0 text-paper-400 dark:text-paper-600 transition-transform ${collapsed ? '' : 'rotate-90'}`}
           />
-          <MessagesSquare size={13} className="flex-shrink-0 text-paper-400 dark:text-paper-600" />
-          <span className="font-display font-medium text-sm text-pitch-800 dark:text-white truncate">
+          <MessageSquare size={15} className="flex-shrink-0 text-paper-500 dark:text-paper-400" />
+          <span className="font-display font-medium text-[15px] text-pitch-800 dark:text-white truncate">
             {group.title}
           </span>
-          <span
-            className={`flex-shrink-0 text-[10px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
-              group.isExisting
-                ? 'bg-mint-50 text-mint-700 dark:bg-mint-900/30 dark:text-mint-300'
-                : 'bg-paper-200 text-paper-600 dark:bg-pitch-600 dark:text-paper-300'
-            }`}
-          >
-            {group.isExisting ? 'existing' : 'new'}
-          </span>
+          {group.isExisting
+            ? <StatusBadge status={group.status} type="thread" size="xs" />
+            : <NewThreadPill />}
           <span className="flex-shrink-0 font-mono text-xs text-paper-400 dark:text-paper-600 tabular-nums">
-            {n}
+            {n} item{n === 1 ? '' : 's'}
           </span>
         </button>
         {onApproveAll && (
@@ -418,14 +444,23 @@ function ThreadGroup({ group, collapsed, onToggle, onApproveAll, busy, children 
             onClick={onApproveAll}
             disabled={busy}
             title={`Approve all ${n} items in this thread`}
-            className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-display uppercase tracking-wide text-paper-600 dark:text-paper-300 bg-paper-200/70 dark:bg-pitch-700 hover:bg-paper-300 dark:hover:bg-pitch-600 disabled:opacity-50 transition-colors"
+            className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-display uppercase tracking-wide text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/20 hover:bg-mint-100 dark:hover:bg-mint-900/35 disabled:opacity-50 transition-colors"
           >
             <CheckCheck size={12} />
             Approve all
           </button>
         )}
       </div>
-      {!collapsed && <div className="p-3 space-y-3">{children}</div>}
+
+      {/* Entry timeline - the connected-dot rail from the Threads page */}
+      {!collapsed && (
+        <div className="px-4 py-3.5">
+          <div className="relative">
+            <div className="absolute left-4 top-1.5 bottom-2 w-px bg-paper-300 dark:bg-pitch-500" />
+            <div className="space-y-3">{children}</div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -669,18 +704,26 @@ export default function ProcessView() {
   const toggleGroup = (key) =>
     setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }))
 
-  // Chunk items by destination thread, preserving first-seen order, and flag
-  // whether each thread already exists in the area (existing vs new badge).
+  // Chunk items by destination thread, preserving first-seen order. For threads
+  // that already exist we carry their real status so the group header can wear
+  // the same status pill the thread does on the Threads page.
   const groups = useMemo(() => {
-    const existing = new Set(
-      areaThreads.map((t) => (t.title || '').trim().toLowerCase())
+    const existingByKey = new Map(
+      areaThreads.map((t) => [(t.title || '').trim().toLowerCase(), t])
     )
     const map = new Map()
     for (const it of items) {
       const title = (it.suggested_thread || 'General notes').trim()
       const key = title.toLowerCase()
       if (!map.has(key)) {
-        map.set(key, { key, title, isExisting: existing.has(key), items: [] })
+        const match = existingByKey.get(key)
+        map.set(key, {
+          key,
+          title: match ? match.title : title,  // adopt the existing thread's exact casing
+          isExisting: !!match,
+          status: match?.status || 'open',
+          items: [],
+        })
       }
       map.get(key).items.push(it)
     }
@@ -954,14 +997,14 @@ export default function ProcessView() {
                 </span>
                 <p className="text-xs text-paper-600 dark:text-paper-500 italic mt-1">
                   {processing
-                    ? 'Pulling items in waves. They group by thread as they arrive.'
-                    : 'Grouped by thread. Approve a whole thread, or review one item at a time.'}
+                    ? 'Pulling items in waves. They group into threads as they arrive.'
+                    : `Drafted ${items.length} item${items.length === 1 ? '' : 's'} across ${groups.length} thread${groups.length === 1 ? '' : 's'}. Approve a whole thread, or review one item at a time.`}
                 </p>
               </div>
               <span className="font-mono text-xs text-paper-500 dark:text-paper-600 flex-shrink-0 ml-4 mt-0.5">
                 {processing
                   ? `${items.length} so far…`
-                  : `${items.length} item${items.length === 1 ? '' : 's'} found`}
+                  : `${items.length} item${items.length === 1 ? '' : 's'} · ${groups.length} thread${groups.length === 1 ? '' : 's'}`}
               </span>
             </div>
 
