@@ -34,6 +34,18 @@ function clearSaved() {
   } catch {}
 }
 
+// The entry endpoint's due_date/meeting_at are real date/datetime fields, so we
+// only ever send strict ISO values. The model sometimes emits free text like
+// "Weeks 1-2"; those are dropped rather than allowed to 422 entry creation.
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/
+function isoDateOrNull(s) {
+  return typeof s === 'string' && ISO_DATE_RE.test(s.trim()) ? s.trim() : null
+}
+function isoDateTimeOrNull(s) {
+  return typeof s === 'string' && ISO_DATETIME_RE.test(s.trim()) ? s.trim() : null
+}
+
 // ─── Source chip ──────────────────────────────────────────────────────────────
 
 const KIND_META = {
@@ -106,7 +118,7 @@ function Step({ n, label, hint }) {
 
 const NEW_THREAD_VAL = '__new__'
 
-function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApproved, onDiscarded, bulkSignal, bulkScope, groupKey, grouped = false }) {
+function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApproved, onApproveFailed, onDiscarded, bulkSignal, bulkScope, groupKey, grouped = false }) {
   const [currentItem, setCurrentItem] = useState(initialItem)
   const [status, setStatus] = useState('idle') // idle | approving | approved | rejecting | refining
   const [rejectionReason, setRejectionReason] = useState('')
@@ -127,8 +139,8 @@ function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApprov
       await entriesApi.create(threadId, {
         content: currentItem.content,
         type: currentItem.type,
-        due_date: currentItem.due_date || undefined,
-        meeting_at: currentItem.meeting_at || undefined,
+        due_date: isoDateOrNull(currentItem.due_date) || undefined,
+        meeting_at: isoDateTimeOrNull(currentItem.meeting_at) || undefined,
       })
       setStatus('approved')
       setTimeout(() => {
@@ -136,8 +148,9 @@ function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApprov
         setTimeout(onApproved, 400)
       }, 1500)
     } catch (e) {
-      toast(e.message, 'error')
+      toast(e.message || 'Could not approve this item', 'error')
       setStatus('idle')
+      onApproveFailed?.()  // release the bulk lock so buttons don't stay disabled
     }
   }
 
@@ -221,7 +234,7 @@ function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApprov
               {meta.label}
             </span>
           </div>
-          {currentItem.due_date && !['null', 'none', 'n/a', 'na', 'tbd'].includes(String(currentItem.due_date).trim().toLowerCase()) && (
+          {isoDateOrNull(currentItem.due_date) && (
             <span className="font-mono text-xs text-amber-500 flex-shrink-0 inline-flex items-center gap-1">
               <Calendar size={11} />
               {currentItem.due_date}
@@ -705,18 +718,23 @@ export default function ProcessView() {
     const cache = threadCacheRef.current
     if (!cache.has(key)) {
       cache.set(key, (async () => {
-        // If a thread with this exact title already exists, reuse it rather than
-        // minting a duplicate (covers typing an existing name in the editor).
-        const existing = areaThreads.find((t) => (t.title || '').trim().toLowerCase() === key)
-        if (existing) return existing.id
-        const thread = await areasApi.createThread(selectedAreaId, { title, status: 'open' })
-        // Surface the freshly created thread so later edits show it as existing.
-        setAreaThreads((prev) =>
-          prev.some((t) => (t.title || '').trim().toLowerCase() === key)
-            ? prev
-            : [...prev, thread]
-        )
-        return thread.id
+        try {
+          // If a thread with this exact title already exists, reuse it rather
+          // than minting a duplicate (covers typing an existing name).
+          const existing = areaThreads.find((t) => (t.title || '').trim().toLowerCase() === key)
+          if (existing) return existing.id
+          const thread = await areasApi.createThread(selectedAreaId, { title, status: 'open' })
+          // Surface the freshly created thread so later edits show it as existing.
+          setAreaThreads((prev) =>
+            prev.some((t) => (t.title || '').trim().toLowerCase() === key)
+              ? prev
+              : [...prev, thread]
+          )
+          return thread.id
+        } catch (e) {
+          cache.delete(key)  // don't poison the cache; allow a clean retry
+          throw e
+        }
       })())
     }
     return cache.get(key)
@@ -730,6 +748,13 @@ export default function ProcessView() {
   const handleItemDiscarded = (id) => {
     setItems((prev) => prev.filter((item) => item._id !== id))
     if (bulkApproving) setBulkRemaining((c) => Math.max(0, c - 1))
+  }
+
+  // An approval failed (e.g. a bad date the backend rejected). Keep the item in
+  // place for a retry, but release its slot from the bulk counter so "Approve
+  // all" doesn't stay stuck disabled.
+  const handleItemApproveFailed = () => {
+    setBulkRemaining((c) => Math.max(0, c - 1))
   }
 
   useEffect(() => {
@@ -1109,6 +1134,7 @@ export default function ProcessView() {
                       selectedAreaName={selectedArea?.name ?? ''}
                       resolveThread={() => resolveThreadForGroup(group)}
                       onApproved={() => handleItemApproved(item._id)}
+                      onApproveFailed={handleItemApproveFailed}
                       onDiscarded={() => handleItemDiscarded(item._id)}
                       bulkSignal={bulkSignal}
                       bulkScope={bulkScope}

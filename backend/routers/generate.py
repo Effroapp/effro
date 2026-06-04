@@ -10,6 +10,7 @@ message (already translated by _friendly_error() in ai_provider.py). We wrap
 that as HTTP 502 so the frontend gets a clean detail string.
 """
 import json
+from datetime import date as _date, datetime as _datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -52,12 +53,31 @@ def _normalise_item(item: dict) -> dict:
         item["suggested_thread"] = _derive_thread_title(item.get("content", ""))
     else:
         item["suggested_thread"] = st.strip()
-    # Models sometimes emit the literal string "null"/"none" instead of JSON
-    # null for empty optional fields, which then renders as the word "null".
-    for k in ("due_date", "meeting_at"):
-        v = item.get(k)
-        if isinstance(v, str) and v.strip().lower() in ("", "null", "none", "n/a", "na", "tbd"):
-            item[k] = None
+    # Dates must be real ISO values or the entry endpoint rejects them. Models
+    # often emit "null"/"none" or relative phrases ("Weeks 1-2", "in 5 weeks");
+    # anything that isn't a strict ISO date/datetime becomes None so it can't
+    # crash entry creation (it just won't carry a due date).
+    dd = item.get("due_date")
+    if isinstance(dd, str):
+        s = dd.strip()
+        try:
+            _date.fromisoformat(s)
+            item["due_date"] = s
+        except ValueError:
+            item["due_date"] = None
+    elif dd is not None:
+        item["due_date"] = None
+
+    ma = item.get("meeting_at")
+    if isinstance(ma, str):
+        s = ma.strip()
+        try:
+            _datetime.fromisoformat(s)
+            item["meeting_at"] = s
+        except ValueError:
+            item["meeting_at"] = None
+    elif ma is not None:
+        item["meeting_at"] = None
     return item
 
 
@@ -140,8 +160,8 @@ Each item must have exactly these fields:
   content:          string (clear and actionable; for meetings, the meeting subject/title)
   rationale:        string (one sentence explaining why you extracted this)
   suggested_thread: string (a short thread title this item belongs in; ALWAYS provide one, never null)
-  due_date:         string | null (ISO date YYYY-MM-DD if applicable, else null)
-  meeting_at:       string | null (ISO datetime YYYY-MM-DDTHH:MM if known, meetings only, else null)
+  due_date:         string | null (a STRICT ISO date YYYY-MM-DD only; never a relative phrase like "next week" or "Weeks 1-2"; use null if no exact date)
+  meeting_at:       string | null (STRICT ISO datetime YYYY-MM-DDTHH:MM, meetings only, else null)
 Maximum {max_n} items. Prioritise actionable items over contextual ones.
 Group related items under the same suggested_thread so they land together rather than each in its own thread."""
 

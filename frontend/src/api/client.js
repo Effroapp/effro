@@ -23,7 +23,16 @@ async function request(path, options = {}) {
     let message = `HTTP ${res.status}`
     try {
       const data = await res.json()
-      message = data.detail || message
+      const d = data.detail
+      if (typeof d === 'string') {
+        message = d
+      } else if (Array.isArray(d)) {
+        // FastAPI/Pydantic validation errors come back as an array of objects;
+        // surface the human-readable bits instead of "[object Object]".
+        message = d.map((e) => e?.msg || JSON.stringify(e)).join('; ')
+      } else if (d) {
+        message = JSON.stringify(d)
+      }
     } catch {
       // ignore parse error
     }
