@@ -152,7 +152,7 @@ function StatusCycler() {
 
 const NEW_THREAD_VAL = '__new__'
 
-function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, onApproved, onDiscarded, bulkTrigger }) {
+function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, resolveTargetThread, onApproved, onDiscarded, bulkTrigger }) {
   const [currentItem, setCurrentItem] = useState(initialItem)
   const [status, setStatus] = useState('idle') // idle | approving | approved | rejecting | refining
   const [selectedThreadId, setSelectedThreadId] = useState(NEW_THREAD_VAL)
@@ -180,16 +180,9 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, on
     if (status !== 'idle') return
     setStatus('approving')
     try {
-      let threadId
-      if (selectedThreadId === NEW_THREAD_VAL) {
-        const thread = await areasApi.createThread(areaId, {
-          title: currentItem.suggested_thread,
-          status: 'open',
-        })
-        threadId = thread.id
-      } else {
-        threadId = Number(selectedThreadId)
-      }
+      // Parent dedupes new-thread creation by title, so multiple items naming
+      // the same "+ New thread" converge into one thread instead of duplicating.
+      const threadId = await resolveTargetThread(selectedThreadId, currentItem.suggested_thread)
       await entriesApi.create(threadId, {
         content: currentItem.content,
         type: currentItem.type,
@@ -411,6 +404,11 @@ export default function ProcessView() {
   const [dragActive, setDragActive]   = useState(false)
   const dragCounterRef = useRef(0)
   const fileInputRef   = useRef(null)
+  // Per-extraction cache of new-thread creations, keyed by normalised title.
+  // Ensures that several extracted items sharing the same "+ New thread: X"
+  // converge into ONE thread instead of each creating its own duplicate, even
+  // when "Approve all" fires every card at the same instant.
+  const threadCacheRef = useRef(new Map())
   const toast = useToast()
 
   // Persist state whenever it changes
@@ -491,6 +489,7 @@ export default function ProcessView() {
     setHasExtracted(false)
     setBulkTrigger(false)
     setBulkApproving(false)
+    threadCacheRef.current = new Map()  // fresh extraction, fresh new-thread cache
 
     try {
       const response = await generateApi.process(
@@ -518,6 +517,31 @@ export default function ProcessView() {
       }, 600)
     }
   }
+
+  // Resolve the destination thread for an approving item. If the user kept the
+  // "+ New thread" default, create that thread ONCE per unique title and share
+  // it across every item that named it (deduped via threadCacheRef, so a
+  // simultaneous bulk approve can't race into duplicate threads).
+  const resolveTargetThread = useCallback(async (selectedThreadId, rawTitle) => {
+    if (selectedThreadId !== NEW_THREAD_VAL) return Number(selectedThreadId)
+    const title = (rawTitle || '').trim() || 'General notes'
+    const key = title.toLowerCase()
+    const cache = threadCacheRef.current
+    if (!cache.has(key)) {
+      cache.set(key, (async () => {
+        const thread = await areasApi.createThread(selectedAreaId, { title, status: 'open' })
+        // Surface the freshly created thread to any remaining cards so their
+        // dropdowns show it as an existing option (and pre-select it).
+        setAreaThreads((prev) =>
+          prev.some((t) => (t.title || '').trim().toLowerCase() === key)
+            ? prev
+            : [...prev, thread]
+        )
+        return thread.id
+      })())
+    }
+    return cache.get(key)
+  }, [selectedAreaId])
 
   const handleItemApproved = (id) => {
     setItems((prev) => prev.filter((item) => item._id !== id))
@@ -549,6 +573,7 @@ export default function ProcessView() {
     setError(null)
     setBulkApproving(false)
     setParseSource(null)
+    threadCacheRef.current = new Map()
   }
 
   // All items reviewed - show completion banner instead of results panel
@@ -818,6 +843,7 @@ export default function ProcessView() {
                   areaId={selectedAreaId}
                   areaThreads={areaThreads}
                   selectedAreaName={selectedArea?.name ?? ''}
+                  resolveTargetThread={resolveTargetThread}
                   onApproved={() => handleItemApproved(item._id)}
                   onDiscarded={() => handleItemDiscarded(item._id)}
                   bulkTrigger={bulkTrigger}
