@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { BrainCircuit, Check, X, RotateCcw, Upload, FileText, Mail, Calendar, ChevronRight, MessageSquare, CheckCheck, Plus } from 'lucide-react'
+import { BrainCircuit, Check, X, RotateCcw, Upload, FileText, Mail, Calendar, ChevronRight, MessageSquare, CheckCheck, Plus, Edit3 } from 'lucide-react'
 import { areasApi, generateApi, entriesApi, ingestApi } from '../api/client'
 import PageHeader from '../components/PageHeader'
 import StatusBadge from '../components/StatusBadge'
@@ -106,28 +106,13 @@ function Step({ n, label, hint }) {
 
 const NEW_THREAD_VAL = '__new__'
 
-function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, resolveTargetThread, onApproved, onDiscarded, bulkSignal, bulkScope, groupKey, grouped = false, readOnly = false }) {
+function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApproved, onDiscarded, bulkSignal, bulkScope, groupKey, grouped = false }) {
   const [currentItem, setCurrentItem] = useState(initialItem)
   const [status, setStatus] = useState('idle') // idle | approving | approved | rejecting | refining
-  const [selectedThreadId, setSelectedThreadId] = useState(NEW_THREAD_VAL)
   const [rejectionReason, setRejectionReason] = useState('')
   const [collapsed, setCollapsed] = useState(false)
   const [flash, setFlash] = useState(false)
-  const [showPicker, setShowPicker] = useState(false)  // grouped mode: reveal the thread <select> on demand
   const toast = useToast()
-
-  // If the AI's suggested_thread matches an existing thread in this area
-  // (case-insensitive), pre-select it instead of defaulting to + New thread.
-  // Recomputes whenever the suggestion changes (e.g. after a refine).
-  useEffect(() => {
-    if (!currentItem?.suggested_thread || areaThreads.length === 0) return
-    if (selectedThreadId !== NEW_THREAD_VAL) return  // user already picked
-    const target = currentItem.suggested_thread.trim().toLowerCase()
-    const match = areaThreads.find(
-      (t) => (t.title || '').trim().toLowerCase() === target
-    )
-    if (match) setSelectedThreadId(String(match.id))
-  }, [currentItem.suggested_thread, areaThreads])
 
   // Keep a ref to the latest approve logic so bulkTrigger effect never goes stale
   const approveRef = useRef(null)
@@ -135,9 +120,10 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, re
     if (status !== 'idle') return
     setStatus('approving')
     try {
-      // Parent dedupes new-thread creation by title, so multiple items naming
-      // the same "+ New thread" converge into one thread instead of duplicating.
-      const threadId = await resolveTargetThread(selectedThreadId, currentItem.suggested_thread)
+      // The destination is owned by the thread group header, so every item in a
+      // group files into the same (re-pointable) thread. resolveThread() creates
+      // a new thread once per group and dedupes by title.
+      const threadId = await resolveThread()
       await entriesApi.create(threadId, {
         content: currentItem.content,
         type: currentItem.type,
@@ -234,14 +220,6 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, re
               <TypeIcon size={10} />
               {meta.label}
             </span>
-            {/* In grouped mode the thread is shown by the group header, so we
-                don't repeat it here. Only show a thread label when ungrouped, or
-                when the user has re-pointed this item away from its group. */}
-            {(!grouped || (showPicker && selectedThreadId !== NEW_THREAD_VAL)) && (
-              <span className="font-mono text-xs text-paper-500 dark:text-paper-600 truncate">
-                {currentItem.suggested_thread}
-              </span>
-            )}
           </div>
           {currentItem.due_date && !['null', 'none', 'n/a', 'na', 'tbd'].includes(String(currentItem.due_date).trim().toLowerCase()) && (
             <span className="font-mono text-xs text-amber-500 flex-shrink-0 inline-flex items-center gap-1">
@@ -257,9 +235,8 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, re
           <p className="text-xs text-paper-500 dark:text-paper-600 italic mt-1">Why: {currentItem.rationale}</p>
         </div>
 
-        {/* Action row - hidden while extracting (readOnly) so a mid-wave
-            setItems can never clobber an in-flight approval. */}
-        {!readOnly && (status === 'approved' ? (
+        {/* Action row */}
+        {status === 'approved' ? (
           <div className="px-4 py-3 border-t border-paper-100 dark:border-pitch-700">
             <span className="text-xs font-display uppercase tracking-wide text-paper-700 dark:text-paper-200">
               Added ✓
@@ -307,66 +284,33 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, re
             </div>
           </div>
         ) : (
-          <div className="px-4 py-3 border-t border-paper-100 dark:border-pitch-700 flex items-center justify-between gap-3">
-            {(!grouped || showPicker) ? (
-              <select
-                value={selectedThreadId}
-                onChange={(e) => setSelectedThreadId(e.target.value)}
-                className="
-                  flex-1 min-w-0 px-2.5 py-1.5 text-xs rounded-lg
-                  bg-white dark:bg-pitch-700 border border-paper-300 dark:border-paper-700
-                  text-pitch-500 dark:text-paper-300
-                  focus:outline-none focus:ring-2 focus:ring-mint-500
-                  font-display uppercase tracking-wide
-                "
-              >
-                <option value={NEW_THREAD_VAL}>+ New thread: {currentItem.suggested_thread}</option>
-                {areaThreads.map((t) => (
-                  <option key={t.id} value={String(t.id)}>
-                    {t.title}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <button
-                onClick={() => setShowPicker(true)}
-                title="File this item in a different thread"
-                className="text-xs font-display uppercase tracking-wide text-paper-400 dark:text-paper-600 hover:text-paper-600 dark:hover:text-paper-300 transition-colors"
-              >
-                Move
-              </button>
-            )}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <button
-                onClick={approve}
-                disabled={status === 'approving'}
-                title="Approve"
-                className="
-                  flex items-center justify-center
-                  bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-200 hover:bg-paper-300 dark:hover:bg-pitch-600
-                  rounded-md p-2 transition-colors disabled:opacity-50
-                "
-              >
-                {status === 'approving' ? (
-                  <Spinner size={14} />
-                ) : (
-                  <Check size={14} />
-                )}
-              </button>
-              <button
-                onClick={() => setStatus('rejecting')}
-                title="Reject"
-                className="
-                  flex items-center justify-center
-                  bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500/20
-                  rounded-md p-2 transition-colors
-                "
-              >
-                <X size={14} />
-              </button>
-            </div>
+          <div className="px-4 py-2.5 border-t border-paper-100 dark:border-pitch-700 flex items-center justify-end gap-1">
+            <button
+              onClick={approve}
+              disabled={status === 'approving'}
+              title="Approve this item"
+              className="
+                flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display uppercase tracking-wide
+                bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-200 hover:bg-paper-300 dark:hover:bg-pitch-600
+                transition-colors disabled:opacity-50
+              "
+            >
+              {status === 'approving' ? <Spinner size={13} /> : <Check size={13} />}
+              Approve
+            </button>
+            <button
+              onClick={() => setStatus('rejecting')}
+              title="Reject this item"
+              className="
+                flex items-center justify-center
+                bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500/20
+                rounded-md p-2 transition-colors
+              "
+            >
+              <X size={14} />
+            </button>
           </div>
-        ))}
+        )}
       </div>
     </div>
   )
@@ -419,8 +363,23 @@ function NewThreadPill() {
 // connected-dot timeline that thread entries use. The review screen becomes a
 // faithful preview of what the thread will look like once filed.
 
-function ThreadGroup({ group, collapsed, onToggle, onApproveAll, busy, children }) {
+function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, onApproveAll, busy, children }) {
   const n = group.items.length
+  const [editing, setEditing] = useState(false)
+  const [newTitle, setNewTitle] = useState(dest.title)
+
+  // Keep the new-thread input in step with the current destination.
+  useEffect(() => { setNewTitle(dest.title) }, [dest.title])
+
+  const pickExisting = (t) => { onChange({ kind: 'existing', threadId: t.id }); setEditing(false) }
+  const applyNew = () => {
+    const title = newTitle.trim()
+    if (!title) return
+    onChange({ kind: 'new', title })
+    setEditing(false)
+  }
+  const currentExistingId = dest.kind === 'existing' ? dest.threadId : null
+
   return (
     <div className="rounded-xl border border-paper-300 dark:border-pitch-500 bg-white dark:bg-pitch-700 overflow-hidden">
       {/* Thread header - mirrors a thread card */}
@@ -436,27 +395,100 @@ function ThreadGroup({ group, collapsed, onToggle, onApproveAll, busy, children 
           />
           <MessageSquare size={15} className="flex-shrink-0 text-paper-500 dark:text-paper-400" />
           <span className="font-display font-medium text-[15px] text-pitch-800 dark:text-white truncate min-w-0">
-            {group.title}
+            {dest.title}
           </span>
-          {group.isExisting
-            ? <span className="flex-shrink-0"><StatusBadge status={group.status} type="thread" size="xs" /></span>
+          {dest.isExisting
+            ? <span className="flex-shrink-0"><StatusBadge status={dest.status} type="thread" size="xs" /></span>
             : <NewThreadPill />}
           <span className="flex-shrink-0 font-mono text-xs text-paper-400 dark:text-paper-600 tabular-nums">
             {n} item{n === 1 ? '' : 's'}
           </span>
         </button>
-        {onApproveAll && (
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
-            onClick={onApproveAll}
-            disabled={busy}
-            title={`Approve all ${n} items in this thread`}
-            className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-display uppercase tracking-wide text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/20 hover:bg-mint-100 dark:hover:bg-mint-900/35 disabled:opacity-50 transition-colors"
+            onClick={() => setEditing((e) => !e)}
+            title="Change which thread these items go into"
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-display uppercase tracking-wide transition-colors ${
+              editing
+                ? 'text-pitch-700 dark:text-white bg-paper-300 dark:bg-pitch-600'
+                : 'text-paper-600 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-600'
+            }`}
           >
-            <CheckCheck size={12} />
-            Approve all
+            <Edit3 size={12} />
+            Change
           </button>
-        )}
+          {onApproveAll && (
+            <button
+              onClick={onApproveAll}
+              disabled={busy}
+              title={`Approve all ${n} items in this thread`}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-display uppercase tracking-wide text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/20 hover:bg-mint-100 dark:hover:bg-mint-900/35 disabled:opacity-50 transition-colors"
+            >
+              <CheckCheck size={12} />
+              Approve all
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Destination editor - pick an existing thread, or name a new one */}
+      {editing && (
+        <div className="px-4 py-3 border-b border-paper-200 dark:border-pitch-500 bg-paper-100/30 dark:bg-pitch-800/20 space-y-3">
+          <p className="text-[11px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-400">
+            File these {n} item{n === 1 ? '' : 's'} into
+          </p>
+
+          {/* Create / rename a new thread */}
+          <div className="flex items-center gap-2">
+            <span className="flex-shrink-0 inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 text-[11px] font-display uppercase tracking-wide">
+              <Plus size={12} strokeWidth={3} /> New
+            </span>
+            <input
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') applyNew() }}
+              placeholder="New thread name"
+              className="flex-1 min-w-0 px-2.5 py-1.5 text-sm rounded-lg bg-white dark:bg-pitch-700 border border-paper-300 dark:border-paper-700 text-pitch-800 dark:text-white placeholder:text-paper-400 dark:placeholder:text-paper-600 focus:outline-none focus:ring-2 focus:ring-mint-500"
+            />
+            <button
+              onClick={applyNew}
+              disabled={!newTitle.trim()}
+              className="flex-shrink-0 px-3 py-1.5 text-xs font-display uppercase tracking-wide rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
+            >
+              Use
+            </button>
+          </div>
+
+          {/* Or file into an existing thread */}
+          {areaThreads.length > 0 && (
+            <div>
+              <p className="text-[11px] font-display uppercase tracking-widest text-paper-400 dark:text-paper-600 mb-1.5">
+                Or an existing thread
+              </p>
+              <div className="max-h-44 overflow-y-auto space-y-1 pr-1">
+                {areaThreads.map((t) => {
+                  const active = currentExistingId === t.id
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => pickExisting(t)}
+                      className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
+                        active
+                          ? 'bg-mint-50 dark:bg-mint-900/20 ring-1 ring-mint/40'
+                          : 'hover:bg-paper-200 dark:hover:bg-pitch-600'
+                      }`}
+                    >
+                      <StatusBadge status={t.status} type="thread" size="xs" />
+                      <span className="min-w-0 truncate text-sm text-pitch-700 dark:text-paper-200">{t.title}</span>
+                      {active && <Check size={13} className="ml-auto flex-shrink-0 text-mint-600 dark:text-mint-400" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Entry timeline - the connected-dot rail from the Threads page */}
       {!collapsed && (
@@ -499,6 +531,10 @@ export default function ProcessView() {
   const [waveLoading, setWaveLoading] = useState(false)  // a batch is in flight
   const [waveTarget, setWaveTarget]   = useState(0)       // how many placeholders to shimmer
   const [collapsedGroups, setCollapsedGroups] = useState({})
+  // Per-group destination overrides, keyed by group key. Value is
+  // { kind:'existing', threadId } or { kind:'new', title }. Absent = use the
+  // group's own suggestion (existing match or a new thread named after it).
+  const [groupDest, setGroupDest] = useState({})
 
   // Drag-drop ingest state
   const [parsing, setParsing]         = useState(false)
@@ -600,6 +636,7 @@ export default function ProcessView() {
     setBulkScope(null)
     setBulkApproving(false)
     setCollapsedGroups({})
+    setGroupDest({})
     threadCacheRef.current = new Map()  // fresh extraction, fresh new-thread cache
 
     const collected = []
@@ -668,9 +705,12 @@ export default function ProcessView() {
     const cache = threadCacheRef.current
     if (!cache.has(key)) {
       cache.set(key, (async () => {
+        // If a thread with this exact title already exists, reuse it rather than
+        // minting a duplicate (covers typing an existing name in the editor).
+        const existing = areaThreads.find((t) => (t.title || '').trim().toLowerCase() === key)
+        if (existing) return existing.id
         const thread = await areasApi.createThread(selectedAreaId, { title, status: 'open' })
-        // Surface the freshly created thread to any remaining cards so their
-        // dropdowns show it as an existing option (and pre-select it).
+        // Surface the freshly created thread so later edits show it as existing.
         setAreaThreads((prev) =>
           prev.some((t) => (t.title || '').trim().toLowerCase() === key)
             ? prev
@@ -680,7 +720,7 @@ export default function ProcessView() {
       })())
     }
     return cache.get(key)
-  }, [selectedAreaId])
+  }, [selectedAreaId, areaThreads])
 
   const handleItemApproved = (id) => {
     setItems((prev) => prev.filter((item) => item._id !== id))
@@ -733,6 +773,7 @@ export default function ProcessView() {
           title: match ? match.title : title,  // adopt the existing thread's exact casing
           isExisting: !!match,
           status: match?.status || 'open',
+          threadId: match?.id ?? null,
           items: [],
         })
       }
@@ -740,6 +781,34 @@ export default function ProcessView() {
     }
     return Array.from(map.values())
   }, [items, areaThreads])
+
+  // The effective destination for a group: an explicit override if the user set
+  // one, otherwise the group's own suggestion. Drives the header pill + filing.
+  const destForGroup = useCallback((group) => {
+    const ov = groupDest[group.key]
+    if (ov?.kind === 'existing') {
+      const t = areaThreads.find((x) => x.id === ov.threadId)
+      return { kind: 'existing', threadId: ov.threadId, title: t?.title || group.title, isExisting: true, status: t?.status || 'open' }
+    }
+    if (ov?.kind === 'new') {
+      return { kind: 'new', title: ov.title, isExisting: false }
+    }
+    if (group.isExisting) {
+      return { kind: 'existing', threadId: group.threadId, title: group.title, isExisting: true, status: group.status }
+    }
+    return { kind: 'new', title: group.title, isExisting: false }
+  }, [groupDest, areaThreads])
+
+  // Resolve a group's chosen destination to a concrete thread id at approve time.
+  const resolveThreadForGroup = useCallback((group) => {
+    const dest = destForGroup(group)
+    return dest.kind === 'existing'
+      ? resolveTargetThread(String(dest.threadId), null)
+      : resolveTargetThread(NEW_THREAD_VAL, dest.title)
+  }, [destForGroup, resolveTargetThread])
+
+  const setGroupDestination = (key, dest) =>
+    setGroupDest((prev) => ({ ...prev, [key]: dest }))
 
   const handleClear = () => {
     clearSaved()
@@ -751,6 +820,7 @@ export default function ProcessView() {
     setBulkApproving(false)
     setParseSource(null)
     setCollapsedGroups({})
+    setGroupDest({})
     threadCacheRef.current = new Map()
   }
 
@@ -1024,6 +1094,9 @@ export default function ProcessView() {
                 <ThreadGroup
                   key={group.key}
                   group={group}
+                  dest={destForGroup(group)}
+                  areaThreads={areaThreads}
+                  onChange={(dest) => setGroupDestination(group.key, dest)}
                   collapsed={!!collapsedGroups[group.key]}
                   onToggle={() => toggleGroup(group.key)}
                   onApproveAll={() => handleApproveGroup(group)}
@@ -1033,10 +1106,8 @@ export default function ProcessView() {
                     <ItemCard
                       key={item._id}
                       item={item}
-                      areaId={selectedAreaId}
-                      areaThreads={areaThreads}
                       selectedAreaName={selectedArea?.name ?? ''}
-                      resolveTargetThread={resolveTargetThread}
+                      resolveThread={() => resolveThreadForGroup(group)}
                       onApproved={() => handleItemApproved(item._id)}
                       onDiscarded={() => handleItemDiscarded(item._id)}
                       bulkSignal={bulkSignal}
