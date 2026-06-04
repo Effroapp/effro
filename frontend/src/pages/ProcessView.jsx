@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { BrainCircuit, Check, X, RotateCcw, Upload, FileText, Mail, Calendar } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { BrainCircuit, Check, X, RotateCcw, Upload, FileText, Mail, Calendar, ChevronRight, MessagesSquare, CheckCheck } from 'lucide-react'
 import { areasApi, generateApi, entriesApi, ingestApi } from '../api/client'
 import PageHeader from '../components/PageHeader'
 import { useToast } from '../components/Toast'
@@ -8,7 +8,6 @@ import AIRequiredCard from '../components/AIRequiredCard'
 import { useAIConfigured } from '../hooks/useAIConfigured'
 import { ENTITY, entityFor } from '../utils/entityIcons'
 
-const STATUS_MESSAGES = ['Reading…', 'Identifying tasks…', 'Structuring items…', 'Preparing review…']
 const STORAGE_KEY = 'trace-process'
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
@@ -32,39 +31,6 @@ function clearSaved() {
   try {
     localStorage.removeItem(STORAGE_KEY)
   } catch {}
-}
-
-// ─── Progress bar ─────────────────────────────────────────────────────────────
-
-function ProgressBar({ done }) {
-  const [width, setWidth] = useState(0)
-  const [fading, setFading] = useState(false)
-
-  useEffect(() => {
-    const t = setTimeout(() => setWidth(85), 30)
-    return () => clearTimeout(t)
-  }, [])
-
-  useEffect(() => {
-    if (!done) return
-    setWidth(100)
-    const t = setTimeout(() => setFading(true), 200)
-    return () => clearTimeout(t)
-  }, [done])
-
-  return (
-    <div className={`transition-opacity duration-300 ${fading ? 'opacity-0' : 'opacity-100'}`}>
-      <div className="w-full h-1 rounded-full bg-paper-200 dark:bg-pitch-700 overflow-hidden">
-        <div
-          className="h-full bg-mint rounded-full"
-          style={{
-            width: `${width}%`,
-            transition: done ? 'width 200ms ease' : 'width 4000ms ease-out',
-          }}
-        />
-      </div>
-    </div>
-  )
 }
 
 // ─── Source chip ──────────────────────────────────────────────────────────────
@@ -135,30 +101,18 @@ function Step({ n, label, hint }) {
 }
 
 
-function StatusCycler() {
-  const [idx, setIdx] = useState(0)
-  useEffect(() => {
-    const t = setInterval(() => setIdx((i) => (i + 1) % STATUS_MESSAGES.length), 1500)
-    return () => clearInterval(t)
-  }, [])
-  return (
-    <p className="font-display uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600 text-center mt-3">
-      {STATUS_MESSAGES[idx]}
-    </p>
-  )
-}
-
 // ─── Item card ────────────────────────────────────────────────────────────────
 
 const NEW_THREAD_VAL = '__new__'
 
-function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, resolveTargetThread, onApproved, onDiscarded, bulkTrigger }) {
+function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, resolveTargetThread, onApproved, onDiscarded, bulkSignal, bulkScope, groupKey, grouped = false, readOnly = false }) {
   const [currentItem, setCurrentItem] = useState(initialItem)
   const [status, setStatus] = useState('idle') // idle | approving | approved | rejecting | refining
   const [selectedThreadId, setSelectedThreadId] = useState(NEW_THREAD_VAL)
   const [rejectionReason, setRejectionReason] = useState('')
   const [collapsed, setCollapsed] = useState(false)
   const [flash, setFlash] = useState(false)
+  const [showPicker, setShowPicker] = useState(false)  // grouped mode: reveal the thread <select> on demand
   const toast = useToast()
 
   // If the AI's suggested_thread matches an existing thread in this area
@@ -202,12 +156,14 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, re
 
   const approve = useCallback(() => approveRef.current(), [])
 
-  // Trigger from parent bulk approve
+  // Trigger from parent bulk approve. bulkScope is either 'all' or a specific
+  // group key, so "Approve all in this thread" only fires that thread's cards.
   useEffect(() => {
-    if (bulkTrigger) {
+    if (!bulkSignal) return
+    if (bulkScope === 'all' || bulkScope === groupKey) {
       approveRef.current()
     }
-  }, [bulkTrigger]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bulkSignal]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const discard = () => {
     setCollapsed(true)
@@ -255,9 +211,14 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, re
             <span className={`font-display uppercase text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${badge}`}>
               {currentItem.type}
             </span>
-            <span className="font-mono text-xs text-paper-500 dark:text-paper-600 truncate">
-              {currentItem.suggested_thread}
-            </span>
+            {/* In grouped mode the thread is shown by the group header, so we
+                don't repeat it here. Only show a thread label when ungrouped, or
+                when the user has re-pointed this item away from its group. */}
+            {(!grouped || (showPicker && selectedThreadId !== NEW_THREAD_VAL)) && (
+              <span className="font-mono text-xs text-paper-500 dark:text-paper-600 truncate">
+                {currentItem.suggested_thread}
+              </span>
+            )}
           </div>
           {currentItem.due_date && (
             <span className="font-mono text-xs text-amber-500 flex-shrink-0">
@@ -272,8 +233,9 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, re
           <p className="text-xs text-paper-500 dark:text-paper-600 italic mt-1">Why: {currentItem.rationale}</p>
         </div>
 
-        {/* Action row */}
-        {status === 'approved' ? (
+        {/* Action row - hidden while extracting (readOnly) so a mid-wave
+            setItems can never clobber an in-flight approval. */}
+        {!readOnly && (status === 'approved' ? (
           <div className="px-4 py-3 border-t border-paper-100 dark:border-pitch-700">
             <span className="text-xs font-display uppercase tracking-wide text-paper-700 dark:text-paper-200">
               Added ✓
@@ -322,24 +284,34 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, re
           </div>
         ) : (
           <div className="px-4 py-3 border-t border-paper-100 dark:border-pitch-700 flex items-center justify-between gap-3">
-            <select
-              value={selectedThreadId}
-              onChange={(e) => setSelectedThreadId(e.target.value)}
-              className="
-                flex-1 min-w-0 px-2.5 py-1.5 text-xs rounded-lg
-                bg-white dark:bg-pitch-700 border border-paper-300 dark:border-paper-700
-                text-pitch-500 dark:text-paper-300
-                focus:outline-none focus:ring-2 focus:ring-mint-500
-                font-display uppercase tracking-wide
-              "
-            >
-              <option value={NEW_THREAD_VAL}>+ New thread: {currentItem.suggested_thread}</option>
-              {areaThreads.map((t) => (
-                <option key={t.id} value={String(t.id)}>
-                  {t.title}
-                </option>
-              ))}
-            </select>
+            {(!grouped || showPicker) ? (
+              <select
+                value={selectedThreadId}
+                onChange={(e) => setSelectedThreadId(e.target.value)}
+                className="
+                  flex-1 min-w-0 px-2.5 py-1.5 text-xs rounded-lg
+                  bg-white dark:bg-pitch-700 border border-paper-300 dark:border-paper-700
+                  text-pitch-500 dark:text-paper-300
+                  focus:outline-none focus:ring-2 focus:ring-mint-500
+                  font-display uppercase tracking-wide
+                "
+              >
+                <option value={NEW_THREAD_VAL}>+ New thread: {currentItem.suggested_thread}</option>
+                {areaThreads.map((t) => (
+                  <option key={t.id} value={String(t.id)}>
+                    {t.title}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <button
+                onClick={() => setShowPicker(true)}
+                title="File this item in a different thread"
+                className="text-xs font-display uppercase tracking-wide text-paper-400 dark:text-paper-600 hover:text-paper-600 dark:hover:text-paper-300 transition-colors"
+              >
+                Move
+              </button>
+            )}
             <div className="flex items-center gap-1 flex-shrink-0">
               <button
                 onClick={approve}
@@ -370,8 +342,90 @@ function ItemCard({ item: initialItem, areaId, areaThreads, selectedAreaName, re
               </button>
             </div>
           </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Wave loader ──────────────────────────────────────────────────────────────
+// Shimmer placeholders for the batch currently being extracted. Styled to match
+// the AI Overview "generating" loading screen (ov-generating text shimmer), so
+// the whole app speaks one visual language while the AI is thinking.
+
+function WaveLoader({ count, label }) {
+  return (
+    <div className="space-y-3" aria-busy="true">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 rounded-xl overflow-hidden border-l-[3px] border-l-paper-300 dark:border-l-pitch-500"
+        >
+          <div className="px-4 py-2.5 bg-paper-100/50 dark:bg-pitch-800/30">
+            <span className="font-mono text-xs ov-generating">scanning for the next item</span>
+          </div>
+          <div className="px-4 py-3">
+            <p className="text-sm ov-generating">
+              {'█'.repeat(18 + ((i * 7) % 16))}
+            </p>
+          </div>
+        </div>
+      ))}
+      <p className="text-[11px] font-mono text-paper-500 dark:text-pitch-200 text-center pt-0.5">
+        {label}
+      </p>
+    </div>
+  )
+}
+
+// ─── Thread group ─────────────────────────────────────────────────────────────
+// Chunks extracted items by their destination thread so the reviewer sees one
+// thread at a time instead of a flat wall of cards (kinder on working memory).
+
+function ThreadGroup({ group, collapsed, onToggle, onApproveAll, busy, children }) {
+  const n = group.items.length
+  return (
+    <div className="rounded-xl border border-paper-300 dark:border-pitch-500 overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-paper-100/60 dark:bg-pitch-800/40 border-b border-paper-200 dark:border-pitch-600">
+        <button
+          onClick={onToggle}
+          className="flex items-center gap-2 min-w-0 text-left group/th"
+          title={collapsed ? 'Expand' : 'Collapse'}
+        >
+          <ChevronRight
+            size={14}
+            className={`flex-shrink-0 text-paper-400 dark:text-paper-600 transition-transform ${collapsed ? '' : 'rotate-90'}`}
+          />
+          <MessagesSquare size={13} className="flex-shrink-0 text-paper-400 dark:text-paper-600" />
+          <span className="font-display font-medium text-sm text-pitch-800 dark:text-white truncate">
+            {group.title}
+          </span>
+          <span
+            className={`flex-shrink-0 text-[10px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
+              group.isExisting
+                ? 'bg-mint-50 text-mint-700 dark:bg-mint-900/30 dark:text-mint-300'
+                : 'bg-paper-200 text-paper-600 dark:bg-pitch-600 dark:text-paper-300'
+            }`}
+          >
+            {group.isExisting ? 'existing' : 'new'}
+          </span>
+          <span className="flex-shrink-0 font-mono text-xs text-paper-400 dark:text-paper-600 tabular-nums">
+            {n}
+          </span>
+        </button>
+        {onApproveAll && (
+          <button
+            onClick={onApproveAll}
+            disabled={busy}
+            title={`Approve all ${n} items in this thread`}
+            className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-display uppercase tracking-wide text-paper-600 dark:text-paper-300 bg-paper-200/70 dark:bg-pitch-700 hover:bg-paper-300 dark:hover:bg-pitch-600 disabled:opacity-50 transition-colors"
+          >
+            <CheckCheck size={12} />
+            Approve all
+          </button>
         )}
       </div>
+      {!collapsed && <div className="p-3 space-y-3">{children}</div>}
     </div>
   )
 }
@@ -394,9 +448,16 @@ export default function ProcessView() {
   const [processing, setProcessing] = useState(false)
   const [progressDone, setProgressDone] = useState(false)
   const [error, setError]           = useState(null)
-  const [bulkTrigger, setBulkTrigger] = useState(false)
+  // Bulk approve uses a monotonic signal + a scope ('all' or a group key) so a
+  // per-thread "Approve all" fires only that thread's cards.
+  const [bulkSignal, setBulkSignal] = useState(0)
+  const [bulkScope, setBulkScope]   = useState(null)
   const [bulkApproving, setBulkApproving] = useState(false)
   const [bulkRemaining, setBulkRemaining] = useState(0)
+  // Incremental (waved) extraction progress + per-thread collapse state.
+  const [waveLoading, setWaveLoading] = useState(false)  // a batch is in flight
+  const [waveTarget, setWaveTarget]   = useState(0)       // how many placeholders to shimmer
+  const [collapsedGroups, setCollapsedGroups] = useState({})
 
   // Drag-drop ingest state
   const [parsing, setParsing]         = useState(false)
@@ -480,6 +541,13 @@ export default function ProcessView() {
     e.target.value = ''  // allow re-uploading the same filename
   }
 
+  // Extract in waves of up to MAX_BATCH, accumulating to MAX_ITEMS. Each wave
+  // tells the model what earlier waves already produced, so it continues with
+  // fresh items and stops once it runs dry. Items render as each wave lands, so
+  // you watch the list build up rather than staring at one long spinner.
+  const MAX_ITEMS = 20
+  const MAX_BATCH = 8
+
   const handleProcess = async () => {
     if (!canSubmit) return
     setProcessing(true)
@@ -487,35 +555,59 @@ export default function ProcessView() {
     setError(null)
     setItems([])
     setHasExtracted(false)
-    setBulkTrigger(false)
+    setBulkSignal(0)
+    setBulkScope(null)
     setBulkApproving(false)
+    setCollapsedGroups({})
     threadCacheRef.current = new Map()  // fresh extraction, fresh new-thread cache
 
+    const collected = []
+    let idCounter = 0
+    const titles = areaThreads.map((t) => t.title)
+
     try {
-      const response = await generateApi.process(
-        selectedArea.name,
-        inputText,
-        parseSource?.kind || null,
-        areaThreads.map((t) => t.title),
-        selectedAreaId,
-      )
-      setProgressDone(true)
-      setTimeout(() => {
-        setProcessing(false)
+      while (collected.length < MAX_ITEMS) {
+        const remaining = MAX_ITEMS - collected.length
+        const limit = Math.min(MAX_BATCH, remaining)
+        setWaveTarget(limit)
+        setWaveLoading(true)
+
+        const resp = await generateApi.process(
+          selectedArea.name,
+          inputText,
+          parseSource?.kind || null,
+          titles,
+          selectedAreaId,
+          collected.map((it) => it.content),  // exclude what we already have
+          limit,
+        )
+        const fresh = (resp.items || []).slice(0, limit)
+        if (fresh.length === 0) break
+
+        fresh.forEach((it) => collected.push({ ...it, _id: idCounter++ }))
+        setItems([...collected])
         setHasExtracted(true)
-        setItems(response.items.map((item, i) => ({ ...item, _id: i })))
-        areasApi.listThreads(selectedAreaId).then(setAreaThreads).catch(() => {})
-      }, 600)
+        setWaveLoading(false)
+
+        // The model returned fewer than asked → it's out of meaningful items.
+        if (fresh.length < limit) break
+      }
+      if (collected.length === 0) {
+        toast('No actionable items found in that text.')
+      }
+      // New threads may now be referenced; refresh so dropdowns/badges are right.
+      areasApi.listThreads(selectedAreaId).then(setAreaThreads).catch(() => {})
     } catch (e) {
+      if ((e.message || '').includes('ANTHROPIC_API_KEY')) {
+        setError('API key not configured - add ANTHROPIC_API_KEY to your .env file and rebuild.')
+      } else {
+        setError(e.message)
+      }
+    } finally {
+      setWaveLoading(false)
       setProgressDone(true)
-      setTimeout(() => {
-        setProcessing(false)
-        if (e.message.includes('ANTHROPIC_API_KEY')) {
-          setError('API key not configured - add ANTHROPIC_API_KEY to your .env file and rebuild.')
-        } else {
-          setError(e.message)
-        }
-      }, 600)
+      setProcessing(false)
+      if (collected.length > 0) setHasExtracted(true)
     }
   }
 
@@ -562,8 +654,38 @@ export default function ProcessView() {
     if (items.length === 0) return
     setBulkRemaining(items.length)
     setBulkApproving(true)
-    setBulkTrigger((t) => !t)
+    setBulkScope('all')
+    setBulkSignal((s) => s + 1)
   }
+
+  const handleApproveGroup = (group) => {
+    if (!group.items.length) return
+    setBulkRemaining(group.items.length)
+    setBulkApproving(true)
+    setBulkScope(group.key)
+    setBulkSignal((s) => s + 1)
+  }
+
+  const toggleGroup = (key) =>
+    setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }))
+
+  // Chunk items by destination thread, preserving first-seen order, and flag
+  // whether each thread already exists in the area (existing vs new badge).
+  const groups = useMemo(() => {
+    const existing = new Set(
+      areaThreads.map((t) => (t.title || '').trim().toLowerCase())
+    )
+    const map = new Map()
+    for (const it of items) {
+      const title = (it.suggested_thread || 'General notes').trim()
+      const key = title.toLowerCase()
+      if (!map.has(key)) {
+        map.set(key, { key, title, isExisting: existing.has(key), items: [] })
+      }
+      map.get(key).items.push(it)
+    }
+    return Array.from(map.values())
+  }, [items, areaThreads])
 
   const handleClear = () => {
     clearSaved()
@@ -574,11 +696,12 @@ export default function ProcessView() {
     setError(null)
     setBulkApproving(false)
     setParseSource(null)
+    setCollapsedGroups({})
     threadCacheRef.current = new Map()
   }
 
   // All items reviewed - show completion banner instead of results panel
-  const allReviewed = hasExtracted && items.length === 0
+  const allReviewed = hasExtracted && items.length === 0 && !processing
 
   return (
     <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800 bg-grid-light dark:bg-grid-dark">
@@ -746,11 +869,13 @@ export default function ProcessView() {
             </div>
           )}
 
-          {/* Loading state or submit button */}
+          {/* Loading state or submit button. The detailed progress now lives in
+              the results panel (waves of cards), so here we just show a compact
+              "working" state in place of the button. */}
           {processing ? (
-            <div>
-              <ProgressBar done={progressDone} />
-              <StatusCycler />
+            <div className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-mint-700/85 text-white text-sm font-display uppercase tracking-wide">
+              <Spinner size={14} />
+              Extracting…
             </div>
           ) : (
             <>
@@ -819,8 +944,8 @@ export default function ProcessView() {
           </div>
         )}
 
-        {/* Results Panel */}
-        {items.length > 0 && (
+        {/* Results Panel - grouped by thread, building up wave by wave */}
+        {(items.length > 0 || waveLoading) && (
           <div>
             <div className="flex items-start justify-between mb-1">
               <div>
@@ -828,42 +953,72 @@ export default function ProcessView() {
                   Extracted Items
                 </span>
                 <p className="text-xs text-paper-600 dark:text-paper-500 italic mt-1">
-                  Review each item. Approved items will be added to the selected area.
+                  {processing
+                    ? 'Pulling items in waves. They group by thread as they arrive.'
+                    : 'Grouped by thread. Approve a whole thread, or review one item at a time.'}
                 </p>
               </div>
               <span className="font-mono text-xs text-paper-500 dark:text-paper-600 flex-shrink-0 ml-4 mt-0.5">
-                {items.length} items found
+                {processing
+                  ? `${items.length} so far…`
+                  : `${items.length} item${items.length === 1 ? '' : 's'} found`}
               </span>
             </div>
 
             <div className="space-y-3 mt-3">
-              {items.map((item) => (
-                <ItemCard
-                  key={item._id}
-                  item={item}
-                  areaId={selectedAreaId}
-                  areaThreads={areaThreads}
-                  selectedAreaName={selectedArea?.name ?? ''}
-                  resolveTargetThread={resolveTargetThread}
-                  onApproved={() => handleItemApproved(item._id)}
-                  onDiscarded={() => handleItemDiscarded(item._id)}
-                  bulkTrigger={bulkTrigger}
-                />
+              {groups.map((group) => (
+                <ThreadGroup
+                  key={group.key}
+                  group={group}
+                  collapsed={!!collapsedGroups[group.key]}
+                  onToggle={() => toggleGroup(group.key)}
+                  onApproveAll={processing ? null : () => handleApproveGroup(group)}
+                  busy={bulkApproving}
+                >
+                  {group.items.map((item) => (
+                    <ItemCard
+                      key={item._id}
+                      item={item}
+                      areaId={selectedAreaId}
+                      areaThreads={areaThreads}
+                      selectedAreaName={selectedArea?.name ?? ''}
+                      resolveTargetThread={resolveTargetThread}
+                      onApproved={() => handleItemApproved(item._id)}
+                      onDiscarded={() => handleItemDiscarded(item._id)}
+                      bulkSignal={bulkSignal}
+                      bulkScope={bulkScope}
+                      groupKey={group.key}
+                      grouped
+                      readOnly={processing}
+                    />
+                  ))}
+                </ThreadGroup>
               ))}
+
+              {waveLoading && (
+                <WaveLoader
+                  count={waveTarget || MAX_BATCH}
+                  label={items.length > 0 ? 'Looking for more items…' : 'Reading your text…'}
+                />
+              )}
             </div>
 
-            <button
-              onClick={handleBulkApprove}
-              disabled={bulkApproving || items.length === 0}
-              className="
-                mt-4 w-full py-2.5 text-xs font-display uppercase tracking-wide rounded-lg
-                text-paper-600 dark:text-paper-500 bg-paper-200 dark:bg-pitch-700
-                hover:bg-paper-300 dark:hover:bg-pitch-500
-                disabled:opacity-50 transition-colors
-              "
-            >
-              {bulkApproving ? `Approving ${bulkRemaining} items…` : 'Approve all remaining'}
-            </button>
+            {!processing && items.length > 0 && (
+              <button
+                onClick={handleBulkApprove}
+                disabled={bulkApproving}
+                className="
+                  mt-4 w-full py-2.5 text-xs font-display uppercase tracking-wide rounded-lg
+                  text-paper-600 dark:text-paper-500 bg-paper-200 dark:bg-pitch-700
+                  hover:bg-paper-300 dark:hover:bg-pitch-500
+                  disabled:opacity-50 transition-colors
+                "
+              >
+                {bulkApproving && bulkScope === 'all'
+                  ? `Approving ${bulkRemaining} items…`
+                  : 'Approve all remaining'}
+              </button>
+            )}
           </div>
         )}
       </div>

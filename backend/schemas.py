@@ -301,6 +301,11 @@ class ProcessRequest(BaseModel):
     # recent entries from the DB and gives the AI that context so it can file
     # items into the right existing thread instead of inventing duplicates.
     area_id: Optional[int] = None
+    # Incremental extraction: contents already returned in earlier passes, so
+    # this pass continues with NEW items instead of repeating itself.
+    exclude: Optional[List[str]] = None
+    # How many items this single pass may return (the UI extracts in waves).
+    max_items: Optional[int] = 8
 
 
 class ProcessedItem(BaseModel):

@@ -146,7 +146,7 @@ export const ingestApi = {
 // ─── Generate / Process ───────────────────────────────────────────────────────
 
 export const generateApi = {
-  process: (areaName, inputText, sourceKind = null, existingThreads = null, areaId = null) =>
+  process: (areaName, inputText, sourceKind = null, existingThreads = null, areaId = null, exclude = null, maxItems = null) =>
     request('/generate/process', {
       method: 'POST',
       body: {
@@ -155,6 +155,8 @@ export const generateApi = {
         source_kind: sourceKind,
         existing_threads: existingThreads,
         area_id: areaId,
+        exclude,
+        max_items: maxItems,
       },
     }),
   refine: (item, rejectionReason, areaName) =>

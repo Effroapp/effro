@@ -124,7 +124,10 @@ def _build_threads_context(db: Session, area_id: int) -> tuple[str, list[str]]:
 def generate_process(payload: schemas.ProcessRequest, db: Session = Depends(get_db)):
     provider = get_provider(db)
 
-    base_system = """You extract structured work items from unstructured text for Effro., a personal log for tracking work across multiple parallel areas of responsibility.
+    max_n = payload.max_items or 8
+    max_n = max(1, min(8, max_n))  # keep each pass to a sane wave size
+
+    base_system = f"""You extract structured work items from unstructured text for Effro., a personal log for tracking work across multiple parallel areas of responsibility.
 Respond with a JSON array only. No preamble, no explanation, no markdown code fences.
 Each item must have exactly these fields:
   type:             "todo" | "entry" | "decision" | "meeting"
@@ -133,7 +136,7 @@ Each item must have exactly these fields:
   suggested_thread: string (a short thread title this item belongs in; ALWAYS provide one, never null)
   due_date:         string | null (ISO date YYYY-MM-DD if applicable, else null)
   meeting_at:       string | null (ISO datetime YYYY-MM-DDTHH:MM if known, meetings only, else null)
-Maximum 8 items. Prioritise actionable items over contextual ones.
+Maximum {max_n} items. Prioritise actionable items over contextual ones.
 Group related items under the same suggested_thread so they land together rather than each in its own thread."""
 
     ics_addendum = """
@@ -174,7 +177,25 @@ Then continue extracting any other actionable items (todos / decisions / context
                 "existing threads is a good fit."
             )
 
-    system = base_system + (ics_addendum if (payload.source_kind == "ics") else "") + threads_addendum
+    # Continuation: tell the model what earlier waves already produced so this
+    # pass returns only genuinely new items (and stops when there's nothing left).
+    exclude_addendum = ""
+    if payload.exclude:
+        already = "\n".join(f"  - {_snippet(c, 140)}" for c in payload.exclude[:24] if (c or "").strip())
+        if already:
+            exclude_addendum = (
+                "\n\nYou ALREADY extracted these items in earlier passes. Do NOT "
+                "repeat any of them or restate the same point in different words. "
+                "Return only NEW, distinct items not covered below. If nothing "
+                "meaningful remains to extract, return an empty array [].\n" + already
+            )
+
+    system = (
+        base_system
+        + (ics_addendum if (payload.source_kind == "ics") else "")
+        + threads_addendum
+        + exclude_addendum
+    )
 
     try:
         text = provider.complete(
