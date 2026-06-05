@@ -56,6 +56,7 @@ from routers import (
     microsoft as microsoft_router,
     signals as signals_router,
     jira as jira_router,
+    presence as presence_router,
 )
 
 # Effro. launches with no seeded areas - the user creates their own from the
@@ -138,6 +139,8 @@ def _init_db():
             "ALTER TABLE threads ADD COLUMN summary_auto_generated BOOLEAN DEFAULT 0",
             "ALTER TABLE threads ADD COLUMN summary_auto_update BOOLEAN DEFAULT 0",
             "ALTER TABLE threads ADD COLUMN position INTEGER",
+            # Work sessions - heartbeat-derived presence, powers the Insights wind-down
+            "CREATE TABLE IF NOT EXISTS work_sessions (id INTEGER PRIMARY KEY, started_at DATETIME NOT NULL, ended_at DATETIME NOT NULL, ping_count INTEGER DEFAULT 1)",
         ]:
             try:
                 conn.execute(text(sql))
@@ -261,6 +264,7 @@ app.include_router(insights_router.router, prefix="/api")
 app.include_router(microsoft_router.router, prefix="/api")
 app.include_router(signals_router.router, prefix="/api")
 app.include_router(jira_router.router, prefix="/api")
+app.include_router(presence_router.router, prefix="/api")
 
 # Serve uploaded files at /uploads/<stored_name>
 if os.path.exists(UPLOAD_DIR):

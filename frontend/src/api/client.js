@@ -208,4 +208,29 @@ export const attachmentsApi = {
 export const insightsApi = {
   get: (lookbackDays = 7) =>
     request(`/insights?lookback_days=${lookbackDays}`),
+
+  // The end-of-day wind-down. tz offset (JS getTimezoneOffset, minutes) lets
+  // the backend compute "today" in the user's local day, not UTC.
+  today: (tzOffsetMin = new Date().getTimezoneOffset()) =>
+    request(`/insights/today?tz_offset_min=${tzOffsetMin}`),
+
+  // Reflect → This week: closed loops, celebrations, working-day bars, rhythm.
+  week: (tzOffsetMin = new Date().getTimezoneOffset()) =>
+    request(`/insights/week?tz_offset_min=${tzOffsetMin}`),
+
+  // Ahead: next meeting, 10-day timeline, load forecast, good window.
+  ahead: (tzOffsetMin = new Date().getTimezoneOffset()) =>
+    request(`/insights/ahead?tz_offset_min=${tzOffsetMin}`),
+
+  // Balance: per-area activity, drift, "not on you".
+  balance: (tzOffsetMin = new Date().getTimezoneOffset()) =>
+    request(`/insights/balance?tz_offset_min=${tzOffsetMin}`),
+}
+
+// ─── Presence / heartbeat ─────────────────────────────────────────────────────
+// Pinged while the app is open so Insights can infer the real working window.
+
+export const presenceApi = {
+  ping: () =>
+    request('/heartbeat', { method: 'POST' }),
 }

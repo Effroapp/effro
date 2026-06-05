@@ -186,6 +186,29 @@ class ActivityEvent(Base):
     thread = relationship("Thread")
 
 
+class WorkSession(Base):
+    """
+    A contiguous span of app presence, used to infer the working day for the
+    Insights "wind-down".
+
+    Populated by the heartbeat (POST /api/heartbeat): each ping extends the
+    current session's ended_at, or opens a new session when the gap since the
+    last ping exceeds SESSION_GAP_MINUTES. This gives an honest "when did you
+    start / stop today" without storing a row per ping, and lets an isolated
+    late-night check-in be discounted (it becomes its own tiny session rather
+    than stretching the day).
+
+    Timestamps are naive UTC (datetime.utcnow()), consistent with the rest of
+    the schema; the API converts to the caller's local day on read.
+    """
+    __tablename__ = "work_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    started_at = Column(DateTime, nullable=False)
+    ended_at = Column(DateTime, nullable=False)
+    ping_count = Column(Integer, default=1, nullable=False)
+
+
 class AppSettings(Base):
     """
     Generic key-value store for application-wide settings.

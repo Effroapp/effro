@@ -15,6 +15,7 @@ import NewAreaModal from './components/NewAreaModal'
 import SplashScreen from './components/SplashScreen'
 import OnboardingWizard, { useOnboarding } from './components/OnboardingWizard'
 import Sidebar from './components/Sidebar'
+import { useHeartbeat } from './hooks/useHeartbeat'
 import Dashboard from './pages/Dashboard'
 import Insights from './pages/Insights'
 import Signals from './pages/Signals'
@@ -122,6 +123,9 @@ function Shell({ onOpenSwitcher, onOpenNewArea, updater, systemSettingsBadge }) 
   const location = useLocation()
   const { shouldShow } = useOnboarding()
   const [showOnboarding, setShowOnboarding] = useState(false)
+
+  // Record presence while the app is open, powering the Insights working window.
+  useHeartbeat()
 
   const loadAreas = useCallback(() => {
     areasApi.list().then(setAreas).catch(() => {})

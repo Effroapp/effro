@@ -1,329 +1,642 @@
-import { useEffect, useState } from 'react'
+/**
+ * Insights - the reflective, temporal lens (past -> future), distinct from the
+ * present-tense Dashboard. Three lenses, one at a time, ADHD-first and calm:
+ *
+ *   Reflect  - what you did (Today wind-down + This week step-back)
+ *   Ahead    - what's coming (timeline, forecast, a good window)
+ *   Balance  - across areas (attention map, drift, "not on you")
+ *
+ * All figures come from real aggregates (/insights/today|week|ahead|balance).
+ * Narratives are grounded: see docs/INSIGHTS_REDESIGN_SPEC.md.
+ */
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Flame, Moon, CalendarClock, ListChecks, CalendarDays,
-  ArrowUpRight, ExternalLink, Sparkles, Telescope,
+  Telescope, Sparkles, Rewind, CalendarClock, Scale as ScaleIcon,
+  CheckSquare, Calendar, Ban, ArrowUpRight, Clock, Trophy,
+  Unlock, Undo2, Hourglass, Sun, Sunset, CircleCheck, Ticket,
 } from 'lucide-react'
+import { format, addDays, parseISO } from 'date-fns'
 import PageHeader from '../components/PageHeader'
-import {
-  format, formatDistanceToNow, formatDistanceStrict,
-  isToday, isTomorrow, parseISO, differenceInCalendarDays,
-} from 'date-fns'
-import { insightsApi, entriesApi } from '../api/client'
-import { getTodayNudge } from '../api/nudges'
-import { getAreaStatus } from '../utils/status'
 import { AreaIcon } from '../components/IconPicker'
+import { getAreaStatus } from '../utils/status'
+import { insightsApi } from '../api/client'
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Shared meta ──────────────────────────────────────────────────────────────
 
-// Concrete, friendly relative time for a due date. We deliberately avoid vague
-// language ("soon") in favour of concrete cues - time-blindness-aware.
-function dueLabel(dueIso) {
-  if (!dueIso) return { text: 'no date', tone: 'muted' }
-  const d = parseISO(dueIso)
-  if (isToday(d)) return { text: 'today', tone: 'urgent' }
-  if (isTomorrow(d)) return { text: 'tomorrow', tone: 'soft' }
-  const days = differenceInCalendarDays(d, new Date())
-  if (days < 0) return { text: `${Math.abs(days)}d overdue`, tone: 'urgent' }
-  if (days <= 7) return { text: format(d, 'EEE'), tone: 'soft' }
-  return { text: format(d, 'd MMM'), tone: 'muted' }
+const ENTRY_META = {
+  todo:     { Icon: CheckSquare, color: '#6B8AB8' },
+  decision: { Icon: ScaleIcon,   color: '#C99A5C' },
+  meeting:  { Icon: Calendar,    color: '#8A7BB8' },
+  blockage: { Icon: Ban,         color: '#B86A5C' },
+  resolved: { Icon: CircleCheck, color: '#7A9579' },
+  jira:     { Icon: Ticket,      color: '#6B8AB8' },
 }
 
-// "in 1h 40m" / "in 3 days" - concrete countdown to the next meeting.
-function untilLabel(whenIso) {
-  const d = parseISO(whenIso)
-  const now = new Date()
-  if (d < now) return 'now'
-  return `in ${formatDistanceStrict(d, now)}`
+const CELEB_META = {
+  unblocked: { Icon: Unlock,      color: '#7A9579' },
+  resolved:  { Icon: CircleCheck, color: '#7A9579' },
+  comeback:  { Icon: Undo2,       color: '#6B8AB8' },
+  decisions: { Icon: ScaleIcon,   color: '#C99A5C' },
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+const TABS = [
+  { key: 'reflect', label: 'Reflect', Icon: Rewind,        sub: 'what you did' },
+  { key: 'ahead',   label: 'Ahead',   Icon: CalendarClock, sub: "what's coming" },
+  { key: 'balance', label: 'Balance', Icon: ScaleIcon,     sub: 'across areas' },
+]
+
+// decimal hour -> '5:00pm'
+function fmtHour(h) {
+  if (h == null) return ''
+  const hr = Math.floor(h), mn = Math.round((h - hr) * 60)
+  return `${((hr + 11) % 12) + 1}:${String(mn).padStart(2, '0')}${hr < 12 ? 'am' : 'pm'}`
+}
+function fmtDur(h) {
+  if (h == null) return ''
+  return h % 1 === 0 ? `${h}h` : `${h.toFixed(1)}h`
+}
+
+// ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function Insights() {
-  const navigate = useNavigate()
-  const [data, setData] = useState(null)
-  const [todos, setTodos] = useState([])
-  const [nudge, setNudge] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [tab, setTab] = useState('reflect')
+  const [scope, setScope] = useState('week')        // reflect scope: week | today
+  const [week, setWeek] = useState(null)
+  const [today, setToday] = useState(null)
+  const [ahead, setAhead] = useState(null)
+  const [balance, setBalance] = useState(null)
 
+  useEffect(() => { insightsApi.week().then(setWeek).catch(() => {}) }, [])
   useEffect(() => {
-    let alive = true
-    Promise.all([insightsApi.get(7), entriesApi.getUpcoming(5)])
-      .then(([insights, upcoming]) => {
-        if (!alive) return
-        setData(insights)
-        setTodos(upcoming)
-      })
-      .catch((e) => alive && setError(e.message || 'Failed to load insights'))
-      .finally(() => alive && setLoading(false))
-    getTodayNudge().then((n) => alive && setNudge(n?.text || null)).catch(() => {})
-    return () => { alive = false }
-  }, [])
+    if (tab === 'reflect' && scope === 'today' && !today) insightsApi.today().then(setToday).catch(() => {})
+  }, [tab, scope, today])
+  useEffect(() => { if (tab === 'ahead' && !ahead) insightsApi.ahead().then(setAhead).catch(() => {}) }, [tab, ahead])
+  useEffect(() => { if (tab === 'balance' && !balance) insightsApi.balance().then(setBalance).catch(() => {}) }, [tab, balance])
 
   return (
-    <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
-      {/* Header */}
-      <PageHeader
-        icon={Telescope}
-        title="Insights"
-        subtitle="Trends across your areas."
-        right={
-          <span className="font-mono text-xs text-paper-500 dark:text-paper-200">
-            {format(new Date(), 'EEE d MMM')}
-          </span>
-        }
-      />
-      {nudge && (
-        <p className="text-sm text-paper-600 dark:text-paper-500 italic mb-7 flex items-start gap-1.5 -mt-2">
-          <Sparkles size={13} className="mt-0.5 flex-shrink-0 text-mint/70" />
-          {nudge}
+    <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
+      <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
+        <PageHeader
+          icon={Telescope}
+          title="Insights"
+          subtitle="Step back and see how the week is really going."
+          right={
+            <span className="font-mono text-xs text-paper-500 dark:text-paper-200">
+              {format(new Date(), 'EEE d MMM')}
+            </span>
+          }
+        />
+
+        {/* Narrative line - the calm "what to notice", deterministic + accurate. */}
+        {week?.narrative && (
+          <p className="text-[13px] leading-relaxed text-paper-600 dark:text-pitch-100 italic mb-6 -mt-1 flex items-start gap-1.5">
+            <Sparkles size={13} className="mt-1 flex-shrink-0 text-mint/70" />
+            <span>{week.narrative}</span>
+          </p>
+        )}
+
+        <Tabs tab={tab} onChange={setTab} />
+
+        <div key={tab} className="animate-fade-in">
+          {tab === 'reflect' && (
+            <ReflectLens scope={scope} onScope={setScope} week={week} today={today} />
+          )}
+          {tab === 'ahead'   && <AheadLens data={ahead} />}
+          {tab === 'balance' && <BalanceLens data={balance} />}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Tabs / scope ─────────────────────────────────────────────────────────────
+
+function Tabs({ tab, onChange }) {
+  return (
+    <div className="inline-flex items-center gap-1 p-1 mb-6 rounded-lg bg-paper-200 dark:bg-pitch-700/60 border border-paper-300 dark:border-pitch-500">
+      {TABS.map(({ key, label, Icon, sub }) => {
+        const active = tab === key
+        return (
+          <button
+            key={key}
+            onClick={() => onChange(key)}
+            className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-md transition-all ${
+              active ? 'bg-white dark:bg-pitch-800 shadow-sm' : 'hover:bg-paper-100/60 dark:hover:bg-pitch-800/40'
+            }`}
+          >
+            <Icon size={15} className={active ? 'text-mint-600 dark:text-mint-400' : 'text-paper-500 dark:text-paper-600'} />
+            <span className="text-left leading-none">
+              <span className={`block text-sm font-medium ${active ? 'text-pitch-800 dark:text-white' : 'text-paper-600 dark:text-paper-400'}`}>{label}</span>
+              <span className={`block text-[10px] mt-0.5 ${active ? 'text-paper-500 dark:text-paper-500' : 'text-paper-400 dark:text-paper-700'}`}>{sub}</span>
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function ScopeToggle({ scope, onChange }) {
+  return (
+    <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-paper-200 dark:bg-pitch-700/60 border border-paper-300 dark:border-pitch-500">
+      {[['today', 'Today'], ['week', 'This week']].map(([k, l]) => (
+        <button
+          key={k}
+          onClick={() => onChange(k)}
+          className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+            scope === k
+              ? 'bg-white dark:bg-pitch-800 text-pitch-700 dark:text-white shadow-sm'
+              : 'text-paper-500 dark:text-paper-500 hover:text-pitch-700 dark:hover:text-paper-300'
+          }`}
+        >
+          {l}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── Reflect ──────────────────────────────────────────────────────────────────
+
+function ReflectLens({ scope, onScope, week, today }) {
+  const isToday = scope === 'today'
+  return (
+    <div className="space-y-7">
+      <div className="flex items-center justify-between">
+        <p className="text-[12px] text-paper-500 dark:text-paper-600">
+          {isToday ? 'A look at just today.' : 'A look back across your week.'}
         </p>
-      )}
+        <ScopeToggle scope={scope} onChange={onScope} />
+      </div>
+      {isToday
+        ? (today ? <TodayReflect data={today} /> : <BlockSkeleton n={3} />)
+        : (week ? <WeekReflect data={week} /> : <BlockSkeleton n={4} />)}
+    </div>
+  )
+}
 
-      {error && (
-        <div className="rounded-lg border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">
-          {error}
-        </div>
-      )}
+function TodayReflect({ data }) {
+  const navigate = useNavigate()
+  const items = (data.done_items || []).map((d) => ({
+    id: `${d.type}-${d.id}`, type: d.type, content: d.content,
+    area: d.area_name, thread_id: d.thread_id,
+    right: d.at ? format(parseISO(d.at), 'HH:mm') : '',
+  }))
+  return (
+    <div className="space-y-7">
+      <Hero count={data.headline_count} caption={data.headline_count > 0 ? 'finished since you started today' : 'a calm day so far'} chips={data.breakdown} />
+      <WindDownCard narrative={data.narrative} />
+      <Section label="Done today">
+        <RaisedCard>
+          {items.length > 0
+            ? <DoneList items={items} onOpen={(id) => id && navigate(`/thread/${id}`)} />
+            : <Empty>Nothing logged yet today, and that's fine.</Empty>}
+        </RaisedCard>
+      </Section>
+    </div>
+  )
+}
 
-      {loading && !data && (
-        <div className="space-y-6 animate-pulse">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="h-28 rounded-lg bg-paper-200 dark:bg-pitch-700" />
-            <div className="h-28 rounded-lg bg-paper-200 dark:bg-pitch-700" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="h-28 rounded-lg bg-paper-200 dark:bg-pitch-700" />
-            <div className="h-28 rounded-lg bg-paper-200 dark:bg-pitch-700" />
-          </div>
-        </div>
-      )}
+function WeekReflect({ data }) {
+  const navigate = useNavigate()
+  const items = (data.closed_items || []).map((d) => ({
+    id: `${d.type}-${d.id}`, type: d.type, content: d.content,
+    area: d.area_name, thread_id: d.thread_id,
+    right: d.at ? format(parseISO(d.at), 'EEE') : '',
+  }))
+  return (
+    <div className="space-y-7">
+      <Hero count={data.headline_count} unit="loops closed" caption="this week, all real and finished" chips={data.breakdown} />
 
-      {data && (
-        <div className="space-y-7">
-          {/* ── Momentum ─────────────────────────────────────────────────── */}
-          <Section label="Momentum">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {data.most_active && (
-                <MomentumCard
-                  icon={Flame}
-                  kicker="Most active"
-                  area={data.most_active}
-                  detail={
-                    data.most_active.entry_count > 0
-                      ? `${data.most_active.entry_count} ${data.most_active.entry_count === 1 ? 'entry' : 'entries'} this week`
-                      : 'no entries this week'
-                  }
-                  onClick={() => navigate(`/area/${data.most_active.area_id}`)}
-                />
-              )}
-              {data.quietest ? (
-                <MomentumCard
-                  icon={Moon}
-                  kicker="Quietest"
-                  area={data.quietest}
-                  detail={
-                    data.quietest.days_since_activity == null
-                      ? 'no activity yet'
-                      : data.quietest.days_since_activity === 0
-                        ? 'active today'
-                        : `no activity in ${data.quietest.days_since_activity} ${data.quietest.days_since_activity === 1 ? 'day' : 'days'}`
-                  }
-                  onClick={() => navigate(`/area/${data.quietest.area_id}`)}
-                />
-              ) : (
-                // When there aren't enough areas to rank, keep the grid balanced
-                // with a calm placeholder rather than a lone card.
-                data.most_active && (
-                  <div className="rounded-lg bg-paper-100/60 dark:bg-pitch-800/40 border border-dashed border-paper-300 dark:border-pitch-700 p-4 flex items-center justify-center text-center">
-                    <span className="text-xs text-paper-500 dark:text-paper-700 max-w-[18ch]">
-                      Add a few more areas to surface your quietest plate
+      {data.celebrations?.length > 0 && (
+        <Section label="Worth noticing">
+          <div className="rounded-xl border border-mint/15 bg-mint/5 p-2">
+            <ul>
+              {data.celebrations.map((c, i) => {
+                const m = CELEB_META[c.type] || CELEB_META.decisions
+                return (
+                  <li key={i} className={`flex items-start gap-3 px-2 py-2.5 ${i > 0 ? 'border-t border-mint/10' : ''}`}>
+                    <span className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${m.color}1F` }}>
+                      <m.Icon size={14} style={{ color: m.color }} />
                     </span>
-                  </div>
+                    <p className="text-[13px] text-pitch-700 dark:text-paper-300 leading-relaxed pt-1">{c.text}</p>
+                  </li>
                 )
-              )}
-            </div>
-          </Section>
+              })}
+            </ul>
+          </div>
+        </Section>
+      )}
 
-          {/* ── What's ahead ─────────────────────────────────────────────── */}
-          <Section label="What's ahead">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Next meeting */}
-              <RaisedCard>
-                <CardKicker icon={CalendarClock}>Next meeting</CardKicker>
-                {data.next_meeting ? (
-                  <button
-                    onClick={() => navigate(`/thread/${data.next_meeting.thread_id}?entry=${data.next_meeting.id}`)}
-                    className="group text-left w-full"
-                  >
-                    <p className="text-sm font-medium text-pitch-800 dark:text-white group-hover:text-mint-700 dark:group-hover:text-mint-300 transition-colors line-clamp-2">
-                      {data.next_meeting.content}
-                    </p>
-                    <p className="font-mono text-xs text-sky-muted mt-1.5">
-                      {untilLabel(data.next_meeting.meeting_at)} · {format(parseISO(data.next_meeting.meeting_at), 'HH:mm')}
-                    </p>
-                  </button>
-                ) : (
-                  <EmptyHint>No upcoming meetings logged</EmptyHint>
+      <Section label="Your days — when you start and stop">
+        <RaisedCard><WorkingWindows days={data.your_days || []} /></RaisedCard>
+      </Section>
+
+      <Section label="Your rhythm — last 14 days">
+        <RaisedCard><RhythmChart rhythm={data.rhythm || []} /></RaisedCard>
+      </Section>
+
+      <Section label="Closed this week">
+        <RaisedCard>
+          {items.length > 0
+            ? <DoneList items={items} onOpen={(id) => id && navigate(`/thread/${id}`)} />
+            : <Empty>Nothing closed in the last seven days.</Empty>}
+        </RaisedCard>
+      </Section>
+    </div>
+  )
+}
+
+function Hero({ count, unit = 'done today', caption, chips = [] }) {
+  return (
+    <section>
+      <div className="rounded-xl bg-white dark:bg-pitch-700 border border-paper-200 dark:border-pitch-500 p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <span className="w-10 h-10 rounded-lg bg-mint/10 border border-mint/20 flex items-center justify-center flex-shrink-0">
+            <Trophy size={18} className="text-mint-600 dark:text-mint-400" />
+          </span>
+          <div>
+            <p className="text-2xl font-semibold text-pitch-800 dark:text-white leading-none">
+              {count} {unit}
+            </p>
+            <p className="text-[13px] text-paper-500 dark:text-paper-500 mt-1">{caption}</p>
+          </div>
+        </div>
+        {chips.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {chips.map((b) => {
+              const m = ENTRY_META[b.type] || ENTRY_META.todo
+              return (
+                <span key={b.type} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[13px]" style={{ backgroundColor: `${m.color}1A`, color: m.color }}>
+                  <m.Icon size={13} />
+                  <b className="font-semibold">{b.count}</b>
+                  <span className="opacity-80">{b.label}</span>
+                </span>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function WindDownCard({ narrative }) {
+  return (
+    <div className="rounded-xl border border-mint/20 bg-mint/5 p-5 flex items-start gap-3">
+      <span className="w-9 h-9 rounded-lg bg-mint/10 flex items-center justify-center flex-shrink-0">
+        <Sunset size={18} className="text-mint-600 dark:text-mint-400" />
+      </span>
+      <div>
+        <p className="text-sm font-medium text-pitch-800 dark:text-white">A good place to stop</p>
+        <p className="text-[13px] text-paper-600 dark:text-paper-300 leading-relaxed mt-1">{narrative}</p>
+      </div>
+    </div>
+  )
+}
+
+function DoneList({ items, onOpen }) {
+  return (
+    <ul className="-my-0.5">
+      {items.map((c, i) => {
+        const m = ENTRY_META[c.type] || ENTRY_META.todo
+        return (
+          <li key={c.id} className={`flex items-center gap-3 py-2 ${i > 0 ? 'border-t border-paper-200 dark:border-pitch-600' : ''}`}>
+            <m.Icon size={15} style={{ color: m.color }} className="flex-shrink-0" />
+            <button
+              onClick={() => onOpen?.(c.thread_id)}
+              className="flex-1 text-left text-[13px] text-pitch-700 dark:text-paper-300 truncate hover:text-mint-700 dark:hover:text-mint-300 transition-colors"
+            >
+              {c.content}
+            </button>
+            {c.area && <span className="text-[11px] font-medium text-paper-500 dark:text-paper-500 flex-shrink-0">{c.area}</span>}
+            <span className="font-mono text-[11px] text-paper-400 dark:text-paper-700 flex-shrink-0 w-12 text-right">{c.right}</span>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+// Working-window bars on a 7am-8pm axis. Healthy reads sage; long reads mustard.
+function WorkingWindows({ days }) {
+  const AX_START = 7, AX_END = 20, SPAN = AX_END - AX_START
+  const withData = days.filter((d) => d.start_hour != null)
+  const anyOver = withData.some((d) => d.over)
+  const clamp = (h) => Math.max(AX_START, Math.min(AX_END, h))
+  return (
+    <div>
+      <ul className="space-y-2">
+        {days.map((d, i) => {
+          const has = d.start_hour != null
+          const left = has ? ((clamp(d.start_hour) - AX_START) / SPAN) * 100 : 0
+          const width = has ? ((clamp(d.end_hour) - clamp(d.start_hour)) / SPAN) * 100 : 0
+          return (
+            <li key={i} className="flex items-center gap-3">
+              <span className={`w-12 font-mono text-[11px] flex-shrink-0 ${d.label === 'Today' ? 'text-mint-600 dark:text-mint-400 font-bold' : 'text-paper-500 dark:text-paper-600'}`}>{d.label}</span>
+              <div className="relative flex-1 h-3 rounded-full bg-paper-200 dark:bg-pitch-800/60">
+                {has && (
+                  <div className="absolute top-0 h-3 rounded-full" style={{ left: `${left}%`, width: `${Math.max(width, 1)}%`, backgroundColor: d.over ? '#C9A85C' : '#7A9579', opacity: d.label === 'Today' ? 0.6 : 1 }} />
                 )}
-              </RaisedCard>
+              </div>
+              <span className="w-28 flex-shrink-0 text-right font-mono text-[11px] text-paper-500 dark:text-paper-500">
+                {has ? `${fmtDur(d.active_hours)} · ${fmtHour(d.end_hour)}` : '—'}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+      <div className="flex items-center gap-3 mt-1.5">
+        <span className="w-12 flex-shrink-0" />
+        <div className="relative flex-1 h-3 font-mono text-[9px] text-paper-400 dark:text-paper-700">
+          <span className="absolute left-0">7am</span>
+          <span className="absolute left-1/2 -translate-x-1/2">1pm</span>
+          <span className="absolute right-0">8pm</span>
+        </div>
+        <span className="w-28 flex-shrink-0" />
+      </div>
+      <p className="text-[12px] text-sage dark:text-sage leading-relaxed mt-4 flex items-start gap-1.5">
+        <Sparkles size={12} className="mt-0.5 flex-shrink-0" />
+        <span>
+          {withData.length === 0
+            ? 'No working hours logged yet. As you use the app, your start and stop times will show here.'
+            : anyOver
+              ? 'A few long days in there. The win is knowing when to stop, so be kind to yourself.'
+              : 'A steady, sustainable pace. Knowing when to walk away is a real skill.'}
+        </span>
+      </p>
+    </div>
+  )
+}
 
-              {/* Due todos */}
-              <RaisedCard>
-                <CardKicker icon={ListChecks}>Due todos</CardKicker>
-                {todos.length > 0 ? (
-                  <ul className="-mx-1">
-                    {todos.slice(0, 4).map((t, i) => {
-                      const due = dueLabel(t.due_date)
+// 14-day entries-per-day bars.
+function RhythmChart({ rhythm }) {
+  const max = Math.max(...rhythm.map((r) => r.count), 1)
+  return (
+    <div className="flex items-end gap-1.5 h-24">
+      {rhythm.map((r, i) => {
+        const h = r.count === 0 ? 3 : Math.max(6, (r.count / max) * 92)
+        return (
+          <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+            <div className="w-full flex items-end justify-center" style={{ height: '92px' }}>
+              <div className="w-full rounded-sm" style={{ height: `${h}px`, backgroundColor: r.is_today ? '#10B981' : r.weekend ? '#A8A49E55' : '#7A9579AA' }} title={`${r.count} entries`} />
+            </div>
+            <span className={`font-mono text-[9px] ${r.is_today ? 'text-mint-600 dark:text-mint-400 font-bold' : 'text-paper-400 dark:text-paper-700'}`}>{r.label}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Ahead ────────────────────────────────────────────────────────────────────
+
+function AheadLens({ data }) {
+  const navigate = useNavigate()
+  if (!data) return <BlockSkeleton n={3} />
+
+  const fn = data.forecast_next || { meetings: 0, todos: 0 }
+  const fp = data.forecast_prev || { meetings: 0, todos: 0 }
+  const nextTotal = fn.meetings + fn.todos
+  const prevTotal = fp.meetings + fp.todos
+  const compare = nextTotal === 0 ? '' : nextTotal > prevTotal ? ' A little busier than the past week.' : nextTotal < prevTotal ? ' A little lighter than the past week.' : ''
+
+  const tl = data.timeline || []
+  const todayItems = tl[0]?.items || []
+  const tmrwItems = tl[1]?.items || []
+  const restItems = tl.slice(2).flatMap((d) => d.items)
+
+  return (
+    <div className="space-y-7">
+      {nextTotal > 0 && (
+        <div className="rounded-xl border border-paper-200 dark:border-pitch-500 bg-white dark:bg-pitch-700 p-4 flex items-start gap-3">
+          <CalendarClock size={16} className="text-paper-500 dark:text-paper-400 flex-shrink-0 mt-0.5" />
+          <p className="text-[13px] text-paper-700 dark:text-paper-300 leading-relaxed">
+            The next 7 days hold{' '}
+            <b className="font-medium text-pitch-700 dark:text-paper-200">{fn.meetings} {fn.meetings === 1 ? 'meeting' : 'meetings'}</b> and{' '}
+            <b className="font-medium text-pitch-700 dark:text-paper-200">{fn.todos} {fn.todos === 1 ? 'todo' : 'todos'}</b> due.{compare} A glance now means no ambush later.
+          </p>
+        </div>
+      )}
+
+      <Section label="The shape of your next 10 days">
+        <RaisedCard><TimelineStrip days={tl} /></RaisedCard>
+      </Section>
+
+      {data.next_meeting && (
+        <Section label="Next up">
+          <button
+            onClick={() => navigate(`/thread/${data.next_meeting.thread_id}`)}
+            className="w-full text-left rounded-xl bg-white dark:bg-pitch-700 border border-paper-200 dark:border-pitch-500 p-5 flex items-center gap-4 hover:border-paper-400 dark:hover:border-pitch-400 transition-colors"
+          >
+            <span className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#8A7BB81A' }}>
+              <Calendar size={20} className="text-lavender" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-base font-medium text-pitch-800 dark:text-white truncate">{data.next_meeting.content}</p>
+              <p className="font-mono text-[13px] text-lavender mt-0.5">{format(parseISO(data.next_meeting.at), 'EEE d MMM · HH:mm')}</p>
+            </div>
+            <ArrowUpRight size={16} className="text-paper-400 dark:text-paper-700 flex-shrink-0" />
+          </button>
+        </Section>
+      )}
+
+      {(todayItems.length + tmrwItems.length + restItems.length) > 0 && (
+        <Section label="On your plate">
+          <RaisedCard>
+            {[['Today', todayItems], ['Tomorrow', tmrwItems], ['This week', restItems]].map(([label, items], bi) =>
+              items.length === 0 ? null : (
+                <div key={label} className={bi > 0 ? 'mt-4 pt-4 border-t border-paper-200 dark:border-pitch-600' : ''}>
+                  <p className="font-mono uppercase tracking-widest text-[10px] text-paper-500 dark:text-paper-600 mb-2">{label}</p>
+                  <ul className="space-y-1">
+                    {items.map((u, i) => {
+                      const m = ENTRY_META[u.kind] || ENTRY_META.todo
                       return (
-                        <li
-                          key={t.id}
-                          className={`flex items-center justify-between gap-2 px-1 py-1.5 ${i > 0 ? 'border-t border-paper-200 dark:border-pitch-700' : ''}`}
-                        >
-                          <span className="text-[13px] text-pitch-700 dark:text-paper-300 truncate">
-                            {t.content}
-                          </span>
-                          <span className="flex items-center gap-2 flex-shrink-0">
-                            <span className={`text-[11px] ${
-                              due.tone === 'urgent' ? 'text-terracotta'
-                                : due.tone === 'soft' ? 'text-paper-600 dark:text-paper-500'
-                                : 'text-paper-500 dark:text-paper-700'
-                            }`}>
-                              {due.text}
-                            </span>
-                            <button
-                              onClick={() => navigate(`/thread/${t.thread_id}?entry=${t.id}`)}
-                              aria-label={`Go to "${t.content}" in ${t.thread_title}`}
-                              title={`Open in ${t.thread_title}`}
-                              className="p-1 rounded text-paper-500 dark:text-paper-600 hover:text-mint-700 dark:hover:text-mint-300 hover:bg-paper-200 dark:hover:bg-pitch-700 transition-colors"
-                            >
-                              <ExternalLink size={13} />
-                            </button>
-                          </span>
+                        <li key={i} className="flex items-center gap-3 py-1">
+                          <m.Icon size={14} style={{ color: m.color }} className="flex-shrink-0" />
+                          <span className="flex-1 text-[13px] text-pitch-700 dark:text-paper-300 truncate">{u.content}</span>
+                          {u.area_name && <span className="text-[11px] font-medium text-paper-500 dark:text-paper-500">{u.area_name}</span>}
+                          {u.time_local && <span className="font-mono text-[11px] text-paper-400 dark:text-paper-700 w-14 text-right">{u.time_local}</span>}
                         </li>
                       )
                     })}
                   </ul>
-                ) : (
-                  <EmptyHint>Nothing due. You're clear.</EmptyHint>
-                )}
-              </RaisedCard>
-            </div>
-          </Section>
+                </div>
+              )
+            )}
+          </RaisedCard>
+        </Section>
+      )}
 
-          {/* ── Latest calendar entries ──────────────────────────────────── */}
-          {data.recent_meetings.length > 0 && (
-            <Section label="Latest calendar entries">
-              <RaisedCard>
-                <ul className="-my-0.5">
-                  {data.recent_meetings.map((m, i) => {
-                    const when = parseISO(m.meeting_at)
-                    const past = when < new Date()
-                    return (
-                      <li
-                        key={m.id}
-                        className={`flex items-center justify-between gap-3 py-1.5 ${i > 0 ? 'border-t border-paper-200 dark:border-pitch-700' : ''}`}
-                      >
-                        <button
-                          onClick={() => navigate(`/thread/${m.thread_id}?entry=${m.id}`)}
-                          className="group flex items-center gap-2 min-w-0 text-left"
-                        >
-                          <span className={`text-[13px] truncate ${past ? 'text-paper-500 dark:text-paper-600' : 'text-pitch-700 dark:text-paper-300'} group-hover:text-mint-700 dark:group-hover:text-mint-300 transition-colors`}>
-                            {m.content}
-                          </span>
-                        </button>
-                        <span className={`font-mono text-xs flex-shrink-0 ${
-                          past ? 'text-paper-500 dark:text-paper-700' : 'text-sky-muted'
-                        }`}>
-                          {isToday(when) ? format(when, 'HH:mm') : format(when, 'd MMM HH:mm')}
-                        </span>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </RaisedCard>
-            </Section>
-          )}
-        </div>
+      {data.good_window && (
+        <Section label="A good window">
+          <div className="rounded-xl border border-dashed border-mint/30 bg-mint/5 p-4 flex items-start gap-3">
+            <Sun size={16} className="text-mint-600 dark:text-mint-400 flex-shrink-0 mt-0.5" />
+            <p className="text-[13px] text-paper-700 dark:text-paper-300 leading-relaxed">
+              <b className="font-medium">{data.good_window.area_name}</b> has gone quiet for {data.good_window.quiet_days} days.
+              {data.good_window.day_label ? ` ${data.good_window.day_label} looks light` : ' When you have a quiet moment'}, it's a good window for it, if you have the energy. No pressure either way.
+            </p>
+          </div>
+        </Section>
       )}
     </div>
   )
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+function TimelineStrip({ days }) {
+  return (
+    <div className="flex gap-1.5">
+      {days.map((d, i) => (
+        <div key={i} className="flex-1 flex flex-col items-center">
+          <span className={`font-mono text-[10px] mb-1 ${d.is_today ? 'text-mint-600 dark:text-mint-400 font-bold' : 'text-paper-400 dark:text-paper-700'}`}>{d.label}</span>
+          <span className={`font-mono text-[11px] mb-2 ${d.is_today ? 'text-pitch-700 dark:text-paper-200' : 'text-paper-500 dark:text-paper-600'}`}>{d.day_num}</span>
+          <div className={`w-full min-h-[88px] rounded-md p-1 flex flex-col gap-1 ${d.is_today ? 'bg-mint/5 ring-1 ring-mint/30' : d.weekend ? 'bg-paper-200/40 dark:bg-pitch-800/40' : 'bg-paper-100/60 dark:bg-pitch-800/30'}`}>
+            {d.items.map((u, j) => u.kind === 'meeting' ? (
+              <div key={j} className="rounded px-1 py-0.5 text-[9px] leading-tight font-medium truncate" style={{ backgroundColor: '#8A7BB826', color: '#8A7BB8' }} title={u.content}>
+                {u.time_local} {u.content}
+              </div>
+            ) : (
+              <div key={j} className="flex items-center gap-1 px-0.5" title={u.content}>
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#6B8AB8' }} />
+                <span className="text-[9px] leading-tight text-paper-600 dark:text-paper-400 truncate">{u.content}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Balance ──────────────────────────────────────────────────────────────────
+
+function BalanceLens({ data }) {
+  if (!data) return <BlockSkeleton n={3} />
+  const areas = data.areas || []
+  const ranked = [...areas].sort((a, b) => b.total - a.total)
+  const active = ranked.filter((a) => a.total > 0)
+  const grand = active.reduce((s, a) => s + a.total, 0) || 1
+
+  return (
+    <div className="space-y-7">
+      {active.length > 0 && (
+        <Section label="Where your attention went">
+          <RaisedCard>
+            <div className="flex h-3 rounded-full overflow-hidden mb-3">
+              {active.map((a) => (
+                <div key={a.area_id} style={{ width: `${(a.total / grand) * 100}%`, backgroundColor: getAreaStatus(a.status).dot }} title={`${a.name}: ${a.total}`} />
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              {active.map((a) => (
+                <span key={a.area_id} className="inline-flex items-center gap-1.5 text-[12px] text-paper-600 dark:text-paper-400">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getAreaStatus(a.status).dot }} />
+                  {a.name}
+                  <span className="font-mono text-paper-400 dark:text-paper-700">{Math.round((a.total / grand) * 100)}%</span>
+                </span>
+              ))}
+            </div>
+          </RaisedCard>
+        </Section>
+      )}
+
+      <Section label="Each plate, last 14 days">
+        <RaisedCard>
+          <ul className="-my-1">
+            {ranked.map((a, i) => {
+              const dot = getAreaStatus(a.status).dot
+              return (
+                <li key={a.area_id} className={`flex items-center gap-3 py-2.5 ${i > 0 ? 'border-t border-paper-200 dark:border-pitch-600' : ''}`}>
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: dot }} />
+                  {a.icon && <AreaIcon name={a.icon} size={14} className="flex-shrink-0 text-pitch-700 dark:text-paper-300" />}
+                  <span className="flex-1 text-[13px] font-medium text-pitch-700 dark:text-paper-200 truncate">{a.name}</span>
+                  <Sparkline series={a.series} color={dot} />
+                  <span className={`text-[11px] flex-shrink-0 w-24 text-right ${a.quiet_days === 0 ? 'text-sage' : a.quiet_days != null && a.quiet_days >= 7 ? 'text-mustard' : 'text-paper-500 dark:text-paper-600'}`}>
+                    {a.quiet_days == null ? 'no activity yet' : a.quiet_days === 0 ? 'active today' : `${a.quiet_days}d quiet`}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </RaisedCard>
+      </Section>
+
+      {data.not_on_you?.length > 0 && (
+        <Section label="Not on you">
+          <div className="rounded-xl border border-sky-muted/30 bg-sky-muted/5 p-4">
+            <div className="flex items-start gap-3 mb-3">
+              <Hourglass size={16} className="text-sky-muted flex-shrink-0 mt-0.5" />
+              <p className="text-[13px] text-paper-700 dark:text-paper-300 leading-relaxed">
+                <b className="font-medium">{data.not_on_you.length} {data.not_on_you.length === 1 ? 'thread is' : 'threads are'}</b> blocked, waiting on something external. That weight isn't on you right now.
+              </p>
+            </div>
+            <ul className="space-y-1 pl-7">
+              {data.not_on_you.map((n) => (
+                <li key={n.thread_id} className="flex items-center gap-2 text-[12px]">
+                  <span className="text-pitch-700 dark:text-paper-300 truncate">{n.title}</span>
+                  {n.area_name && <span className="ml-auto text-[11px] font-medium text-paper-400 dark:text-paper-600">{n.area_name}</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Section>
+      )}
+
+      {data.drift?.length > 0 && (
+        <Section label="A gentle nudge or two">
+          <div className="rounded-xl border border-dashed border-mustard/40 bg-mustard/5 p-4 flex items-start gap-3">
+            <Clock size={16} className="text-mustard flex-shrink-0 mt-0.5" />
+            <p className="text-[13px] text-paper-700 dark:text-paper-300 leading-relaxed">
+              <b className="font-medium">{data.drift.map((d) => d.name).join(' and ')}</b>{' '}
+              {data.drift.length === 1 ? 'has' : 'have'} gone quiet for a while.
+              No pressure, just so {data.drift.length === 1 ? "it doesn't" : "they don't"} slip off the radar. Open {data.drift.length === 1 ? 'it' : 'them'} when you have the energy.
+            </p>
+          </div>
+        </Section>
+      )}
+    </div>
+  )
+}
+
+function Sparkline({ series, color }) {
+  const w = 90, h = 22, max = Math.max(...series, 1)
+  const pts = series.map((v, i) => `${((i / (series.length - 1)) * w).toFixed(1)},${(h - (v / max) * (h - 3) - 1.5).toFixed(1)}`).join(' ')
+  const allZero = series.every((v) => v === 0)
+  return (
+    <svg width={w} height={h} className="flex-shrink-0">
+      {allZero
+        ? <line x1="0" y1={h - 2} x2={w} y2={h - 2} stroke={color} strokeWidth="1.5" strokeDasharray="2 3" opacity="0.4" />
+        : <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" opacity="0.85" />}
+    </svg>
+  )
+}
+
+// ─── Shared bits ─────────────────────────────────────────────────────────────
 
 function Section({ label, children }) {
   return (
     <section>
-      <h2 className="font-mono uppercase tracking-[0.12em] text-[11px] text-paper-500 dark:text-paper-700 mb-2.5">
-        {label}
-      </h2>
+      <h2 className="font-mono uppercase tracking-[0.12em] text-[11px] text-paper-500 dark:text-paper-700 mb-2.5">{label}</h2>
       {children}
     </section>
   )
 }
 
-// Momentum card - option A: whole card is the click target, with a corner
-// arrow that brightens to mint on hover, plus a subtle lift.
-function MomentumCard({ icon: Icon, kicker, area, detail, onClick }) {
-  const status = getAreaStatus(area.status)
-  return (
-    <button
-      onClick={onClick}
-      title={`Go to ${area.area_name}`}
-      className="
-        group relative text-left w-full
-        rounded-lg p-4
-        bg-paper-100 dark:bg-pitch-800
-        border border-paper-200 dark:border-pitch-700
-        hover:border-paper-400 dark:hover:border-pitch-500
-        hover:-translate-y-0.5
-        transition-all duration-150 ease-out
-      "
-    >
-      <ArrowUpRight
-        size={16}
-        className="absolute top-3 right-3 text-paper-400 dark:text-paper-700 group-hover:text-mint-600 dark:group-hover:text-mint-400 transition-colors"
-      />
-      <div className="flex items-center gap-1.5 text-xs text-paper-600 dark:text-paper-500 mb-2">
-        <Icon size={13} />
-        {kicker}
-      </div>
-      <div className="flex items-center gap-2 mb-1">
-        <span
-          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-          style={{ backgroundColor: status.dot }}
-        />
-        {area.icon && <AreaIcon name={area.icon} size={14} className="flex-shrink-0 text-pitch-700 dark:text-paper-300" />}
-        <span className="text-base font-medium text-pitch-800 dark:text-white truncate">
-          {area.area_name}
-        </span>
-      </div>
-      <p className="text-xs text-paper-500 dark:text-paper-700">{detail}</p>
-    </button>
-  )
-}
-
 function RaisedCard({ children }) {
-  return (
-    <div className="rounded-lg p-4 bg-white dark:bg-pitch-800 border border-paper-200 dark:border-pitch-700">
-      {children}
-    </div>
-  )
+  return <div className="rounded-xl p-4 bg-white dark:bg-pitch-700 border border-paper-200 dark:border-pitch-500">{children}</div>
 }
 
-function CardKicker({ icon: Icon, children }) {
-  return (
-    <div className="flex items-center gap-1.5 text-xs text-paper-600 dark:text-paper-500 mb-2.5">
-      <Icon size={13} />
-      {children}
-    </div>
-  )
+function Empty({ children }) {
+  return <p className="text-[13px] text-paper-500 dark:text-paper-600">{children}</p>
 }
 
-function EmptyHint({ children }) {
+function BlockSkeleton({ n = 3 }) {
   return (
-    <p className="text-[13px] text-paper-500 dark:text-paper-700">{children}</p>
+    <div className="space-y-7 animate-pulse">
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} className="h-28 rounded-xl bg-paper-200 dark:bg-pitch-700" />
+      ))}
+    </div>
   )
 }

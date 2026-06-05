@@ -499,6 +499,167 @@ class InsightsOut(BaseModel):
     lookback_days: int = 7
 
 
+# ─── Today (the end-of-day wind-down) ─────────────────────────────────────────
+# Every field below is computed deterministically from real rows. The narrative
+# is phrased (by the AI or a template) using ONLY these facts - nothing here is
+# inferred or rounded by the model. Accuracy is the whole point of this surface.
+
+class TodayChip(BaseModel):
+    """A single 'X things of type Y' summary chip in the hero."""
+    type: str          # todo | decision | blockage | resolved | jira
+    label: str         # human label, already singular/plural-correct
+    count: int
+
+
+class TodayDoneItem(BaseModel):
+    """One concrete finished thing, for the 'Done today' list."""
+    id: int
+    type: str          # todo | decision | blockage | resolved | jira
+    content: str
+    area_name: Optional[str] = None
+    thread_id: Optional[int] = None
+    at: Optional[datetime] = None
+
+
+class TodayMeeting(BaseModel):
+    id: int
+    content: str
+    area_name: Optional[str] = None
+    thread_id: Optional[int] = None
+    at: datetime
+
+
+class TodayProgressThread(BaseModel):
+    thread_id: int
+    title: str
+    area_name: Optional[str] = None
+    count: int         # entries added to this thread today
+
+
+class TodayCreatedGroup(BaseModel):
+    area_name: str
+    count: int         # threads created in this area today
+
+
+class TodayInsights(BaseModel):
+    date: str                       # local YYYY-MM-DD the figures cover
+    started_at: Optional[datetime] = None      # first presence today (UTC)
+    last_active_at: Optional[datetime] = None   # last presence today (UTC)
+    active_hours: Optional[float] = None        # span start->now, hours
+    headline_count: int = 0         # sum of breakdown chip counts
+    breakdown: List[TodayChip] = []
+    done_items: List[TodayDoneItem] = []
+    meetings_count: int = 0
+    meetings: List[TodayMeeting] = []
+    threads_progressed: List[TodayProgressThread] = []
+    threads_created: List[TodayCreatedGroup] = []
+    jira_connected: bool = False
+    jira_filed_today: int = 0
+    jira_pending: int = 0
+    narrative: str = ""
+    ai_generated: bool = False      # True if the AI phrased it, False = template
+
+
+# ─── Reflect (this week) ──────────────────────────────────────────────────────
+
+class Celebration(BaseModel):
+    type: str          # unblocked | resolved | comeback | decisions
+    text: str          # warm, grounded sentence
+
+
+class WorkDay(BaseModel):
+    """One day's working window, for the start/stop bars."""
+    label: str                       # 'Today' or weekday abbrev
+    start_hour: Optional[float] = None   # local decimal hour (e.g. 9.5)
+    end_hour: Optional[float] = None
+    active_hours: Optional[float] = None
+    over: bool = False               # ran long (gentle flag only)
+
+
+class RhythmDay(BaseModel):
+    label: str                       # single-letter weekday
+    count: int                       # entries created that day
+    weekend: bool = False
+    is_today: bool = False
+
+
+class WeekInsights(BaseModel):
+    narrative: str = ""              # the top "what to notice" line (deterministic)
+    headline_count: int = 0
+    breakdown: List[TodayChip] = []
+    closed_items: List[TodayDoneItem] = []
+    celebrations: List[Celebration] = []
+    your_days: List[WorkDay] = []
+    rhythm: List[RhythmDay] = []
+
+
+# ─── Ahead ────────────────────────────────────────────────────────────────────
+
+class TimelineItem(BaseModel):
+    kind: str                        # meeting | todo
+    content: str
+    area_name: Optional[str] = None
+    time_local: Optional[str] = None  # meetings only
+
+
+class TimelineDay(BaseModel):
+    iso_date: str
+    label: str                       # 'now' | 'tmrw' | weekday letter
+    day_num: str                     # day of month
+    weekend: bool = False
+    is_today: bool = False
+    items: List[TimelineItem] = []
+
+
+class GoodWindow(BaseModel):
+    area_name: str
+    quiet_days: int
+    day_label: Optional[str] = None  # e.g. 'Friday', when a light day exists
+
+
+class LoadCount(BaseModel):
+    meetings: int = 0
+    todos: int = 0
+
+
+class AheadInsights(BaseModel):
+    next_meeting: Optional[TodayMeeting] = None
+    timeline: List[TimelineDay] = []
+    forecast_next: LoadCount = LoadCount()
+    forecast_prev: LoadCount = LoadCount()
+    good_window: Optional[GoodWindow] = None
+
+
+# ─── Balance ──────────────────────────────────────────────────────────────────
+
+class AreaBalance(BaseModel):
+    area_id: int
+    name: str
+    icon: Optional[str] = None
+    status: str
+    total: int = 0                   # entries in the window
+    series: List[int] = []           # per-day counts (oldest -> newest)
+    quiet_days: Optional[int] = None  # days since last activity
+
+
+class DriftArea(BaseModel):
+    area_id: int
+    name: str
+    quiet_days: int
+
+
+class NotOnYou(BaseModel):
+    thread_id: int
+    title: str
+    area_name: Optional[str] = None
+
+
+class BalanceInsights(BaseModel):
+    areas: List[AreaBalance] = []
+    drift: List[DriftArea] = []
+    not_on_you: List[NotOnYou] = []
+
+
 # ─── Signals / Microsoft 365 ──────────────────────────────────────────────────
 # Source-agnostic staging surface for externally-sourced items awaiting user
 # triage. Microsoft Outlook is the first source; future Jira/GitHub items use
