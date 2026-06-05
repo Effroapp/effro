@@ -861,6 +861,10 @@ def get_ahead(tz_offset_min: int = Query(default=0, ge=-840, le=840), db: Sessio
     """Ahead: next meeting, a 10-day timeline of meetings + due todos, a load
     forecast, and an optional 'good window' pairing a quiet area with a light day."""
     now = datetime.utcnow()
+    # meeting_at is stored as naive local wall-clock (user/calendar picked), unlike
+    # the UTC created/audit timestamps - so meetings are compared and displayed in
+    # local-naive time (no tz offset), matching how the rest of the app shows them.
+    local_now = now - timedelta(minutes=tz_offset_min)
 
     def entry_join():
         return (
@@ -870,7 +874,7 @@ def get_ahead(tz_offset_min: int = Query(default=0, ge=-840, le=840), db: Sessio
         )
 
     nm = entry_join().filter(
-        models.Entry.type == "meeting", models.Entry.meeting_at > now
+        models.Entry.type == "meeting", models.Entry.meeting_at > local_now
     ).order_by(models.Entry.meeting_at.asc()).first()
     next_meeting = None
     if nm:
@@ -880,13 +884,16 @@ def get_ahead(tz_offset_min: int = Query(default=0, ge=-840, le=840), db: Sessio
     timeline = []
     light_day_label = None
     for i in range(0, 10):
-        s, e, local_day = _day_bounds(now, tz_offset_min, i)
+        _s, _e, local_day = _day_bounds(now, tz_offset_min, i)
+        local_start = local_day
+        local_end = local_day + timedelta(days=1)
         items = []
-        start_bound = now if i == 0 else s
+        m_lower = local_now if i == 0 else local_start
         for entry, t, a in entry_join().filter(
-            models.Entry.type == "meeting", models.Entry.meeting_at >= start_bound, models.Entry.meeting_at < e
+            models.Entry.type == "meeting", models.Entry.meeting_at >= m_lower, models.Entry.meeting_at < local_end
         ).order_by(models.Entry.meeting_at.asc()).all():
-            items.append(schemas.TimelineItem(kind="meeting", content=entry.content, area_name=a.name, time_local=_fmt_local_time(entry.meeting_at, tz_offset_min)))
+            # time_local with offset 0 = wall-clock formatting (no tz shift)
+            items.append(schemas.TimelineItem(kind="meeting", content=entry.content, area_name=a.name, time_local=_fmt_local_time(entry.meeting_at, 0)))
         for entry, t, a in entry_join().filter(
             models.Entry.type == "todo", models.Entry.completed.is_(False), models.Entry.due_date == local_day.date()
         ).all():
@@ -900,8 +907,8 @@ def get_ahead(tz_offset_min: int = Query(default=0, ge=-840, le=840), db: Sessio
         if light_day_label is None and i >= 1 and not weekend and not items:
             light_day_label = local_day.strftime("%A")
 
-    forecast_next = _count_load(db, now, now + timedelta(days=7))
-    forecast_prev = _count_load(db, now - timedelta(days=7), now)
+    forecast_next = _count_load(db, local_now, local_now + timedelta(days=7))
+    forecast_prev = _count_load(db, local_now - timedelta(days=7), local_now)
 
     good_window = None
     q = _quietest_area(db, now)

@@ -488,18 +488,18 @@ function TimelineStrip({ days }) {
   return (
     <div className="flex gap-1.5">
       {days.map((d, i) => (
-        <div key={i} className="flex-1 flex flex-col items-center">
+        <div key={i} className="flex-1 min-w-0 flex flex-col items-center">
           <span className={`font-mono text-[10px] mb-1 ${d.is_today ? 'text-mint-600 dark:text-mint-400 font-bold' : 'text-paper-400 dark:text-paper-700'}`}>{d.label}</span>
           <span className={`font-mono text-[11px] mb-2 ${d.is_today ? 'text-pitch-700 dark:text-paper-200' : 'text-paper-500 dark:text-paper-600'}`}>{d.day_num}</span>
-          <div className={`w-full min-h-[88px] rounded-md p-1 flex flex-col gap-1 ${d.is_today ? 'bg-mint/5 ring-1 ring-mint/30' : d.weekend ? 'bg-paper-200/40 dark:bg-pitch-800/40' : 'bg-paper-100/60 dark:bg-pitch-800/30'}`}>
+          <div className={`w-full min-h-[88px] rounded-md p-1 flex flex-col gap-1 overflow-hidden ${d.is_today ? 'bg-mint/5 ring-1 ring-mint/30' : d.weekend ? 'bg-paper-200/40 dark:bg-pitch-800/40' : 'bg-paper-100/60 dark:bg-pitch-800/30'}`}>
             {d.items.map((u, j) => u.kind === 'meeting' ? (
-              <div key={j} className="rounded px-1 py-0.5 text-[9px] leading-tight font-medium truncate" style={{ backgroundColor: '#8A7BB826', color: '#8A7BB8' }} title={u.content}>
+              <div key={j} className="max-w-full rounded px-1 py-0.5 text-[9px] leading-tight font-medium truncate" style={{ backgroundColor: '#8A7BB826', color: '#8A7BB8' }} title={`${u.time_local || ''} ${u.content}`.trim()}>
                 {u.time_local} {u.content}
               </div>
             ) : (
-              <div key={j} className="flex items-center gap-1 px-0.5" title={u.content}>
+              <div key={j} className="flex items-center gap-1 px-0.5 min-w-0 w-full" title={u.content}>
                 <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#6B8AB8' }} />
-                <span className="text-[9px] leading-tight text-paper-600 dark:text-paper-400 truncate">{u.content}</span>
+                <span className="text-[9px] leading-tight text-paper-600 dark:text-paper-400 truncate min-w-0">{u.content}</span>
               </div>
             ))}
           </div>
