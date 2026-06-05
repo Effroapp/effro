@@ -90,7 +90,7 @@ export default function Insights() {
 
         {/* Narrative line - the calm "what to notice", deterministic + accurate. */}
         {week?.narrative && (
-          <p className="text-[13px] leading-relaxed text-paper-600 dark:text-pitch-100 italic mb-6 -mt-1 flex items-start gap-1.5">
+          <p className="font-lexend text-[13px] leading-relaxed text-paper-600 dark:text-pitch-100 italic mb-6 -mt-1 flex items-start gap-1.5">
             <Sparkles size={13} className="mt-1 flex-shrink-0 text-mint/70" />
             <span>{week.narrative}</span>
           </p>
@@ -220,7 +220,7 @@ function WeekReflect({ data }) {
                     <span className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${m.color}1F` }}>
                       <m.Icon size={14} style={{ color: m.color }} />
                     </span>
-                    <p className="text-[13px] text-pitch-700 dark:text-paper-300 leading-relaxed pt-1">{c.text}</p>
+                    <p className="text-sm text-pitch-700 dark:text-paper-300 leading-relaxed pt-1">{c.text}</p>
                   </li>
                 )
               })}
@@ -251,7 +251,7 @@ function WeekReflect({ data }) {
 function Hero({ count, unit = 'done today', caption, chips = [] }) {
   return (
     <section>
-      <div className="rounded-xl bg-white dark:bg-pitch-700 border border-paper-200 dark:border-pitch-500 p-5">
+      <div className="rounded-xl bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 p-5">
         <div className="flex items-center gap-3 mb-4">
           <span className="w-10 h-10 rounded-lg bg-mint/10 border border-mint/20 flex items-center justify-center flex-shrink-0">
             <Trophy size={18} className="text-mint-600 dark:text-mint-400" />
@@ -260,7 +260,7 @@ function Hero({ count, unit = 'done today', caption, chips = [] }) {
             <p className="text-2xl font-semibold text-pitch-800 dark:text-white leading-none">
               {count} {unit}
             </p>
-            <p className="text-[13px] text-paper-500 dark:text-paper-500 mt-1">{caption}</p>
+            <p className="text-sm text-paper-500 dark:text-paper-500 mt-1">{caption}</p>
           </div>
         </div>
         {chips.length > 0 && (
@@ -290,7 +290,7 @@ function WindDownCard({ narrative }) {
       </span>
       <div>
         <p className="text-sm font-medium text-pitch-800 dark:text-white">A good place to stop</p>
-        <p className="text-[13px] text-paper-600 dark:text-paper-300 leading-relaxed mt-1">{narrative}</p>
+        <p className="text-sm text-paper-600 dark:text-paper-300 leading-relaxed mt-1">{narrative}</p>
       </div>
     </div>
   )
@@ -306,7 +306,7 @@ function DoneList({ items, onOpen }) {
             <m.Icon size={15} style={{ color: m.color }} className="flex-shrink-0" />
             <button
               onClick={() => onOpen?.(c.thread_id)}
-              className="flex-1 text-left text-[13px] text-pitch-700 dark:text-paper-300 truncate hover:text-mint-700 dark:hover:text-mint-300 transition-colors"
+              className="flex-1 text-left text-sm text-pitch-700 dark:text-paper-300 truncate hover:text-mint-700 dark:hover:text-mint-300 transition-colors"
             >
               {c.content}
             </button>
@@ -414,9 +414,9 @@ function AheadLens({ data }) {
   return (
     <div className="space-y-7">
       {nextTotal > 0 && (
-        <div className="rounded-xl border border-paper-200 dark:border-pitch-500 bg-white dark:bg-pitch-700 p-4 flex items-start gap-3">
+        <div className="rounded-xl border border-paper-300 dark:border-pitch-500 bg-white dark:bg-pitch-700 p-4 flex items-start gap-3">
           <CalendarClock size={16} className="text-paper-500 dark:text-paper-400 flex-shrink-0 mt-0.5" />
-          <p className="text-[13px] text-paper-700 dark:text-paper-300 leading-relaxed">
+          <p className="text-sm text-paper-700 dark:text-paper-300 leading-relaxed">
             The next 7 days hold{' '}
             <b className="font-medium text-pitch-700 dark:text-paper-200">{fn.meetings} {fn.meetings === 1 ? 'meeting' : 'meetings'}</b> and{' '}
             <b className="font-medium text-pitch-700 dark:text-paper-200">{fn.todos} {fn.todos === 1 ? 'todo' : 'todos'}</b> due.{compare} A glance now means no ambush later.
@@ -432,7 +432,7 @@ function AheadLens({ data }) {
         <Section label="Next up">
           <button
             onClick={() => navigate(`/thread/${data.next_meeting.thread_id}`)}
-            className="w-full text-left rounded-xl bg-white dark:bg-pitch-700 border border-paper-200 dark:border-pitch-500 p-5 flex items-center gap-4 hover:border-paper-400 dark:hover:border-pitch-400 transition-colors"
+            className="w-full text-left rounded-xl bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 p-5 flex items-center gap-4 hover:border-paper-400 dark:hover:border-pitch-400 transition-colors"
           >
             <span className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#8A7BB81A' }}>
               <Calendar size={20} className="text-lavender" />
@@ -459,7 +459,7 @@ function AheadLens({ data }) {
                       return (
                         <li key={i} className="flex items-center gap-3 py-1">
                           <m.Icon size={14} style={{ color: m.color }} className="flex-shrink-0" />
-                          <span className="flex-1 text-[13px] text-pitch-700 dark:text-paper-300 truncate">{u.content}</span>
+                          <span className="flex-1 text-sm text-pitch-700 dark:text-paper-300 truncate">{u.content}</span>
                           {u.area_name && <span className="text-[11px] font-medium text-paper-500 dark:text-paper-500">{u.area_name}</span>}
                           {u.time_local && <span className="font-mono text-[11px] text-paper-400 dark:text-paper-700 w-14 text-right">{u.time_local}</span>}
                         </li>
@@ -477,7 +477,7 @@ function AheadLens({ data }) {
         <Section label="A good window">
           <div className="rounded-xl border border-dashed border-mint/30 bg-mint/5 p-4 flex items-start gap-3">
             <Sun size={16} className="text-mint-600 dark:text-mint-400 flex-shrink-0 mt-0.5" />
-            <p className="text-[13px] text-paper-700 dark:text-paper-300 leading-relaxed">
+            <p className="text-sm text-paper-700 dark:text-paper-300 leading-relaxed">
               <b className="font-medium">{data.good_window.area_name}</b> has gone quiet for {data.good_window.quiet_days} days.
               {data.good_window.day_label ? ` ${data.good_window.day_label} looks light` : ' When you have a quiet moment'}, it's a good window for it, if you have the energy. No pressure either way.
             </p>
@@ -554,7 +554,7 @@ function BalanceLens({ data }) {
                 <li key={a.area_id} className={`flex items-center gap-3 py-2.5 ${i > 0 ? 'border-t border-paper-200 dark:border-pitch-600' : ''}`}>
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: dot }} />
                   {a.icon && <AreaIcon name={a.icon} size={14} className="flex-shrink-0 text-pitch-700 dark:text-paper-300" />}
-                  <span className="flex-1 text-[13px] font-medium text-pitch-700 dark:text-paper-200 truncate">{a.name}</span>
+                  <span className="flex-1 text-sm font-medium text-pitch-700 dark:text-paper-200 truncate">{a.name}</span>
                   <Sparkline series={a.series} color={dot} />
                   <span className={`text-[11px] flex-shrink-0 w-24 text-right ${a.quiet_days === 0 ? 'text-sage' : a.quiet_days != null && a.quiet_days >= 7 ? 'text-mustard' : 'text-paper-500 dark:text-paper-600'}`}>
                     {a.quiet_days == null ? 'no activity yet' : a.quiet_days === 0 ? 'active today' : `${a.quiet_days}d quiet`}
@@ -571,7 +571,7 @@ function BalanceLens({ data }) {
           <div className="rounded-xl border border-sky-muted/30 bg-sky-muted/5 p-4">
             <div className="flex items-start gap-3 mb-3">
               <Hourglass size={16} className="text-sky-muted flex-shrink-0 mt-0.5" />
-              <p className="text-[13px] text-paper-700 dark:text-paper-300 leading-relaxed">
+              <p className="text-sm text-paper-700 dark:text-paper-300 leading-relaxed">
                 <b className="font-medium">{data.not_on_you.length} {data.not_on_you.length === 1 ? 'thread is' : 'threads are'}</b> blocked, waiting on something external. That weight isn't on you right now.
               </p>
             </div>
@@ -591,7 +591,7 @@ function BalanceLens({ data }) {
         <Section label="A gentle nudge or two">
           <div className="rounded-xl border border-dashed border-mustard/40 bg-mustard/5 p-4 flex items-start gap-3">
             <Clock size={16} className="text-mustard flex-shrink-0 mt-0.5" />
-            <p className="text-[13px] text-paper-700 dark:text-paper-300 leading-relaxed">
+            <p className="text-sm text-paper-700 dark:text-paper-300 leading-relaxed">
               <b className="font-medium">{data.drift.map((d) => d.name).join(' and ')}</b>{' '}
               {data.drift.length === 1 ? 'has' : 'have'} gone quiet for a while.
               No pressure, just so {data.drift.length === 1 ? "it doesn't" : "they don't"} slip off the radar. Open {data.drift.length === 1 ? 'it' : 'them'} when you have the energy.
@@ -621,18 +621,18 @@ function Sparkline({ series, color }) {
 function Section({ label, children }) {
   return (
     <section>
-      <h2 className="font-mono uppercase tracking-[0.12em] text-[11px] text-paper-500 dark:text-paper-700 mb-2.5">{label}</h2>
+      <h2 className="font-mono uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600 mb-2.5">{label}</h2>
       {children}
     </section>
   )
 }
 
 function RaisedCard({ children }) {
-  return <div className="rounded-xl p-4 bg-white dark:bg-pitch-700 border border-paper-200 dark:border-pitch-500">{children}</div>
+  return <div className="rounded-xl p-4 bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500">{children}</div>
 }
 
 function Empty({ children }) {
-  return <p className="text-[13px] text-paper-500 dark:text-paper-600">{children}</p>
+  return <p className="text-sm text-paper-500 dark:text-paper-600">{children}</p>
 }
 
 function BlockSkeleton({ n = 3 }) {
