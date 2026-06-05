@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Telescope, Sparkles, Rewind, CalendarClock, Scale as ScaleIcon,
   CheckSquare, Calendar, Ban, ArrowUpRight, Clock, Trophy,
-  Unlock, Undo2, Hourglass, Sun, Sunset, CircleCheck, Ticket, X,
+  Unlock, Undo2, Hourglass, Sun, Sunset, CircleCheck, Ticket, X, ChevronDown, Coffee,
 } from 'lucide-react'
 import { format, addDays, parseISO } from 'date-fns'
 import PageHeader from '../components/PageHeader'
@@ -222,15 +222,14 @@ function TodayReflect({ data }) {
   }))
   return (
     <div className="space-y-7 animate-rise motion-reduce:animate-none">
-      <Hero count={data.headline_count} caption={data.headline_count > 0 ? 'finished since you started today' : 'a calm day so far'} chips={data.breakdown} />
-      <WindDownCard narrative={data.narrative} />
-      <Section label="Done today">
-        <RaisedCard>
-          {items.length > 0
-            ? <DoneList items={items} onOpen={(id) => id && navigate(`/thread/${id}`)} />
-            : <Empty>Nothing logged yet today, and that's fine.</Empty>}
-        </RaisedCard>
-      </Section>
+      <Hero
+        count={data.headline_count}
+        caption={data.headline_count > 0 ? 'finished since you started today' : 'a calm day so far'}
+        chips={data.breakdown}
+        items={items}
+        onOpenItem={(id) => id && navigate(`/thread/${id}`)}
+      />
+      <WindDownCard mode={data.workday_mode} narrative={data.narrative} startedLabel={data.started_label} tip={data.tip} />
     </div>
   )
 }
@@ -244,7 +243,14 @@ function WeekReflect({ data }) {
   }))
   return (
     <div className="space-y-7 animate-rise motion-reduce:animate-none">
-      <Hero count={data.headline_count} unit="loops closed" caption="this week, all real and finished" chips={data.breakdown} />
+      <Hero
+        count={data.headline_count}
+        unit="loops closed"
+        caption="this week, all real and finished"
+        chips={data.breakdown}
+        items={items}
+        onOpenItem={(id) => id && navigate(`/thread/${id}`)}
+      />
 
       {data.celebrations?.length > 0 && (
         <Section label="Worth celebrating">
@@ -259,20 +265,14 @@ function WeekReflect({ data }) {
       <Section label="Your rhythm — last 14 days">
         <RaisedCard><RhythmChart rhythm={data.rhythm || []} /></RaisedCard>
       </Section>
-
-      <Section label="Closed this week">
-        <RaisedCard>
-          {items.length > 0
-            ? <DoneList items={items} onOpen={(id) => id && navigate(`/thread/${id}`)} />
-            : <Empty>Nothing closed in the last seven days.</Empty>}
-        </RaisedCard>
-      </Section>
     </div>
   )
 }
 
-function Hero({ count, unit = 'done today', caption, chips = [] }) {
+function Hero({ count, unit = 'done today', caption, chips = [], items = [], onOpenItem }) {
   const shown = useCountUp(count)
+  const [open, setOpen] = useState(false)
+  const hasItems = items.length > 0
   return (
     <section>
       <div className="rounded-xl bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 p-5">
@@ -280,7 +280,7 @@ function Hero({ count, unit = 'done today', caption, chips = [] }) {
           <span className="w-10 h-10 rounded-lg bg-mint/10 border border-mint/20 flex items-center justify-center flex-shrink-0">
             <Trophy size={18} className="text-mint-600 dark:text-mint-400" />
           </span>
-          <div>
+          <div className="min-w-0">
             <p className="text-2xl font-semibold text-pitch-800 dark:text-white leading-none">
               {shown} {unit}
             </p>
@@ -288,7 +288,7 @@ function Hero({ count, unit = 'done today', caption, chips = [] }) {
           </div>
         </div>
         {chips.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {chips.map((b) => {
               const m = ENTRY_META[b.type] || ENTRY_META.todo
               return (
@@ -299,6 +299,21 @@ function Hero({ count, unit = 'done today', caption, chips = [] }) {
                 </span>
               )
             })}
+            {hasItems && (
+              <button
+                onClick={() => setOpen((o) => !o)}
+                aria-expanded={open}
+                className="ml-auto inline-flex items-center gap-1 text-[12px] font-medium text-paper-500 dark:text-paper-400 hover:text-pitch-700 dark:hover:text-paper-200 transition-colors"
+              >
+                {open ? 'Hide details' : 'Show details'}
+                <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+              </button>
+            )}
+          </div>
+        )}
+        {open && hasItems && (
+          <div className="mt-4 pt-4 border-t border-paper-200 dark:border-pitch-600">
+            <ClosedDetails items={items} onOpenItem={onOpenItem} />
           </div>
         )}
       </div>
@@ -306,7 +321,24 @@ function Hero({ count, unit = 'done today', caption, chips = [] }) {
   )
 }
 
-function WindDownCard({ narrative }) {
+// Two states: a calm "time to stop" once a real day's work is in (>= 7h), or,
+// while the day's still in flow, the start time plus a rotating ADHD workday tip.
+function WindDownCard({ mode, narrative, startedLabel, tip }) {
+  if (mode === 'in_progress') {
+    return (
+      <div className="rounded-xl border border-paper-300 dark:border-pitch-500 bg-white dark:bg-pitch-700 p-5 flex items-start gap-3">
+        <span className="w-9 h-9 rounded-lg bg-sky-muted/10 flex items-center justify-center flex-shrink-0">
+          <Coffee size={18} className="text-sky-muted" />
+        </span>
+        <div className="min-w-0">
+          {startedLabel && (
+            <p className="font-mono text-[12px] text-paper-500 dark:text-paper-600 mb-1">Going since {startedLabel}</p>
+          )}
+          <p className="text-sm text-paper-600 dark:text-paper-300 leading-relaxed">{tip}</p>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="rounded-xl border border-mint/25 bg-mint/5 p-5 flex items-start gap-3">
       <span className="w-9 h-9 rounded-lg bg-mint/10 flex items-center justify-center flex-shrink-0">
@@ -345,26 +377,44 @@ function Celebrations({ items }) {
   )
 }
 
-function DoneList({ items, onOpen }) {
+// Expanded detail behind the "loops closed" hero: the actual items, grouped by
+// type (todos, decisions, blockers cleared, threads resolved, Jira filed).
+const CLOSED_ORDER = ['todo', 'decision', 'blockage', 'resolved', 'jira']
+const CLOSED_GROUP_LABEL = {
+  todo: 'Todos done', decision: 'Decisions made', blockage: 'Blockers cleared',
+  resolved: 'Threads resolved', jira: 'Jira items filed',
+}
+
+function ClosedDetails({ items, onOpenItem }) {
+  const groups = {}
+  items.forEach((it) => { (groups[it.type] ||= []).push(it) })
+  const types = CLOSED_ORDER.filter((t) => groups[t]?.length)
   return (
-    <ul className="-my-0.5">
-      {items.map((c, i) => {
-        const m = ENTRY_META[c.type] || ENTRY_META.todo
+    <div className="space-y-4">
+      {types.map((t) => {
+        const m = ENTRY_META[t] || ENTRY_META.todo
         return (
-          <li key={c.id} className={`flex items-center gap-3 py-2 ${i > 0 ? 'border-t border-paper-200 dark:border-pitch-600' : ''}`}>
-            <m.Icon size={15} style={{ color: m.color }} className="flex-shrink-0" />
-            <button
-              onClick={() => onOpen?.(c.thread_id)}
-              className="flex-1 text-left text-sm text-pitch-700 dark:text-paper-300 truncate hover:text-mint-700 dark:hover:text-mint-300 transition-colors"
-            >
-              {c.content}
-            </button>
-            {c.area && <span className="text-[11px] font-medium text-paper-500 dark:text-paper-500 flex-shrink-0">{c.area}</span>}
-            <span className="font-mono text-[11px] text-paper-400 dark:text-paper-700 flex-shrink-0 w-12 text-right">{c.right}</span>
-          </li>
+          <div key={t}>
+            <p className="font-mono uppercase tracking-widest text-[10px] mb-1.5" style={{ color: m.color }}>{CLOSED_GROUP_LABEL[t]}</p>
+            <ul className="-my-0.5">
+              {groups[t].map((c, i) => (
+                <li key={`${c.id}-${i}`} className={`flex items-center gap-3 py-1.5 ${i > 0 ? 'border-t border-paper-200 dark:border-pitch-600' : ''}`}>
+                  <m.Icon size={14} style={{ color: m.color }} className="flex-shrink-0" />
+                  <button
+                    onClick={() => onOpenItem?.(c.thread_id)}
+                    className="flex-1 text-left text-sm text-pitch-700 dark:text-paper-300 truncate hover:text-mint-700 dark:hover:text-mint-300 transition-colors"
+                  >
+                    {c.content}
+                  </button>
+                  {c.area && <span className="text-[11px] font-medium text-paper-500 dark:text-paper-500 flex-shrink-0">{c.area}</span>}
+                  {c.right && <span className="font-mono text-[11px] text-paper-400 dark:text-paper-700 flex-shrink-0 w-12 text-right">{c.right}</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
         )
       })}
-    </ul>
+    </div>
   )
 }
 
@@ -423,7 +473,7 @@ function WorkingWindows({ days }) {
 function RhythmChart({ rhythm }) {
   const max = Math.max(...rhythm.map((r) => r.count), 1)
   return (
-    <div className="flex items-end gap-1.5 h-24">
+    <div className="flex items-end gap-1.5">
       {rhythm.map((r, i) => {
         const h = r.count === 0 ? 3 : Math.max(6, (r.count / max) * 92)
         return (

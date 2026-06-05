@@ -24,6 +24,7 @@ issues, PR review requests, unread priority mail). Add sibling helpers + fields
 on InsightsOut rather than reshaping the existing ones.
 """
 import re
+import json
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -39,6 +40,11 @@ router = APIRouter(tags=["insights"])
 # Below this many areas, the "quietest area" ranking is suppressed - it only
 # becomes useful once you're juggling several plates.
 MIN_AREAS_FOR_RANKING = 4
+
+# The "time to stop" wind-down only earns its place after this much active work
+# (active time already excludes lunch and long breaks). Below it, the day is
+# still in flow and we show a calm ADHD workday tip instead.
+WIND_DOWN_HOURS = 7.0
 
 
 def _utcnow() -> datetime:
@@ -409,32 +415,37 @@ def get_today(
 
     # ── Jira ──────────────────────────────────────────────────────────────────
     jira_connected = db.query(models.JiraIntegration).first() is not None
-    jira_filed_today = 0
     jira_pending = 0
+    jira_rows = []
     if jira_connected:
         jira_pending = (
             db.query(func.count(models.SignalItem.id))
             .filter(models.SignalItem.source == "jira", models.SignalItem.status == "pending")
             .scalar()
         ) or 0
-        jira_filed_today = (
-            db.query(func.count(models.SignalItem.id))
+        jira_rows = (
+            db.query(models.SignalItem, models.Entry, models.Thread, models.Area)
             .join(models.Entry, models.SignalItem.assigned_entry_id == models.Entry.id)
+            .join(models.Thread, models.Entry.thread_id == models.Thread.id)
+            .join(models.Area, models.Thread.area_id == models.Area.id)
             .filter(
                 models.SignalItem.source == "jira",
                 models.SignalItem.status == "assigned",
                 models.Entry.created_at >= day_start,
                 models.Entry.created_at < day_end,
             )
-            .scalar()
-        ) or 0
+            .all()
+        )
+    jira_filed_today = len(jira_rows)
 
     # ── Working window (heartbeat-derived) ────────────────────────────────────
-    start_at, last_end, _active_seconds = working_window(db, day_start, day_end)
-    active_hours = ((now_utc - start_at).total_seconds() / 3600) if start_at else None
+    start_at, last_end, active_seconds = working_window(db, day_start, day_end)
+    work_hours = (active_seconds / 3600) if active_seconds else 0.0  # active time, excludes breaks
+    started_label = _fmt_local_time(start_at, tz_offset_min)
     finishes = recent_finishes(db, now_utc, tz_offset_min, days=7)
     early = [h for h in finishes if h <= 18.0]
     reasonable_finish = len(finishes) >= 3 and len(early) >= max(2, len(finishes) - 1)
+    workday_mode = "wind_down" if (start_at is not None and work_hours >= WIND_DOWN_HOURS) else "in_progress"
 
     # ── Assemble chips + done list ────────────────────────────────────────────
     chips = []
@@ -460,6 +471,8 @@ def get_today(
         done_items.append(schemas.TodayDoneItem(id=t.id, type="blockage", content=t.title, area_name=a.name, thread_id=t.id, at=log.occurred_at))
     for log, t, a in resolved_rows:
         done_items.append(schemas.TodayDoneItem(id=t.id, type="resolved", content=t.title, area_name=a.name, thread_id=t.id, at=log.occurred_at))
+    for s, e, t, a in jira_rows:
+        done_items.append(schemas.TodayDoneItem(id=e.id, type="jira", content=s.title, area_name=a.name, thread_id=t.id, at=e.created_at))
     done_items.sort(key=lambda d: d.at or datetime.min, reverse=True)
 
     meetings = [
@@ -474,32 +487,41 @@ def get_today(
         schemas.TodayCreatedGroup(area_name=aname, count=cnt) for aname, cnt in created_rows
     ]
 
-    # ── Narrative (grounded; AI phrases, template falls back) ─────────────────
-    facts = {
-        "started_label": _fmt_local_time(start_at, tz_offset_min),
-        "hours_phrase": _hours_phrase(active_hours) if active_hours and active_hours >= 0.5 else None,
-        "reasonable_finish": reasonable_finish,
-        "n_todos": n_todos,
-        "n_decisions": n_decisions,
-        "n_cleared": n_cleared,
-        "n_resolved": n_resolved,
-        "meetings_count": len(meetings),
-        "top_thread": (
-            {"title": threads_progressed[0].title, "count": threads_progressed[0].count}
-            if threads_progressed and threads_progressed[0].count >= 2 else None
-        ),
-        "threads_created": [{"area": g.area_name, "count": g.count} for g in threads_created],
-        "jira_connected": jira_connected,
-        "jira_filed_today": jira_filed_today,
-        "jira_pending": jira_pending,
-    }
-    narrative, ai_generated = _narrative(db, facts)
+    # ── Wind-down vs in-progress ──────────────────────────────────────────────
+    # Only when the day is genuinely done (>= WIND_DOWN_HOURS of active work) do we
+    # phrase the grounded "time to stop" message. While the day is still in flow we
+    # show the start time and a calm, rotating ADHD workday tip instead of nudging
+    # a stop too early.
+    narrative, ai_generated, tip = "", False, None
+    if workday_mode == "wind_down":
+        facts = {
+            "started_label": started_label,
+            "hours_phrase": _hours_phrase(work_hours) if work_hours >= 0.5 else None,
+            "reasonable_finish": reasonable_finish,
+            "n_todos": n_todos,
+            "n_decisions": n_decisions,
+            "n_cleared": n_cleared,
+            "n_resolved": n_resolved,
+            "meetings_count": len(meetings),
+            "top_thread": (
+                {"title": threads_progressed[0].title, "count": threads_progressed[0].count}
+                if threads_progressed and threads_progressed[0].count >= 2 else None
+            ),
+            "threads_created": [{"area": g.area_name, "count": g.count} for g in threads_created],
+            "jira_connected": jira_connected,
+            "jira_filed_today": jira_filed_today,
+            "jira_pending": jira_pending,
+        }
+        narrative, ai_generated = _narrative(db, facts)
+    else:
+        local_date = (now_utc - timedelta(minutes=tz_offset_min)).date()
+        tip = get_workday_tip(db, local_date)
 
     return schemas.TodayInsights(
         date=date_str,
         started_at=start_at,
         last_active_at=last_end,
-        active_hours=round(active_hours, 2) if active_hours is not None else None,
+        active_hours=round(work_hours, 2) if start_at is not None else None,
         headline_count=headline_count,
         breakdown=chips,
         done_items=done_items,
@@ -512,6 +534,10 @@ def get_today(
         jira_pending=jira_pending,
         narrative=narrative,
         ai_generated=ai_generated,
+        workday_mode=workday_mode,
+        started_label=started_label,
+        work_hours=round(work_hours, 2) if start_at is not None else None,
+        tip=tip,
     )
 
 
@@ -627,6 +653,101 @@ def _join_clauses(items):
     return ", ".join(items[:-1]) + f", and {items[-1]}"
 
 
+# ─── Workday tips (shown while the day is still in flow) ──────────────────────
+# Calm, practical ADHD-for-professionals advice. The AI refreshes the pool every
+# couple of days (cached in app_settings); this hand-written seed is the always-
+# present fallback when no AI provider is configured.
+
+WORKDAY_TIPS_SEED = [
+    "A short walk between tasks resets focus better than pushing through.",
+    "Try a walking meeting for your next one to one. Movement helps thinking.",
+    "Time-box the next hard task to 25 minutes. Starting is the hard part.",
+    "Body-double it: work alongside someone, in person or on a call, to stay on task.",
+    "Keep a distraction list nearby. Jot stray thoughts and come back to them later.",
+    "Stand up and hydrate. A two-minute reset keeps the afternoon from sliding.",
+    "Pick one priority for this block and let the rest wait. Single-tasking wins.",
+    "Protect a short no-meetings window for deep work, even thirty minutes helps.",
+    "Write down the next single step so your brain can let it go.",
+    "Take the break before you feel you have earned it. It pays for itself.",
+]
+
+_WORKDAY_TIPS_KEY = "insights_workday_tips"
+_WORKDAY_TIPS_REFRESH_DAYS = 2
+
+
+def _get_setting(db, key):
+    row = db.query(models.AppSettings).filter(models.AppSettings.key == key).first()
+    return row.value if row else None
+
+
+def _set_setting(db, key, value):
+    row = db.query(models.AppSettings).filter(models.AppSettings.key == key).first()
+    if row:
+        row.value = value
+    else:
+        db.add(models.AppSettings(key=key, value=value))
+    db.commit()
+
+
+def _generate_workday_tips(db):
+    """Ask the AI for a fresh batch of tips. Returns a list, or None on failure."""
+    try:
+        from ai_provider import get_provider
+        provider = get_provider(db)
+        ok, _ = provider.test()
+        if not ok:
+            return None
+        system = (
+            "You write short, warm, practical workday tips for a professional with ADHD. "
+            "Each tip is ONE calm sentence, second person, concrete and non-judgemental. "
+            "Cover a spread of ideas: short breaks, walking meetings, time-boxing, "
+            "body-doubling, single-tasking, hydration, movement, and writing down the next "
+            "step. No em dashes, no numbering, no preamble. One tip per line."
+        )
+        text = provider.complete(
+            system=system,
+            messages=[{"role": "user", "content": "Give 10 tips, one per line."}],
+            max_tokens=400,
+        )
+        if not text:
+            return None
+        lines = [ln.strip(" -*0123456789.\t").strip() for ln in text.splitlines() if ln.strip()]
+        lines = [ln for ln in lines if len(ln) > 12][:12]
+        return lines or None
+    except Exception:
+        return None
+
+
+def get_workday_tip(db, local_date):
+    """One ADHD workday tip, rotating daily. The pool is AI-refreshed every couple
+    of days (cached), falling back to the hand-written seed."""
+    tips = list(WORKDAY_TIPS_SEED)
+    stale = True
+    try:
+        raw = _get_setting(db, _WORKDAY_TIPS_KEY)
+        data = json.loads(raw) if raw else None
+    except Exception:
+        data = None
+    if data and isinstance(data.get("tips"), list) and data["tips"]:
+        tips = data["tips"]
+        try:
+            gen = datetime.strptime(data.get("date", ""), "%Y-%m-%d").date()
+            stale = (local_date - gen).days >= _WORKDAY_TIPS_REFRESH_DAYS
+        except Exception:
+            stale = True
+    if stale:
+        fresh = _generate_workday_tips(db)
+        if fresh:
+            tips = fresh
+            try:
+                _set_setting(db, _WORKDAY_TIPS_KEY, json.dumps({"date": local_date.strftime("%Y-%m-%d"), "tips": tips}))
+            except Exception:
+                pass
+    if not tips:
+        tips = list(WORKDAY_TIPS_SEED)
+    return tips[local_date.toordinal() % len(tips)]
+
+
 # ─── Shared aggregate helpers (Reflect-week / Ahead / Balance) ────────────────
 
 def _day_bounds(now_utc, tz_offset_min, offset_days):
@@ -680,17 +801,20 @@ def _work_done(db, start, end):
     resolved_rows = _status_changes(lambda l: l.new_value == "resolved")
     cleared_rows = _status_changes(lambda l: l.old_value == "blocked" and l.new_value != "blocked")
 
-    jira_filed = 0
+    jira_rows = []
     if db.query(models.JiraIntegration).first() is not None:
-        jira_filed = (
-            db.query(func.count(models.SignalItem.id))
+        jira_rows = (
+            db.query(models.SignalItem, models.Entry, models.Thread, models.Area)
             .join(models.Entry, models.SignalItem.assigned_entry_id == models.Entry.id)
+            .join(models.Thread, models.Entry.thread_id == models.Thread.id)
+            .join(models.Area, models.Thread.area_id == models.Area.id)
             .filter(
                 models.SignalItem.source == "jira", models.SignalItem.status == "assigned",
                 models.Entry.created_at >= start, models.Entry.created_at < end,
             )
-            .scalar()
-        ) or 0
+            .all()
+        )
+    jira_filed = len(jira_rows)
 
     n_todos, n_dec = len(todo_rows), len(decision_rows)
     n_res, n_clr = len(resolved_rows), len(cleared_rows)
@@ -716,6 +840,8 @@ def _work_done(db, start, end):
         done_items.append(schemas.TodayDoneItem(id=t.id, type="blockage", content=t.title, area_name=a.name, thread_id=t.id, at=log.occurred_at))
     for log, t, a in resolved_rows:
         done_items.append(schemas.TodayDoneItem(id=t.id, type="resolved", content=t.title, area_name=a.name, thread_id=t.id, at=log.occurred_at))
+    for s, e, t, a in jira_rows:
+        done_items.append(schemas.TodayDoneItem(id=e.id, type="jira", content=s.title, area_name=a.name, thread_id=t.id, at=e.created_at))
     done_items.sort(key=lambda d: d.at or datetime.min, reverse=True)
 
     return {
@@ -855,7 +981,7 @@ def get_week(tz_offset_min: int = Query(default=0, ge=-840, le=840), db: Session
 
     return schemas.WeekInsights(
         narrative=narrative, headline_count=wd["headline"], breakdown=wd["chips"],
-        closed_items=wd["done_items"][:8], celebrations=celebrations,
+        closed_items=wd["done_items"][:50], celebrations=celebrations,
         your_days=your_days, rhythm=rhythm,
     )
 

@@ -558,6 +558,10 @@ class TodayInsights(BaseModel):
     jira_pending: int = 0
     narrative: str = ""
     ai_generated: bool = False      # True if the AI phrased it, False = template
+    workday_mode: str = "in_progress"   # wind_down | in_progress
+    started_label: Optional[str] = None  # local clock label for the start, e.g. "9:05am"
+    work_hours: Optional[float] = None   # active work time today (excludes lunch/long breaks)
+    tip: Optional[str] = None            # rotating ADHD workday tip, shown while in progress
 
 
 # ─── Reflect (this week) ──────────────────────────────────────────────────────
