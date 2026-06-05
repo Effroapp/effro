@@ -22,6 +22,7 @@ import StorageSetupModal from '../components/StorageSetupModal'
 import MicrosoftIntegration from '../components/MicrosoftIntegration'
 import JiraIntegration from '../components/JiraIntegration'
 import GoogleIntegration from '../components/GoogleIntegration'
+import IcloudIntegration from '../components/IcloudIntegration'
 import { useAppVersion } from '../hooks/useAppVersion'
 import { notifyAIConfigChanged } from '../hooks/useAIConfigured'
 
@@ -103,6 +104,7 @@ export default function SystemSettings({ updater }) {
               <MicrosoftSection />
               <JiraSection />
               <GoogleSection />
+              <IcloudSection />
               <MoreIntegrations />
             </>
           )}
@@ -147,7 +149,7 @@ function MoreIntegrations() {
   return (
     <div className="rounded-xl border border-dashed border-paper-300 dark:border-pitch-600 p-4 text-xs text-paper-500 dark:text-paper-600 leading-relaxed">
       <span className="font-medium text-paper-600 dark:text-paper-400">Coming later:</span>{' '}
-      GitHub, Apple Calendar &amp; Mail.{' '}
+      GitHub.{' '}
       <a
         href="https://github.com/Effroapp/effro/issues/new"
         onClick={(e) => { e.preventDefault(); openExternal('https://github.com/Effroapp/effro/issues/new') }}
@@ -1101,6 +1103,29 @@ function GoogleLogo({ size = 16 }) {
       <path fill="#34A853" d="M12 24c3.24 0 5.96-1.08 7.95-2.91l-3.88-3a7.2 7.2 0 0 1-10.74-3.78H1.34v3.09A12 12 0 0 0 12 24Z" />
       <path fill="#FBBC05" d="M5.33 14.31a7.2 7.2 0 0 1 0-4.62V6.6H1.34a12 12 0 0 0 0 10.8l3.99-3.09Z" />
       <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.43-3.43A11.99 11.99 0 0 0 1.34 6.6l3.99 3.09A7.2 7.2 0 0 1 12 4.75Z" />
+    </svg>
+  )
+}
+
+// ─── iCloud ─────────────────────────────────────────────────────────────────
+
+function IcloudSection({ id }) {
+  return (
+    <Card id={id}>
+      <CardHeader
+        icon={AppleLogo}
+        title="iCloud"
+        subtitle="Calendar + flagged Apple Mail via Signals. App-specific password, read-only."
+      />
+      <IcloudIntegration />
+    </Card>
+  )
+}
+
+function AppleLogo({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="flex-shrink-0 mt-1 text-pitch-800 dark:text-paper-100">
+      <path d="M16.36 12.78c.02 2.46 2.16 3.28 2.18 3.29-.02.06-.34 1.17-1.13 2.31-.68.99-1.39 1.97-2.5 1.99-1.1.02-1.45-.65-2.7-.65s-1.64.63-2.68.67c-1.08.04-1.9-1.07-2.58-2.05-1.4-2.02-2.47-5.71-1.03-8.2.71-1.24 1.99-2.02 3.37-2.04 1.06-.02 2.06.71 2.7.71.65 0 1.86-.88 3.14-.75.53.02 2.03.21 2.99 1.62-.08.05-1.79 1.04-1.77 3.1ZM14.3 5.39c.57-.69.95-1.65.85-2.6-.82.03-1.81.55-2.4 1.23-.53.61-1 1.58-.87 2.51.91.07 1.85-.46 2.42-1.14Z"/>
     </svg>
   )
 }

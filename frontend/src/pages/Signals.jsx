@@ -282,8 +282,10 @@ function SourceBadge({ source, kind }) {
     microsoft: { label: 'Outlook', color: 'text-[#0078D4] bg-[#0078D4]/10 border-[#0078D4]/20' },
     'google:meeting': { label: 'Google Calendar', color: 'text-[#1a73e8] bg-[#1a73e8]/10 border-[#1a73e8]/20' },
     'google:email': { label: 'Gmail', color: 'text-[#ea4335] bg-[#ea4335]/10 border-[#ea4335]/20' },
+    'icloud:meeting': { label: 'iCloud Calendar', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
+    'icloud:email': { label: 'Apple Mail', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
   }
-  const key = source === 'google' ? `google:${kind === 'email' ? 'email' : 'meeting'}` : source
+  const key = (source === 'google' || source === 'icloud') ? `${source}:${kind === 'email' ? 'email' : 'meeting'}` : source
   const { label, color } = labels[key] || { label: source, color: 'text-paper-500 dark:text-paper-600 bg-paper-100 dark:bg-pitch-700 border-stone' }
   return (
     <span className={`inline-flex items-center text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${color}`}>

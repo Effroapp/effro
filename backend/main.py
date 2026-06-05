@@ -58,6 +58,7 @@ from routers import (
     jira as jira_router,
     google as google_router,
     dropbox as dropbox_router,
+    icloud as icloud_router,
     presence as presence_router,
 )
 
@@ -272,6 +273,7 @@ app.include_router(signals_router.router, prefix="/api")
 app.include_router(jira_router.router, prefix="/api")
 app.include_router(google_router.router, prefix="/api")
 app.include_router(dropbox_router.router, prefix="/api")
+app.include_router(icloud_router.router, prefix="/api")
 app.include_router(presence_router.router, prefix="/api")
 
 # Serve uploaded files at /uploads/<stored_name>

@@ -208,6 +208,25 @@ def run_google_signal_sync():
         db.close()
 
 
+def run_icloud_signal_sync():
+    """Cron entry point - 30-min iCloud Calendar + flagged Mail pull into
+    signal_items. Skips silently if no iCloud credentials are saved."""
+    from database import SessionLocal
+    from services_icloud import run_icloud_sync
+    db = SessionLocal()
+    try:
+        result = run_icloud_sync(db)
+        if not result.get("skipped"):
+            log.info(
+                "iCloud signal sync: +%d new, %d updated",
+                result.get("added", 0), result.get("updated", 0),
+            )
+    except Exception as e:
+        log.warning("iCloud signal sync failed: %s", e)
+    finally:
+        db.close()
+
+
 def topup_nudges():
     """Daily: ask the AI to add a couple of fresh dashboard nudges, growing
     the pool over time. No-op when AI is unconfigured or the pool is full."""
@@ -397,6 +416,15 @@ def start():
         run_google_signal_sync,
         CronTrigger(minute="*/30", timezone="Europe/Brussels"),
         id="google-signal-sync",
+        replace_existing=True,
+        misfire_grace_time=1800,
+    )
+    # iCloud Calendar + flagged Mail -> signal_items. Every 30 min; skips
+    # silently if iCloud isn't configured.
+    _scheduler.add_job(
+        run_icloud_signal_sync,
+        CronTrigger(minute="*/30", timezone="Europe/Brussels"),
+        id="icloud-signal-sync",
         replace_existing=True,
         misfire_grace_time=1800,
     )

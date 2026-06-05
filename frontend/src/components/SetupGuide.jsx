@@ -173,6 +173,12 @@ const JiraLogo = ({ size = 18 }) => (
   </svg>
 )
 
+const AppleLogo = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="text-pitch-800 dark:text-paper-100">
+    <path d="M16.36 12.78c.02 2.46 2.16 3.28 2.18 3.29-.02.06-.34 1.17-1.13 2.31-.68.99-1.39 1.97-2.5 1.99-1.1.02-1.45-.65-2.7-.65s-1.64.63-2.68.67c-1.08.04-1.9-1.07-2.58-2.05-1.4-2.02-2.47-5.71-1.03-8.2.71-1.24 1.99-2.02 3.37-2.04 1.06-.02 2.06.71 2.7.71.65 0 1.86-.88 3.14-.75.53.02 2.03.21 2.99 1.62-.08.05-1.79 1.04-1.77 3.1ZM14.3 5.39c.57-.69.95-1.65.85-2.6-.82.03-1.81.55-2.4 1.23-.53.61-1 1.58-.87 2.51.91.07 1.85-.46 2.42-1.14Z"/>
+  </svg>
+)
+
 const DropboxLogo = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="#0061FF" aria-hidden="true">
     <path d="M6 2 0 6l6 4 6-4-6-4Zm12 0-6 4 6 4 6-4-6-4ZM0 14l6 4 6-4-6-4-6 4Zm18-4-6 4 6 4 6-4-6-4ZM6 19.5l6 4 6-4-6-4-6 4Z" />
@@ -357,6 +363,37 @@ export const GOOGLE_GUIDE = {
           <p>Back here, paste your <b>Client ID</b> and <b>Secret</b>, click <b>Save config</b>, then <b>Sign in with Google</b>.</p>
           <p>Because this is your own unverified app, Google shows a "Google hasn’t verified this app" screen. Click <b>Advanced</b> → <b>Go to Effro (unsafe)</b> to continue, then allow the permissions.</p>
         </>
+      ),
+    },
+  ],
+}
+
+export const ICLOUD_GUIDE = {
+  title: 'Connect iCloud (Calendar & Mail)',
+  logo: <AppleLogo />,
+  accent: 'mint',
+  estMinutes: 3,
+  intro:
+    'iCloud has no "Sign in with Apple" for apps, so Effro connects with your Apple ID and an app-specific password (a one-off password just for Effro). It reads your Calendar and flagged Mail only. There is no iCloud Drive backup option, Apple provides no API for that.',
+  steps: [
+    {
+      title: 'Open your Apple ID security settings',
+      body: <p>Sign in with your Apple ID, then find <b>Sign-In and Security</b> → <b>App-Specific Passwords</b>.</p>,
+      link: { label: 'Open appleid.apple.com', href: 'https://appleid.apple.com/account/manage' },
+    },
+    {
+      title: 'Generate an app-specific password',
+      body: (
+        <>
+          <p>Click <b>Generate an app-specific password</b> (you may be asked for your Apple ID password). Name it <b>Effro</b>.</p>
+          <p>Copy the password it shows, it looks like <b>abcd-efgh-ijkl-mnop</b> and is shown only once.</p>
+        </>
+      ),
+    },
+    {
+      title: 'Paste into Effro',
+      body: (
+        <p>Back here, enter your <b>Apple ID email</b> and the <b>app-specific password</b> (not your normal Apple password), then click <b>Connect</b>. Your Calendar and flagged Mail will start arriving in Signals.</p>
       ),
     },
   ],

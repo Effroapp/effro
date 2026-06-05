@@ -744,6 +744,24 @@ class DropboxProfileOut(BaseModel):
     connected_at: Optional[str] = None
 
 
+class IcloudConfigIn(BaseModel):
+    """Apple ID + app-specific password (iCloud has no OAuth)."""
+    apple_id: str
+    app_password: str
+
+
+class IcloudConfigOut(BaseModel):
+    apple_id: Optional[str] = None
+    app_password_masked: Optional[str] = None
+    is_configured: bool = False
+
+
+class IcloudProfileOut(BaseModel):
+    connected: bool
+    apple_id: Optional[str] = None
+    last_synced: Optional[str] = None
+
+
 class SignalItemOut(BaseModel):
     """A pending/assigned Signal row, enriched with the AI suggestion's labels."""
     id: int
