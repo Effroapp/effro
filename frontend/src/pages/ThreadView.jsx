@@ -10,6 +10,7 @@ import {
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import ReactMarkdown from 'react-markdown'
 import { threadsApi, entriesApi, attachmentsApi, areasApi } from '../api/client'
+import { openExternal } from '../api/tauri'
 import StatusBadge from '../components/StatusBadge'
 import Modal from '../components/Modal'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -1643,9 +1644,8 @@ function LinkItem({ link, onDelete }) {
     <div className="flex items-center justify-between gap-2 group py-1">
       <a
         href={link.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-2 min-w-0 text-xs text-pitch-500 dark:text-paper-400 hover:text-paper-700 dark:hover:text-paper-200 transition-colors"
+        onClick={(e) => { e.preventDefault(); openExternal(link.url) }}
+        className="flex items-center gap-2 min-w-0 text-xs text-pitch-500 dark:text-paper-400 hover:text-paper-700 dark:hover:text-paper-200 transition-colors cursor-pointer"
       >
         <Link2 size={12} className="flex-shrink-0 text-paper-500 dark:text-paper-600" />
         <span className="truncate">{link.name}</span>

@@ -12,6 +12,7 @@ import {
   pickDataDir,
   migrateAndSetDataDir,
   relaunch,
+  openExternal,
 } from '../api/tauri'
 import {
   getAIConfig, getAIPresets, saveAIConfig, testAIConfig,
@@ -475,9 +476,8 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
                   {s.link && (
                     <a
                       href={s.link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-mint-700 dark:text-mint-300 font-medium hover:underline inline-flex items-center gap-0.5"
+                      onClick={(e) => { e.preventDefault(); openExternal(s.link.url) }}
+                      className="text-mint-700 dark:text-mint-300 font-medium hover:underline inline-flex items-center gap-0.5 cursor-pointer"
                     >
                       {s.link.label}
                       <ExternalLink size={10} />
@@ -1033,9 +1033,8 @@ function AboutSection() {
           value={
             <a
               href="https://effro.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-mint-700 dark:text-mint-300 hover:underline"
+              onClick={(e) => { e.preventDefault(); openExternal('https://effro.io') }}
+              className="text-mint-700 dark:text-mint-300 hover:underline cursor-pointer"
             >
               effro.io ↗
             </a>
@@ -1046,9 +1045,8 @@ function AboutSection() {
           value={
             <a
               href="https://github.com/Effroapp/effro/releases"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-mint-700 dark:text-mint-300 hover:underline"
+              onClick={(e) => { e.preventDefault(); openExternal('https://github.com/Effroapp/effro/releases') }}
+              className="text-mint-700 dark:text-mint-300 hover:underline cursor-pointer"
             >
               Release notes ↗
             </a>
@@ -1059,9 +1057,8 @@ function AboutSection() {
           value={
             <a
               href="https://github.com/Effroapp/effro"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-mint-700 dark:text-mint-300 hover:underline"
+              onClick={(e) => { e.preventDefault(); openExternal('https://github.com/Effroapp/effro') }}
+              className="text-mint-700 dark:text-mint-300 hover:underline cursor-pointer"
             >
               github.com/Effroapp/effro ↗
             </a>

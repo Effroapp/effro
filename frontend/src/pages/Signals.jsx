@@ -11,6 +11,7 @@ import { listSignals, acceptSignal, reassignSignal, dismissSignal } from '../api
 import { syncNow } from '../api/microsoft'
 import { jiraSyncNow } from '../api/jira'
 import { areasApi } from '../api/client'
+import { openExternal } from '../api/tauri'
 import { BionicText } from '../utils/bionic.jsx'
 
 /**
@@ -312,10 +313,8 @@ function MetaRow({ signal }) {
       {signal.external_url && (
         <a
           href={signal.external_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 hover:underline"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); openExternal(signal.external_url) }}
+          className="inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 hover:underline cursor-pointer"
         >
           <ExternalLink size={11} />
           Open in {signal.source === 'jira' ? 'Jira' : 'Outlook'}

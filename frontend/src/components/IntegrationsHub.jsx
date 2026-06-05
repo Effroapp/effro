@@ -4,6 +4,7 @@ import { getStorageConfig } from '../api/storage'
 import { getMicrosoftProfile } from '../api/microsoft'
 import { getJiraProfile } from '../api/jira'
 import { getGoogleProfile } from '../api/google'
+import { openExternal } from '../api/tauri'
 import { useAIConfigured } from '../hooks/useAIConfigured'
 
 /**
@@ -271,9 +272,8 @@ function Tile({ integration, status }) {
               Want Effro to integrate with something specific?{' '}
               <a
                 href={integration.learnMoreUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-mint-700 dark:text-mint-300 font-medium hover:underline"
+                onClick={(e) => { e.preventDefault(); openExternal(integration.learnMoreUrl) }}
+                className="text-mint-700 dark:text-mint-300 font-medium hover:underline cursor-pointer"
               >
                 Open an issue
               </a>
@@ -287,9 +287,8 @@ function Tile({ integration, status }) {
               {' '}
               <a
                 href={integration.learnMoreUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-mint-700 dark:text-mint-300 font-medium hover:underline"
+                onClick={(e) => { e.preventDefault(); openExternal(integration.learnMoreUrl) }}
+                className="text-mint-700 dark:text-mint-300 font-medium hover:underline cursor-pointer"
               >
                 Track it on GitHub
               </a>.
