@@ -15,6 +15,7 @@ import {
   Telescope, Sparkles, Rewind, CalendarClock, Scale as ScaleIcon,
   CheckSquare, Calendar, Ban, ArrowUpRight, Clock, Trophy,
   Unlock, Undo2, Hourglass, Sun, Sunset, CircleCheck, Ticket, X, ChevronDown, Coffee,
+  Eye, EyeOff,
 } from 'lucide-react'
 import { format, addDays, parseISO } from 'date-fns'
 import PageHeader from '../components/PageHeader'
@@ -711,10 +712,55 @@ function Sparkline({ series, color }) {
 
 // ─── Shared bits ─────────────────────────────────────────────────────────────
 
-function Section({ label, children }) {
+// Per-section hide. The eyelid (open eye = visible, closed = hidden) lets an
+// ADHD user quietly tuck a section away - but hidden never means gone: a calm
+// strip stays, naming what's tucked and offering it back. Persisted per section.
+const HIDDEN_KEY = 'effro.insights.hidden'
+function _hiddenMap() {
+  try { return JSON.parse(localStorage.getItem(HIDDEN_KEY) || '{}') } catch { return {} }
+}
+function _setHidden(key, val) {
+  const m = _hiddenMap()
+  if (val) m[key] = true; else delete m[key]
+  try { localStorage.setItem(HIDDEN_KEY, JSON.stringify(m)) } catch { /* best effort */ }
+}
+
+function Section({ label, children, hideable = true }) {
+  const key = label
+  const [hidden, setHidden] = useState(() => !!_hiddenMap()[key])
+  const toggle = () => { const v = !hidden; setHidden(v); _setHidden(key, v) }
+
+  if (hidden) {
+    return (
+      <section>
+        <button
+          onClick={toggle}
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-paper-300 dark:border-pitch-500 text-paper-500 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300 hover:border-paper-400 dark:hover:border-pitch-400 transition-colors text-left"
+          title="Show this section again"
+        >
+          <EyeOff size={14} className="flex-shrink-0" />
+          <span className="text-[13px]"><span className="font-medium">{label}</span> is tucked away</span>
+          <span className="ml-auto text-[12px] font-medium">Show</span>
+        </button>
+      </section>
+    )
+  }
+
   return (
     <section>
-      <h2 className="font-mono uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600 mb-2.5">{label}</h2>
+      <div className="group/sec flex items-center justify-between mb-2.5">
+        <h2 className="font-mono uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">{label}</h2>
+        {hideable && (
+          <button
+            onClick={toggle}
+            aria-label={`Hide ${label}`}
+            title="Tuck this away"
+            className="p-1 -mr-1 rounded text-paper-300 dark:text-paper-700 opacity-60 group-hover/sec:opacity-100 hover:text-paper-600 dark:hover:text-paper-400 transition-all"
+          >
+            <Eye size={14} />
+          </button>
+        )}
+      </div>
       {children}
     </section>
   )
