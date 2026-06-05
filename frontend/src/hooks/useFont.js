@@ -13,6 +13,12 @@ export const FONT_OPTIONS = [
     key: 'opendyslexic', label: 'OpenDyslexic', stack: "'OpenDyslexic', 'Geist', system-ui, sans-serif", hint: 'Dyslexia',
     desc: 'Letters have weighted bottoms and distinct shapes, which helps stop them rotating or swapping. Designed for dyslexia.',
   },
+  {
+    // A reading MODE, not a typeface: it bolds the start of each word. The base
+    // font stays a readable Lexend. `useBionic` reads this key to switch it on.
+    key: 'bionic', label: 'Bionic Reading', stack: "'Lexend', 'Geist', system-ui, sans-serif", hint: 'Reading mode',
+    desc: 'Bolds the start of each word to create fixation points your eye can hop between, which can speed up reading.',
+  },
 ]
 
 const DEFAULT_FONT = 'geist'

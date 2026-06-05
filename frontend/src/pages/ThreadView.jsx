@@ -22,6 +22,8 @@ import { useEntryAI } from '../hooks/useEntryAI'
 import { useAIConfigured } from '../hooks/useAIConfigured'
 import ActionSuggestionBanner from '../components/ActionSuggestionBanner'
 import SubtaskList from '../components/SubtaskList'
+import { useBionic } from '../hooks/useBionic'
+import { bionicizeReact, rehypeBionic } from '../utils/bionic.jsx'
 import TaskDecompositionDrawer from '../components/TaskDecompositionDrawer'
 
 import { ENTITY, ENTITY_TYPES, entityFor, SECTION_ICONS } from '../utils/entityIcons'
@@ -1394,6 +1396,7 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
   const isTodo = entry.type === 'todo'
   const isMeeting = entry.type === 'meeting'
   const isBlockage = entry.type === 'blockage'
+  const bionic = useBionic()
 
   // Inline meeting-edit state (independent of the regular content edit path)
   const [editingMeeting, setEditingMeeting] = useState(false)
@@ -1513,7 +1516,7 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
                     ? 'line-through text-paper-500 dark:text-paper-600'
                     : 'text-pitch-500 dark:text-paper-300'
                 }`}>
-                  {entry.content}
+                  {bionic ? bionicizeReact(entry.content) : entry.content}
                 </p>
                 {entry.due_date && !entry.completed && (
                   <p className={`font-mono text-xs mt-1 ${getDueDateClass(entry.due_date)}`}>
@@ -1535,7 +1538,7 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
             />
           ) : (
             <div className="prose-entry text-pitch-500 dark:text-paper-300">
-              <ReactMarkdown>{entry.content}</ReactMarkdown>
+              <ReactMarkdown rehypePlugins={bionic ? [rehypeBionic] : []}>{entry.content}</ReactMarkdown>
             </div>
           )}
           {/* Notes - collapsible context, on every entry type for consistency. */}

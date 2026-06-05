@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect, useState, useCallback } from 'react'
 import { useTheme } from './hooks/useTheme'
 import { useFont } from './hooks/useFont'
+import { BionicContext } from './hooks/useBionic'
 import { useDisplayName } from './hooks/useDisplayName'
 import { useTextSize } from './hooks/useTextSize'
 import { useAvatar } from './hooks/useAvatar'
@@ -77,6 +78,7 @@ export default function App() {
     <ToastProvider>
       <SplashScreen visible={booting} />
       <BrowserRouter>
+        <BionicContext.Provider value={font === 'bionic'}>
         <Shell
           onOpenSwitcher={() => setSwitcherOpen(true)}
           onOpenNewArea={() => setNewAreaOpen(true)}
@@ -112,6 +114,7 @@ export default function App() {
           isOpen={newAreaOpen}
           onClose={() => setNewAreaOpen(false)}
         />
+        </BionicContext.Provider>
       </BrowserRouter>
     </ToastProvider>
   )

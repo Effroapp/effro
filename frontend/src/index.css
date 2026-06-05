@@ -42,6 +42,10 @@
   }
 }
 
+/* Bionic reading: emboldened word-prefixes. Kept strong even where prose
+   styles would otherwise normalise weight. */
+.bionic-fix { font-weight: 700; }
+
 /* ─── Base ───────────────────────────────────────────────────────────────── */
 @layer base {
   html {
