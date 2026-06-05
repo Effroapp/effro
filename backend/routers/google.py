@@ -170,3 +170,12 @@ def auth_disconnect(db: Session = Depends(get_db)):
     deleted = db.query(models.GoogleIntegration).delete()
     db.commit()
     return {"deleted": deleted}
+
+
+# ─── Sync ─────────────────────────────────────────────────────────────────────
+
+@router.post("/sync-now")
+def sync_now(db: Session = Depends(get_db)):
+    """Run the same Calendar + Gmail pull as the scheduler, on demand."""
+    from services_google import run_google_sync
+    return run_google_sync(db)

@@ -44,3 +44,13 @@ export async function disconnectGoogle() {
   if (!res.ok) throw new Error('Disconnect failed')
   return res.json()
 }
+
+/** Trigger an immediate Calendar + Gmail sync. Returns counts (or { skipped }). */
+export async function syncNow() {
+  const res = await fetch(`${BASE}/sync-now`, { method: 'POST' })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.detail || `HTTP ${res.status}`)
+  }
+  return res.json()
+}

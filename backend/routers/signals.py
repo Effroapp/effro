@@ -71,10 +71,11 @@ def list_signals(db: Session = Depends(get_db)):
     def _external_url(r):
         if r.source == "jira" and jira_host and r.external_id:
             return f"https://{jira_host}/browse/{r.external_id}"
-        if r.source == "microsoft" and r.raw_json:
+        if r.source in ("microsoft", "google") and r.raw_json:
             try:
-                link = json.loads(r.raw_json).get("webLink")
-                return link or None
+                d = json.loads(r.raw_json)
+                # MS events: webLink. Google calendar: htmlLink. Gmail: webLink.
+                return d.get("webLink") or d.get("htmlLink") or None
             except (ValueError, AttributeError):
                 return None
         return None
@@ -190,13 +191,15 @@ def accept_signal(
         db.add(thread)
         db.flush()
 
-    # Build the committed entry, shaped by what the signal actually is. A
-    # calendar item becomes a meeting (it has a time you attend); anything
-    # else - a Jira issue, say - becomes a todo with its due date as a real
-    # deadline. Filing a Jira ticket as a "meeting" was wrong and skewed the
-    # Insights meeting / timeline figures. external_id carries the upstream id
-    # so a future re-sync can find this entry again.
-    if signal.kind == "meeting":
+    # How the signal lands is the user's choice (create_as): a meeting, a todo,
+    # or a logged note. When unspecified we pick a sensible default per kind -
+    # calendar items become meetings, everything else (Jira, email) a todo.
+    # external_id carries the upstream id so a future re-sync can find the entry.
+    mode = (getattr(payload, "create_as", None) or "").strip().lower()
+    if mode not in ("meeting", "todo", "note"):
+        mode = "meeting" if signal.kind == "meeting" else "todo"
+
+    if mode == "meeting":
         entry = models.Entry(
             thread_id=thread.id,
             content=signal.title,
@@ -204,13 +207,32 @@ def accept_signal(
             meeting_at=signal.starts_at,
             external_id=signal.external_id,
         )
-    else:
+    elif mode == "todo":
+        # A real deadline only makes sense for time-bound (calendar) items.
+        due = signal.starts_at.date() if (signal.starts_at and signal.kind == "meeting") else None
         entry = models.Entry(
             thread_id=thread.id,
             content=signal.title,
             type="todo",
             completed=False,
-            due_date=signal.starts_at.date() if signal.starts_at else None,
+            due_date=due,
+            external_id=signal.external_id,
+        )
+    else:  # note - a logged timeline entry, with a deep link when we have one
+        link = None
+        if signal.raw_json:
+            try:
+                d = json.loads(signal.raw_json)
+                link = d.get("htmlLink") or d.get("webLink") or d.get("webViewLink")
+            except (ValueError, AttributeError):
+                link = None
+        content = f"[{signal.title}]({link})" if link else signal.title
+        if signal.organizer:
+            content += f" (from {signal.organizer})"
+        entry = models.Entry(
+            thread_id=thread.id,
+            content=content,
+            type="entry",
             external_id=signal.external_id,
         )
     db.add(entry)

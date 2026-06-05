@@ -83,7 +83,7 @@ const INTEGRATIONS = [
   {
     key: 'google',
     name: 'Google',
-    tagline: 'Docs attach/ingest/export + Drive backups',
+    tagline: 'Calendar + starred Gmail via Signals',
     iconKey: 'google',
     sectionId: 'integration-google',
     statusFn: (state) => state.googleConnected ? 'connected' : 'unconfigured',

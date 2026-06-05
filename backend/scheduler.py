@@ -189,6 +189,25 @@ def run_microsoft_signal_sync():
         db.close()
 
 
+def run_google_signal_sync():
+    """Cron entry point - 30-min Google Calendar + starred Gmail pull into
+    signal_items. Skips silently if no Google account is connected."""
+    from database import SessionLocal
+    from services_google import run_google_sync
+    db = SessionLocal()
+    try:
+        result = run_google_sync(db)
+        if not result.get("skipped"):
+            log.info(
+                "Google signal sync: +%d new, %d updated",
+                result.get("added", 0), result.get("updated", 0),
+            )
+    except Exception as e:
+        log.warning("Google signal sync failed: %s", e)
+    finally:
+        db.close()
+
+
 def topup_nudges():
     """Daily: ask the AI to add a couple of fresh dashboard nudges, growing
     the pool over time. No-op when AI is unconfigured or the pool is full."""
@@ -369,6 +388,15 @@ def start():
         run_microsoft_signal_sync,
         CronTrigger(minute="*/30", timezone="Europe/Brussels"),
         id="microsoft-signal-sync",
+        replace_existing=True,
+        misfire_grace_time=1800,
+    )
+    # Google Calendar + starred Gmail -> signal_items. Every 30 min; skips
+    # silently if Google isn't connected.
+    _scheduler.add_job(
+        run_google_signal_sync,
+        CronTrigger(minute="*/30", timezone="Europe/Brussels"),
+        id="google-signal-sync",
         replace_existing=True,
         misfire_grace_time=1800,
     )

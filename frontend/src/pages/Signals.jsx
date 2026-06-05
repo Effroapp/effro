@@ -280,8 +280,11 @@ function SourceBadge({ source, kind }) {
   }
   const labels = {
     microsoft: { label: 'Outlook', color: 'text-[#0078D4] bg-[#0078D4]/10 border-[#0078D4]/20' },
+    'google:meeting': { label: 'Google Calendar', color: 'text-[#1a73e8] bg-[#1a73e8]/10 border-[#1a73e8]/20' },
+    'google:email': { label: 'Gmail', color: 'text-[#ea4335] bg-[#ea4335]/10 border-[#ea4335]/20' },
   }
-  const { label, color } = labels[source] || { label: source, color: 'text-paper-500 dark:text-paper-600 bg-paper-100 dark:bg-pitch-700 border-stone' }
+  const key = source === 'google' ? `google:${kind === 'email' ? 'email' : 'meeting'}` : source
+  const { label, color } = labels[key] || { label: source, color: 'text-paper-500 dark:text-paper-600 bg-paper-100 dark:bg-pitch-700 border-stone' }
   return (
     <span className={`inline-flex items-center text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${color}`}>
       {label}
@@ -317,7 +320,11 @@ function MetaRow({ signal }) {
           className="inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 hover:underline cursor-pointer"
         >
           <ExternalLink size={11} />
-          Open in {signal.source === 'jira' ? 'Jira' : 'Outlook'}
+          Open in {
+            signal.source === 'jira' ? 'Jira'
+              : signal.source === 'google' ? (signal.kind === 'email' ? 'Gmail' : 'Calendar')
+              : 'Outlook'
+          }
         </a>
       )}
     </div>
@@ -342,11 +349,20 @@ function formatMeetingTime(iso, allDay) {
 
 // ─── Suggestion + actions row ────────────────────────────────────────────────
 
+// How an accepted signal can land. Calendar items default to a meeting;
+// emails / Jira issues to a to-do. The user can override per signal, and this
+// applies consistently across Google and Microsoft (and Jira).
+const CREATE_AS_LABEL = { meeting: 'Meeting', todo: 'To-do', note: 'Note' }
+const createAsOptions = (kind) => (kind === 'meeting' ? ['meeting', 'todo', 'note'] : ['todo', 'note'])
+const defaultCreateAs = (kind) => (kind === 'meeting' ? 'meeting' : 'todo')
+
 function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, onReassign, onDismiss }) {
   const [chosenAreaId, setChosenAreaId] = useState(signal.suggested_area_id || null)
   const [chosenThreadId, setChosenThreadId] = useState(signal.suggested_thread_id || null)
   const [newThreadTitle, setNewThreadTitle] = useState('')
   const [threadsInArea, setThreadsInArea] = useState([])
+  const [createAs, setCreateAs] = useState(defaultCreateAs(signal.kind))
+  const typeOpts = createAsOptions(signal.kind)
 
   // Load threads when an area is picked, for the existing-thread dropdown.
   useEffect(() => {
@@ -365,11 +381,32 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
       area_id: chosenAreaId,
       thread_id: chosenThreadId || undefined,
       new_thread_title: !chosenThreadId ? (newThreadTitle || signal.title) : undefined,
+      create_as: createAs,
     })
   }
 
   return (
     <div className="mt-3 pt-3 border-t border-paper-200 dark:border-pitch-600">
+      {/* Add-as type choice - what the accepted signal becomes on the thread. */}
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-paper-500 dark:text-paper-600">Add as</span>
+        <div className="inline-flex rounded-md border border-paper-300 dark:border-pitch-500 overflow-hidden">
+          {typeOpts.map((o) => (
+            <button
+              key={o}
+              onClick={() => setCreateAs(o)}
+              className={`px-2 py-0.5 text-[11px] transition-colors ${
+                createAs === o
+                  ? 'bg-mint-700 text-white'
+                  : 'text-paper-600 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-600'
+              }`}
+            >
+              {CREATE_AS_LABEL[o]}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Quick-accept row: AI's suggestion as a one-click button when present */}
       {signal.suggested_area_name && !isPickerOpen && (
         <div className="flex items-center gap-2 flex-wrap">
@@ -393,6 +430,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
                 area_id: signal.suggested_area_id,
                 thread_id: signal.suggested_thread_id || undefined,
                 new_thread_title: signal.suggested_thread_id ? undefined : signal.title,
+                create_as: createAs,
               })}
               className="
                 flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium

@@ -1,16 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Check, BookOpen, Loader2, AlertCircle, LogOut } from 'lucide-react'
+import { Check, BookOpen, Loader2, AlertCircle, RefreshCw, LogOut } from 'lucide-react'
 import {
   getGoogleConfig, saveGoogleConfig,
-  getGoogleProfile, loginUrl, disconnectGoogle,
+  getGoogleProfile, loginUrl, disconnectGoogle, syncNow,
 } from '../api/google'
 import SetupGuide, { GOOGLE_GUIDE } from './SetupGuide'
 
 /**
- * Google Drive/Docs settings card. Same two-phase shape as the Microsoft card:
+ * Google settings card. Same two-phase shape as the Microsoft card:
  *   1. Configure - paste the Google Cloud OAuth client_id / client_secret.
  *   2. Connect   - full-page redirect to Google, token exchange on callback.
- * Connected state polls /google/profile so the card flips after the round-trip.
+ * The one connection pulls Calendar + starred Gmail into Signals, and also
+ * backs the Google Drive storage backend. Connected state polls /google/profile.
  */
 const GoogleLogo = ({ size = 14 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
@@ -26,6 +27,8 @@ export default function GoogleIntegration() {
   const [profile, setProfile] = useState(null)
   const [editingConfig, setEditingConfig] = useState(false)
   const [error, setError] = useState(null)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [lastSyncSummary, setLastSyncSummary] = useState(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -66,6 +69,20 @@ export default function GoogleIntegration() {
     }
   }
 
+  const handleSyncNow = async () => {
+    setIsSyncing(true)
+    setError(null)
+    try {
+      const result = await syncNow()
+      setLastSyncSummary(result)
+      await refresh()
+    } catch (e) {
+      setError(e.message || 'Sync failed')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
   const handleSaveConfig = async (payload) => {
     setError(null)
     try {
@@ -100,7 +117,7 @@ export default function GoogleIntegration() {
     return (
       <div className="space-y-4">
         <p className="text-sm text-pitch-700 dark:text-paper-300">
-          Google OAuth app configured. Sign in to connect your Drive and Docs.
+          Google OAuth app configured. Sign in to start syncing your Calendar and starred Gmail.
         </p>
         <div className="flex items-center gap-2">
           <button
@@ -138,11 +155,28 @@ export default function GoogleIntegration() {
           </p>
           <p className="text-[11px] font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
             {profile.email}
+            {profile.last_synced && <> · last synced {new Date(profile.last_synced).toLocaleString()}</>}
           </p>
         </div>
       </div>
 
+      {lastSyncSummary && (
+        <div className="text-[11px] text-paper-500 dark:text-paper-600 px-1">
+          {lastSyncSummary.skipped
+            ? (lastSyncSummary.reason === 'not_connected' ? 'Not connected.' : 'Nothing to sync.')
+            : <>Sync OK: +{lastSyncSummary.added || 0} new, {lastSyncSummary.updated || 0} updated.</>}
+        </div>
+      )}
+
       <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={handleSyncNow}
+          disabled={isSyncing}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 disabled:opacity-40 font-display uppercase tracking-wide transition-colors"
+        >
+          {isSyncing ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+          {isSyncing ? 'Syncing…' : 'Sync now'}
+        </button>
         <button
           onClick={() => setEditingConfig(true)}
           className="px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 font-display uppercase tracking-wide transition-colors"
@@ -166,9 +200,9 @@ export default function GoogleIntegration() {
       )}
 
       <p className="text-[11px] text-paper-500 dark:text-paper-600 leading-snug">
-        One Google connection powers everything: attach Docs to threads, ingest a Doc's text, export content to a
-        new Doc, and (under Settings → Storage) encrypted backups to Google Drive. It only reads the Docs you choose
-        and creates files it owns, nothing else.
+        This one connection pulls your <strong className="font-medium">Calendar events</strong> and{' '}
+        <strong className="font-medium">starred Gmail</strong> into Signals to triage, and also backs the encrypted
+        Google Drive backups (Settings → Storage). Read-only access, plus files it creates itself.
       </p>
     </div>
   )

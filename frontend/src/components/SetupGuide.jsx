@@ -298,12 +298,12 @@ export const JIRA_GUIDE = {
 }
 
 export const GOOGLE_GUIDE = {
-  title: 'Connect Google Drive & Docs',
+  title: 'Connect Google (Calendar, Gmail, Drive)',
   logo: <GoogleLogo />,
   accent: 'mint',
   estMinutes: 7,
   intro:
-    'To work with your Google Docs, Effro needs a free Google Cloud OAuth app. You create it once and paste two values back here. Effro can read your Docs and create new ones it owns, nothing else.',
+    'Effro needs a free Google Cloud OAuth app. You create it once and paste two values back here. One connection pulls your Calendar + starred Gmail into Signals and stores encrypted backups in your Drive. Read-only, plus files it creates itself.',
   steps: [
     {
       title: 'Create a Google Cloud project',
@@ -313,7 +313,7 @@ export const GOOGLE_GUIDE = {
     {
       title: 'Enable the APIs',
       body: (
-        <p>Go to <b>APIs &amp; Services</b> → <b>Library</b> and enable both the <b>Google Drive API</b> and the <b>Google Docs API</b> (search each by name and click Enable).</p>
+        <p>Go to <b>APIs &amp; Services</b> → <b>Library</b> and enable the <b>Google Calendar API</b>, the <b>Gmail API</b>, and the <b>Google Drive API</b> (search each by name and click Enable).</p>
       ),
       link: { label: 'Open API Library', href: 'https://console.cloud.google.com/apis/library' },
     },

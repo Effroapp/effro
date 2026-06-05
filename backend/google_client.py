@@ -33,24 +33,24 @@ log = logging.getLogger("trace.google")
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
-DRIVE_FILES_URL = "https://www.googleapis.com/drive/v3/files"
-DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files"
+CALENDAR_BASE = "https://www.googleapis.com/calendar/v3"
+GMAIL_BASE = "https://gmail.googleapis.com/gmail/v1"
 
-# One consent covers every Drive/Docs feature:
+# One consent covers everything the Google account is used for:
 #   - openid/email/profile : identify the connected account
-#   - drive.readonly       : list + read + export the user's existing Docs
-#                            (signals, attach-from-Drive, ingest)
-#   - drive.file           : create new Docs the app owns (export-to-Docs)
+#   - calendar.readonly    : pull upcoming events into Signals
+#   - gmail.readonly       : pull starred mail into Signals (restricted scope -
+#                            fine under the user's own BYO app in testing mode)
+#   - drive.file           : create + manage the app's own encrypted backup
+#                            files (the Google Drive storage backend)
 SCOPES = [
     "openid",
     "email",
     "profile",
-    "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/drive.file",
 ]
-
-# The Drive mime type for a native Google Doc.
-GDOC_MIME = "application/vnd.google-apps.document"
 
 _GOOGLE_CONFIG_KEY = "google_config"
 _CSRF_STATE_KEY = "google_oauth_states"
@@ -301,86 +301,67 @@ def get_valid_access_token(db: Session) -> Optional[str]:
 
 async def fetch_user_profile(access_token: str) -> dict:
     """OpenID userinfo: sub, email, name, picture."""
-    resp = await _client().get(
-        USERINFO_URL,
-        headers={"Authorization": f"Bearer {access_token}"},
-    )
-    resp.raise_for_status()
-    return resp.json()
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        resp = await client.get(USERINFO_URL, headers={"Authorization": f"Bearer {access_token}"})
+        resp.raise_for_status()
+        return resp.json()
 
 
-async def list_recent_docs(access_token: str, *, page_size: int = 25) -> list[dict]:
-    """Recently-modified Google Docs the user owns or can edit. Returns raw
-    Drive file objects (id, name, modifiedTime, webViewLink, owners, ...)."""
-    resp = await _client().get(
-        DRIVE_FILES_URL,
-        headers={"Authorization": f"Bearer {access_token}"},
-        params={
-            "q": f"mimeType='{GDOC_MIME}' and trashed=false",
-            "orderBy": "modifiedTime desc",
-            "pageSize": str(page_size),
-            "fields": "files(id,name,modifiedTime,webViewLink,iconLink,owners(displayName,emailAddress),sharedWithMeTime)",
-            "corpora": "user",
-        },
-    )
-    resp.raise_for_status()
-    return resp.json().get("files", [])
+async def fetch_calendar_events(access_token: str, *, days_ahead: int = 7) -> list[dict]:
+    """Upcoming events on the primary calendar, from now to +days_ahead.
+    Returns raw Calendar API event objects (singleEvents expands recurrences)."""
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        resp = await client.get(
+            f"{CALENDAR_BASE}/calendars/primary/events",
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={
+                "timeMin": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "timeMax": (now + timedelta(days=days_ahead)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "singleEvents": "true",
+                "orderBy": "startTime",
+                "maxResults": "50",
+                "fields": "items(id,summary,start,end,location,organizer,htmlLink,status)",
+            },
+        )
+        resp.raise_for_status()
+        return [e for e in resp.json().get("items", []) if e.get("status") != "cancelled"]
 
 
-async def search_docs(access_token: str, query: str, *, page_size: int = 20) -> list[dict]:
-    """Search the user's Google Docs by name (for the attach-from-Drive picker)."""
-    safe = (query or "").replace("'", "\\'")
-    q = f"mimeType='{GDOC_MIME}' and trashed=false"
-    if safe:
-        q += f" and name contains '{safe}'"
-    resp = await _client().get(
-        DRIVE_FILES_URL,
-        headers={"Authorization": f"Bearer {access_token}"},
-        params={
-            "q": q,
-            "orderBy": "modifiedTime desc",
-            "pageSize": str(page_size),
-            "fields": "files(id,name,modifiedTime,webViewLink,iconLink)",
-            "corpora": "user",
-        },
-    )
-    resp.raise_for_status()
-    return resp.json().get("files", [])
+async def fetch_starred_emails(access_token: str, *, max_results: int = 25) -> list[dict]:
+    """Starred Gmail messages, enriched with Subject/From/Date headers + snippet.
+    Returns a list of {id, subject, sender, date, snippet}."""
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        listing = await client.get(
+            f"{GMAIL_BASE}/users/me/messages",
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={"q": "is:starred", "maxResults": str(max_results)},
+        )
+        listing.raise_for_status()
+        ids = [m["id"] for m in (listing.json().get("messages") or []) if m.get("id")]
 
-
-async def export_doc_text(access_token: str, file_id: str) -> str:
-    """Export a Google Doc as plain text (for the ingest flow)."""
-    resp = await _client().get(
-        f"{DRIVE_FILES_URL}/{file_id}/export",
-        headers={"Authorization": f"Bearer {access_token}"},
-        params={"mimeType": "text/plain"},
-    )
-    resp.raise_for_status()
-    return resp.text
-
-
-async def create_doc(access_token: str, *, title: str, text: str) -> dict:
-    """Create a new Google Doc from plain text via Drive multipart upload with
-    conversion. Returns the created file (id, name, webViewLink)."""
-    metadata = {"name": title, "mimeType": GDOC_MIME}
-    boundary = "effro-boundary-7e1c"
-    body = (
-        f"--{boundary}\r\n"
-        "Content-Type: application/json; charset=UTF-8\r\n\r\n"
-        f"{json.dumps(metadata)}\r\n"
-        f"--{boundary}\r\n"
-        "Content-Type: text/plain; charset=UTF-8\r\n\r\n"
-        f"{text}\r\n"
-        f"--{boundary}--"
-    )
-    resp = await _client().post(
-        DRIVE_UPLOAD_URL,
-        headers={
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": f"multipart/related; boundary={boundary}",
-        },
-        params={"uploadType": "multipart", "fields": "id,name,webViewLink"},
-        content=body.encode("utf-8"),
-    )
-    resp.raise_for_status()
-    return resp.json()
+        out = []
+        for mid in ids:
+            try:
+                r = await client.get(
+                    f"{GMAIL_BASE}/users/me/messages/{mid}",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    params={
+                        "format": "metadata",
+                        "metadataHeaders": ["Subject", "From", "Date"],
+                    },
+                )
+                r.raise_for_status()
+                msg = r.json()
+                headers = {h["name"].lower(): h["value"] for h in (msg.get("payload", {}).get("headers") or [])}
+                out.append({
+                    "id": mid,
+                    "subject": headers.get("subject") or "(no subject)",
+                    "sender": headers.get("from"),
+                    "date": headers.get("date"),
+                    "snippet": msg.get("snippet") or "",
+                })
+            except Exception as e:
+                log.warning("Gmail message %s fetch failed: %s", mid, e)
+        return out

@@ -757,10 +757,12 @@ class SignalListOut(BaseModel):
 
 class SignalAcceptIn(BaseModel):
     """User confirms a signal into an Entry. Either an existing thread,
-    or a new thread under an area."""
+    or a new thread under an area. create_as picks how it lands:
+    'meeting' | 'todo' | 'note' (defaults by kind when omitted)."""
     area_id: int
     thread_id: Optional[int] = None
     new_thread_title: Optional[str] = None
+    create_as: Optional[str] = None
 
 
 class SignalReassignIn(BaseModel):

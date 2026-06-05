@@ -1001,7 +1001,7 @@ function GoogleSection({ id }) {
       <CardHeader
         icon={GoogleLogo}
         title="Google"
-        subtitle="One Google connection: attach/ingest/export Docs, plus Drive backups."
+        subtitle="Calendar events + starred Gmail via Signals. Read-only. (Drive backups live under Storage.)"
       />
       <GoogleIntegration />
     </Card>
