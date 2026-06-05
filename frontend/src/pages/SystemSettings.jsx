@@ -4,7 +4,7 @@ import {
   Settings as SettingsIcon, ArrowLeft, Cpu, FolderOpen, RefreshCw,
   AlertCircle, Download, Zap, ChevronRight, ChevronLeft,
   CheckCircle2, XCircle, Loader2, ExternalLink,
-  Database, CloudOff,
+  Database, CloudOff, Plug, Info,
 } from 'lucide-react'
 import {
   isTauri,
@@ -19,7 +19,6 @@ import {
 } from '../api/settings'
 import { getStorageConfig } from '../api/storage'
 import StorageSetupModal from '../components/StorageSetupModal'
-import IntegrationsHub from '../components/IntegrationsHub'
 import MicrosoftIntegration from '../components/MicrosoftIntegration'
 import JiraIntegration from '../components/JiraIntegration'
 import GoogleIntegration from '../components/GoogleIntegration'
@@ -40,7 +39,24 @@ import { notifyAIConfigChanged } from '../hooks/useAIConfigured'
  * avoids the "modal-on-popover" stacking that the popover version had,
  * which fights with the way ADHD brains track state.
  */
+// The four settings categories. Each has a one-line explainer so the
+// distinction between them (especially Storage vs Integrations) is always
+// on screen. Tabs mirror the Insights page for a consistent feel.
+const SETTINGS_TABS = [
+  { key: 'ai', label: 'AI', Icon: Cpu,
+    intro: 'The brain behind Effro. Powers smart capture, area and thread summaries, and the weekly roundup. Bring your own provider.' },
+  { key: 'storage', label: 'Storage', Icon: Database,
+    intro: 'Where your data lives. Your local data folder, plus optional encrypted backups to a cloud you choose.' },
+  { key: 'integrations', label: 'Integrations', Icon: Plug,
+    intro: 'Sources Effro pulls from into your Signals feed to triage. Connect the tools you already use.' },
+  { key: 'about', label: 'About', Icon: Info,
+    intro: 'App version, updates, and links.' },
+]
+
 export default function SystemSettings({ updater }) {
+  const [tab, setTab] = useState('ai')
+  const active = SETTINGS_TABS.find((t) => t.key === tab) || SETTINGS_TABS[0]
+
   return (
     <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800 bg-grid-light dark:bg-grid-dark">
       <header className="
@@ -69,16 +85,70 @@ export default function SystemSettings({ updater }) {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-8 py-8 space-y-6">
-        <IntegrationsHub />
-        <AISection id="integration-ai" />
-        <StorageSection id="integration-storage" />
-        <MicrosoftSection id="integration-microsoft" />
-        <JiraSection id="integration-jira" />
-        <GoogleSection id="integration-google" />
-        {isTauri() && <UpdateSection updater={updater} />}
-        <AboutSection />
+      <main className="max-w-5xl mx-auto px-8 py-8">
+        <SettingsTabs tab={tab} onChange={setTab} />
+        <p className="text-sm text-paper-500 dark:text-paper-500 mb-5 leading-relaxed">{active.intro}</p>
+
+        <div className="space-y-6 animate-rise motion-reduce:animate-none" key={tab}>
+          {tab === 'ai' && <AISection />}
+          {tab === 'storage' && <StorageSection />}
+          {tab === 'integrations' && (
+            <>
+              <MicrosoftSection />
+              <JiraSection />
+              <GoogleSection />
+              <MoreIntegrations />
+            </>
+          )}
+          {tab === 'about' && (
+            <>
+              {isTauri() && <UpdateSection updater={updater} />}
+              <AboutSection />
+            </>
+          )}
+        </div>
       </main>
+    </div>
+  )
+}
+
+function SettingsTabs({ tab, onChange }) {
+  return (
+    <div className="flex items-stretch gap-1 p-1 mb-4 rounded-lg bg-paper-200 dark:bg-pitch-700/60 border border-paper-300 dark:border-pitch-500">
+      {SETTINGS_TABS.map(({ key, label, Icon }) => {
+        const active = tab === key
+        return (
+          <button
+            key={key}
+            onClick={() => onChange(key)}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+              active
+                ? 'bg-white dark:bg-pitch-800 shadow-sm text-pitch-800 dark:text-white'
+                : 'text-paper-600 dark:text-paper-400 hover:text-pitch-700 dark:hover:text-paper-200 hover:bg-paper-100/60 dark:hover:bg-pitch-800/40'
+            }`}
+          >
+            <Icon size={15} className={active ? 'text-mint-600 dark:text-mint-400' : 'text-paper-500 dark:text-paper-600'} />
+            {label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// A quiet footer under the Integrations tab: what's coming, and how to ask.
+function MoreIntegrations() {
+  return (
+    <div className="rounded-xl border border-dashed border-paper-300 dark:border-pitch-600 p-4 text-xs text-paper-500 dark:text-paper-600 leading-relaxed">
+      <span className="font-medium text-paper-600 dark:text-paper-400">Coming later:</span>{' '}
+      GitHub, Apple Calendar &amp; Mail.{' '}
+      <a
+        href="https://github.com/Effroapp/effro/issues/new"
+        onClick={(e) => { e.preventDefault(); openExternal('https://github.com/Effroapp/effro/issues/new') }}
+        className="text-mint-700 dark:text-mint-300 font-medium hover:underline cursor-pointer"
+      >
+        Suggest an integration
+      </a>.
     </div>
   )
 }
