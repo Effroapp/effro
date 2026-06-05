@@ -82,7 +82,7 @@ const INTEGRATIONS = [
   {
     key: 'google',
     name: 'Google Docs',
-    tagline: 'Docs as signals, attach, ingest, export',
+    tagline: 'Attach, ingest and export Docs',
     iconKey: 'google',
     sectionId: 'integration-google',
     statusFn: (state) => state.googleConnected ? 'connected' : 'unconfigured',

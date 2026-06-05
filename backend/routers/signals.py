@@ -29,7 +29,6 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from database import get_db
-from audit import log_activity_entry
 
 log = logging.getLogger("trace.routers.signals")
 router = APIRouter(prefix="/signals", tags=["signals"])
@@ -72,11 +71,10 @@ def list_signals(db: Session = Depends(get_db)):
     def _external_url(r):
         if r.source == "jira" and jira_host and r.external_id:
             return f"https://{jira_host}/browse/{r.external_id}"
-        if r.source in ("microsoft", "google") and r.raw_json:
+        if r.source == "microsoft" and r.raw_json:
             try:
-                data = json.loads(r.raw_json)
-                # MS calendar events carry webLink; Drive files carry webViewLink.
-                return data.get("webLink") or data.get("webViewLink") or None
+                link = json.loads(r.raw_json).get("webLink")
+                return link or None
             except (ValueError, AttributeError):
                 return None
         return None
@@ -191,29 +189,6 @@ def accept_signal(
         thread = models.Thread(area_id=area.id, title=title, status="open", description="")
         db.add(thread)
         db.flush()
-
-    # A Google Doc is linked onto the thread as an attachment, with the activity
-    # logged as a timeline entry (consistent with manual attach/link). The
-    # logged entry doubles as the signal's assigned_entry so re-sync can find it.
-    if signal.kind == "doc" or signal.source == "google":
-        doc_url = None
-        if signal.raw_json:
-            try:
-                doc_url = json.loads(signal.raw_json).get("webViewLink")
-            except (ValueError, AttributeError):
-                doc_url = None
-        att = models.Attachment(thread_id=thread.id, type="link", name=signal.title, url=doc_url)
-        db.add(att)
-        db.flush()
-        link_md = f"[**{signal.title}**]({doc_url})" if doc_url else f"**{signal.title}**"
-        entry = log_activity_entry(db, thread.id, f"Attached a doc: {link_md}")
-        signal.status = "assigned"
-        signal.assigned_entry_id = entry.id if entry else None
-        signal.suggested_area_id = area.id
-        signal.suggested_thread_id = thread.id
-        db.commit()
-        db.refresh(signal)
-        return _to_out(signal, db)
 
     # Build the committed entry, shaped by what the signal actually is. A
     # calendar item becomes a meeting (it has a time you attend); anything

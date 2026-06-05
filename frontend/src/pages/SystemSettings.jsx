@@ -1001,7 +1001,7 @@ function GoogleSection({ id }) {
       <CardHeader
         icon={GoogleLogo}
         title="Google Docs"
-        subtitle="Docs as signals, attach from Drive, ingest text, export to Docs."
+        subtitle="Attach Docs from Drive, ingest text, and export to Docs."
       />
       <GoogleIntegration />
     </Card>

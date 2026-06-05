@@ -9,7 +9,10 @@ Exposes (mirrors the Microsoft router):
   GET    /google/auth/callback     - Google redirects here on consent
   POST   /google/auth/exchange     - desktop flow: frontend posts {code, state}
   DELETE /google/auth/disconnect   - drop tokens + profile
-  POST   /google/sync-now          - one-off manual sync (drives Signals)
+
+Connecting Google powers the pull-based Docs features (attach from Drive,
+ingest doc text, export to Docs) and the Google Drive backup backend. There is
+no background sync - Docs are pulled on demand when the user asks for them.
 
 Security boundary: the user registers the Google Cloud OAuth app and signs in
 through their own browser. The app only does the code -> token exchange after
@@ -167,12 +170,3 @@ def auth_disconnect(db: Session = Depends(get_db)):
     deleted = db.query(models.GoogleIntegration).delete()
     db.commit()
     return {"deleted": deleted}
-
-
-# ─── Sync ─────────────────────────────────────────────────────────────────────
-
-@router.post("/sync-now")
-def sync_now(db: Session = Depends(get_db)):
-    """Run the same job as the scheduler, on demand."""
-    from services_google import run_google_sync
-    return run_google_sync(db)

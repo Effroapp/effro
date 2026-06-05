@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Check, BookOpen, Loader2, AlertCircle, RefreshCw, LogOut } from 'lucide-react'
+import { Check, BookOpen, Loader2, AlertCircle, LogOut } from 'lucide-react'
 import {
   getGoogleConfig, saveGoogleConfig,
-  getGoogleProfile, loginUrl, disconnectGoogle, syncNow,
+  getGoogleProfile, loginUrl, disconnectGoogle,
 } from '../api/google'
 import SetupGuide, { GOOGLE_GUIDE } from './SetupGuide'
 
@@ -26,8 +26,6 @@ export default function GoogleIntegration() {
   const [profile, setProfile] = useState(null)
   const [editingConfig, setEditingConfig] = useState(false)
   const [error, setError] = useState(null)
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [lastSyncSummary, setLastSyncSummary] = useState(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -65,20 +63,6 @@ export default function GoogleIntegration() {
       await refresh()
     } catch (e) {
       setError(e.message)
-    }
-  }
-
-  const handleSyncNow = async () => {
-    setIsSyncing(true)
-    setError(null)
-    try {
-      const result = await syncNow()
-      setLastSyncSummary(result)
-      await refresh()
-    } catch (e) {
-      setError(e.message || 'Sync failed')
-    } finally {
-      setIsSyncing(false)
     }
   }
 
@@ -154,28 +138,11 @@ export default function GoogleIntegration() {
           </p>
           <p className="text-[11px] font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
             {profile.email}
-            {profile.last_synced && <> · last synced {new Date(profile.last_synced).toLocaleString()}</>}
           </p>
         </div>
       </div>
 
-      {lastSyncSummary && (
-        <div className="text-[11px] text-paper-500 dark:text-paper-600 px-1">
-          {lastSyncSummary.skipped
-            ? (lastSyncSummary.reason || 'Nothing to sync yet.')
-            : <>Sync OK: +{lastSyncSummary.added || 0} new, {lastSyncSummary.updated || 0} updated.</>}
-        </div>
-      )}
-
       <div className="flex items-center gap-2 flex-wrap">
-        <button
-          onClick={handleSyncNow}
-          disabled={isSyncing}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 disabled:opacity-40 font-display uppercase tracking-wide transition-colors"
-        >
-          {isSyncing ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
-          {isSyncing ? 'Syncing…' : 'Sync now'}
-        </button>
         <button
           onClick={() => setEditingConfig(true)}
           className="px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 font-display uppercase tracking-wide transition-colors"
@@ -199,9 +166,8 @@ export default function GoogleIntegration() {
       )}
 
       <p className="text-[11px] text-paper-500 dark:text-paper-600 leading-snug">
-        Effro can surface your recent Google Docs in <strong className="font-medium">Signals</strong>, attach Docs to
-        threads, ingest a Doc's text, and export content back to a new Doc. It only reads your Docs and creates files
-        it owns, nothing else.
+        With Google connected you can attach Docs to threads, ingest a Doc's text into Effro, and export content
+        back to a new Doc. It only reads the Docs you choose and creates files it owns, nothing else.
       </p>
     </div>
   )
