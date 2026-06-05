@@ -101,7 +101,7 @@ export default function Insights() {
 
         {/* First-run explainer - shown once, then dismissed for good. */}
         {!introSeen && (
-          <div className="relative rounded-xl border border-mint/25 bg-mint/[0.07] p-4 pr-10 mb-6 animate-rise motion-reduce:animate-none">
+          <div className="relative rounded-xl bg-gradient-to-br from-mint/10 to-mint/[0.03] dark:from-mint/[0.12] dark:to-mint/[0.03] p-5 pr-10 mb-6 animate-rise motion-reduce:animate-none">
             <button
               onClick={dismissIntro}
               aria-label="Dismiss"
@@ -110,11 +110,11 @@ export default function Insights() {
               <X size={15} />
             </button>
             <div className="flex items-start gap-3">
-              <span className="w-9 h-9 rounded-lg bg-mint/10 border border-mint/20 flex items-center justify-center flex-shrink-0">
+              <span className="w-9 h-9 rounded-lg bg-mint/15 flex items-center justify-center flex-shrink-0">
                 <Telescope size={17} className="text-mint-600 dark:text-mint-400" />
               </span>
               <div>
-                <p className="text-sm font-medium text-pitch-800 dark:text-white">Welcome to Insights</p>
+                <p className="text-base font-semibold text-pitch-800 dark:text-white">Welcome to Insights</p>
                 <p className="text-sm text-paper-600 dark:text-paper-300 leading-relaxed mt-1">
                   A calm place to see how things are really going.{' '}
                   <b className="font-medium text-pitch-700 dark:text-paper-200">Reflect</b> on what you've done,
@@ -163,22 +163,21 @@ export default function Insights() {
 
 function Tabs({ tab, onChange }) {
   return (
-    <div className="inline-flex items-center gap-1 p-1 mb-6 rounded-lg bg-paper-200 dark:bg-pitch-700/60 border border-paper-300 dark:border-pitch-500">
-      {TABS.map(({ key, label, Icon, sub }) => {
+    <div className="flex items-stretch gap-1 p-1 mb-5 rounded-lg bg-paper-200 dark:bg-pitch-700/60 border border-paper-300 dark:border-pitch-500">
+      {TABS.map(({ key, label, Icon }) => {
         const active = tab === key
         return (
           <button
             key={key}
             onClick={() => onChange(key)}
-            className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-md transition-all ${
-              active ? 'bg-white dark:bg-pitch-800 shadow-sm' : 'hover:bg-paper-100/60 dark:hover:bg-pitch-800/40'
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+              active
+                ? 'bg-white dark:bg-pitch-800 shadow-sm text-pitch-800 dark:text-white'
+                : 'text-paper-600 dark:text-paper-400 hover:text-pitch-700 dark:hover:text-paper-200 hover:bg-paper-100/60 dark:hover:bg-pitch-800/40'
             }`}
           >
             <Icon size={15} className={active ? 'text-mint-600 dark:text-mint-400' : 'text-paper-500 dark:text-paper-600'} />
-            <span className="text-left leading-none">
-              <span className={`block text-sm font-medium ${active ? 'text-pitch-800 dark:text-white' : 'text-paper-600 dark:text-paper-400'}`}>{label}</span>
-              <span className={`block text-[10px] mt-0.5 ${active ? 'text-paper-500 dark:text-paper-500' : 'text-paper-400 dark:text-paper-700'}`}>{sub}</span>
-            </span>
+            {label}
           </button>
         )
       })}
