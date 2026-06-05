@@ -5,12 +5,12 @@
  * itself - no global DOM mutation that would fight React and crash on updates.
  */
 
-// How many leading characters of a word to embolden.
+// How many leading characters to embolden. Matches Bionic Reading's default
+// "fixation" of 30% of the word, rounded up, at least one character. The
+// remainder is left at normal weight (Bionic Reading does not dim it).
+const FIXATION = 0.3
 function boldLen(word) {
-  const L = word.length
-  if (L <= 1) return L
-  if (L <= 3) return 1
-  return Math.ceil(L * 0.4)
+  return Math.max(1, Math.ceil(word.length * FIXATION))
 }
 
 // Plain string -> React nodes, with each word's prefix wrapped in <b>.
