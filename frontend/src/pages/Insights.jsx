@@ -98,7 +98,7 @@ export default function Insights() {
 
         <Tabs tab={tab} onChange={setTab} />
 
-        <div key={tab} className="animate-fade-in">
+        <div key={tab} className="animate-rise motion-reduce:animate-none">
           {tab === 'reflect' && (
             <ReflectLens scope={scope} onScope={setScope} week={week} today={today} />
           )}
@@ -184,7 +184,7 @@ function TodayReflect({ data }) {
     right: d.at ? format(parseISO(d.at), 'HH:mm') : '',
   }))
   return (
-    <div className="space-y-7">
+    <div className="space-y-7 animate-rise motion-reduce:animate-none">
       <Hero count={data.headline_count} caption={data.headline_count > 0 ? 'finished since you started today' : 'a calm day so far'} chips={data.breakdown} />
       <WindDownCard narrative={data.narrative} />
       <Section label="Done today">
@@ -206,12 +206,12 @@ function WeekReflect({ data }) {
     right: d.at ? format(parseISO(d.at), 'EEE') : '',
   }))
   return (
-    <div className="space-y-7">
+    <div className="space-y-7 animate-rise motion-reduce:animate-none">
       <Hero count={data.headline_count} unit="loops closed" caption="this week, all real and finished" chips={data.breakdown} />
 
       {data.celebrations?.length > 0 && (
-        <Section label="Worth noticing">
-          <div className="rounded-xl border border-mint/15 bg-mint/5 p-2">
+        <Section label="Worth celebrating">
+          <div className="rounded-xl border border-mint/25 bg-mint/5 p-2">
             <ul>
               {data.celebrations.map((c, i) => {
                 const m = CELEB_META[c.type] || CELEB_META.decisions
@@ -249,6 +249,7 @@ function WeekReflect({ data }) {
 }
 
 function Hero({ count, unit = 'done today', caption, chips = [] }) {
+  const shown = useCountUp(count)
   return (
     <section>
       <div className="rounded-xl bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 p-5">
@@ -258,7 +259,7 @@ function Hero({ count, unit = 'done today', caption, chips = [] }) {
           </span>
           <div>
             <p className="text-2xl font-semibold text-pitch-800 dark:text-white leading-none">
-              {count} {unit}
+              {shown} {unit}
             </p>
             <p className="text-sm text-paper-500 dark:text-paper-500 mt-1">{caption}</p>
           </div>
@@ -284,7 +285,7 @@ function Hero({ count, unit = 'done today', caption, chips = [] }) {
 
 function WindDownCard({ narrative }) {
   return (
-    <div className="rounded-xl border border-mint/20 bg-mint/5 p-5 flex items-start gap-3">
+    <div className="rounded-xl border border-mint/25 bg-mint/5 p-5 flex items-start gap-3">
       <span className="w-9 h-9 rounded-lg bg-mint/10 flex items-center justify-center flex-shrink-0">
         <Sunset size={18} className="text-mint-600 dark:text-mint-400" />
       </span>
@@ -414,14 +415,13 @@ function AheadLens({ data }) {
   return (
     <div className="space-y-7">
       {nextTotal > 0 && (
-        <div className="rounded-xl border border-paper-300 dark:border-pitch-500 bg-white dark:bg-pitch-700 p-4 flex items-start gap-3">
-          <CalendarClock size={16} className="text-paper-500 dark:text-paper-400 flex-shrink-0 mt-0.5" />
+        <Callout tone="neutral" icon={CalendarClock}>
           <p className="text-sm text-paper-700 dark:text-paper-300 leading-relaxed">
             The next 7 days hold{' '}
             <b className="font-medium text-pitch-700 dark:text-paper-200">{fn.meetings} {fn.meetings === 1 ? 'meeting' : 'meetings'}</b> and{' '}
             <b className="font-medium text-pitch-700 dark:text-paper-200">{fn.todos} {fn.todos === 1 ? 'todo' : 'todos'}</b> due.{compare} A glance now means no ambush later.
           </p>
-        </div>
+        </Callout>
       )}
 
       <Section label="The shape of your next 10 days">
@@ -475,13 +475,12 @@ function AheadLens({ data }) {
 
       {data.good_window && (
         <Section label="A good window">
-          <div className="rounded-xl border border-dashed border-mint/30 bg-mint/5 p-4 flex items-start gap-3">
-            <Sun size={16} className="text-mint-600 dark:text-mint-400 flex-shrink-0 mt-0.5" />
+          <Callout tone="mint" icon={Sun}>
             <p className="text-sm text-paper-700 dark:text-paper-300 leading-relaxed">
               <b className="font-medium">{data.good_window.area_name}</b> has gone quiet for {data.good_window.quiet_days} days.
               {data.good_window.day_label ? ` ${data.good_window.day_label} looks light` : ' When you have a quiet moment'}, it's a good window for it, if you have the energy. No pressure either way.
             </p>
-          </div>
+          </Callout>
         </Section>
       )}
     </div>
@@ -568,14 +567,11 @@ function BalanceLens({ data }) {
 
       {data.not_on_you?.length > 0 && (
         <Section label="Not on you">
-          <div className="rounded-xl border border-sky-muted/30 bg-sky-muted/5 p-4">
-            <div className="flex items-start gap-3 mb-3">
-              <Hourglass size={16} className="text-sky-muted flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-paper-700 dark:text-paper-300 leading-relaxed">
-                <b className="font-medium">{data.not_on_you.length} {data.not_on_you.length === 1 ? 'thread is' : 'threads are'}</b> blocked, waiting on something external. That weight isn't on you right now.
-              </p>
-            </div>
-            <ul className="space-y-1 pl-7">
+          <Callout tone="sky" icon={Hourglass}>
+            <p className="text-sm text-paper-700 dark:text-paper-300 leading-relaxed">
+              <b className="font-medium">{data.not_on_you.length} {data.not_on_you.length === 1 ? 'thread is' : 'threads are'}</b> blocked, waiting on something external. That weight isn't on you right now.
+            </p>
+            <ul className="space-y-1 mt-3">
               {data.not_on_you.map((n) => (
                 <li key={n.thread_id} className="flex items-center gap-2 text-[12px]">
                   <span className="text-pitch-700 dark:text-paper-300 truncate">{n.title}</span>
@@ -583,20 +579,19 @@ function BalanceLens({ data }) {
                 </li>
               ))}
             </ul>
-          </div>
+          </Callout>
         </Section>
       )}
 
       {data.drift?.length > 0 && (
         <Section label="A gentle nudge or two">
-          <div className="rounded-xl border border-dashed border-mustard/40 bg-mustard/5 p-4 flex items-start gap-3">
-            <Clock size={16} className="text-mustard flex-shrink-0 mt-0.5" />
+          <Callout tone="mustard" icon={Clock}>
             <p className="text-sm text-paper-700 dark:text-paper-300 leading-relaxed">
               <b className="font-medium">{data.drift.map((d) => d.name).join(' and ')}</b>{' '}
               {data.drift.length === 1 ? 'has' : 'have'} gone quiet for a while.
               No pressure, just so {data.drift.length === 1 ? "it doesn't" : "they don't"} slip off the radar. Open {data.drift.length === 1 ? 'it' : 'them'} when you have the energy.
             </p>
-          </div>
+          </Callout>
         </Section>
       )}
     </div>
@@ -629,6 +624,46 @@ function Section({ label, children }) {
 
 function RaisedCard({ children }) {
   return <div className="rounded-xl p-4 bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500">{children}</div>
+}
+
+// One calm callout style for every tinted note on the page. Colour carries
+// meaning (mint = good, sky = reassurance, mustard = gentle attention), never
+// decoration - so the whole page reads as one consistent system.
+const CALLOUT_TONES = {
+  mint:    { border: 'border-mint/25',      bg: 'bg-mint/5',      icon: 'text-mint-600 dark:text-mint-400' },
+  sky:     { border: 'border-sky-muted/30', bg: 'bg-sky-muted/5', icon: 'text-sky-muted' },
+  mustard: { border: 'border-mustard/35',   bg: 'bg-mustard/5',   icon: 'text-mustard' },
+  neutral: { border: 'border-paper-300 dark:border-pitch-500', bg: 'bg-white dark:bg-pitch-700', icon: 'text-paper-500 dark:text-paper-400' },
+}
+
+function Callout({ tone = 'mint', icon: Icon, children }) {
+  const t = CALLOUT_TONES[tone] || CALLOUT_TONES.mint
+  return (
+    <div className={`rounded-xl border ${t.border} ${t.bg} p-4 flex items-start gap-3`}>
+      {Icon && <Icon size={16} className={`${t.icon} flex-shrink-0 mt-0.5`} />}
+      <div className="flex-1 min-w-0">{children}</div>
+    </div>
+  )
+}
+
+// Count a number up from zero on mount - quietly rewarding. Honours reduced-motion.
+function useCountUp(target, duration = 700) {
+  const [value, setValue] = useState(target)
+  useEffect(() => {
+    const reduce = typeof window !== 'undefined' && window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduce || !target) { setValue(target); return }
+    let raf
+    const start = performance.now()
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / duration)
+      setValue(Math.round(target * (1 - Math.pow(1 - p, 3))))
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target, duration])
+  return value
 }
 
 function Empty({ children }) {
