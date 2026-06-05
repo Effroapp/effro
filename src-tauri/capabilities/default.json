@@ -28,6 +28,7 @@
     "shell:allow-execute",
     "shell:allow-spawn",
     "shell:allow-kill",
+    "shell:allow-open",
     "dialog:allow-open",
     "store:allow-get",
     "store:allow-set",

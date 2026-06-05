@@ -1000,8 +1000,8 @@ function GoogleSection({ id }) {
     <Card id={id}>
       <CardHeader
         icon={GoogleLogo}
-        title="Google Docs"
-        subtitle="Attach Docs from Drive, ingest text, and export to Docs."
+        title="Google"
+        subtitle="One Google connection: attach/ingest/export Docs, plus Drive backups."
       />
       <GoogleIntegration />
     </Card>

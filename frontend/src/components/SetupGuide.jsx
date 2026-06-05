@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X, ExternalLink, Copy, Check, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { openExternal } from '../api/tauri'
 
 /**
  * In-app setup walkthrough. Replaces "go read this .md on GitHub" with a calm,
@@ -75,14 +76,13 @@ export default function SetupGuide({ guide, open, onClose }) {
           </div>
 
           {step.link && (
-            <a
-              href={step.link.href}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => openExternal(step.link.href)}
               className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500 text-pitch-700 dark:text-paper-200 hover:border-paper-400 dark:hover:border-pitch-400 transition-colors"
             >
               {step.link.label} <ExternalLink size={12} />
-            </a>
+            </button>
           )}
 
           {step.copies?.length > 0 && (

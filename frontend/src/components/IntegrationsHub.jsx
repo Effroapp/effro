@@ -81,8 +81,8 @@ const INTEGRATIONS = [
   },
   {
     key: 'google',
-    name: 'Google Docs',
-    tagline: 'Attach, ingest and export Docs',
+    name: 'Google',
+    tagline: 'Docs attach/ingest/export + Drive backups',
     iconKey: 'google',
     sectionId: 'integration-google',
     statusFn: (state) => state.googleConnected ? 'connected' : 'unconfigured',

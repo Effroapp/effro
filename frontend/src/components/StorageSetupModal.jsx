@@ -7,6 +7,7 @@ import {
   saveStorageConfig, testStorageConnection, disconnectStorage,
   runManualBackup, getBackupLogs
 } from '../api/storage'
+import { getGoogleProfile } from '../api/google'
 
 /**
  * Storage setup / management modal.
@@ -97,6 +98,19 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
   const [testResult, setTestResult] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // Is the Google account connected (under Integrations)? null = still checking.
+  // Google Drive backups reuse that connection, so the setup is gated on it.
+  const [googleConnected, setGoogleConnected] = useState(null)
+  useEffect(() => {
+    if (view === 'setup' && isGoogle) {
+      setGoogleConnected(null)
+      getGoogleProfile()
+        .then((p) => setGoogleConnected(Boolean(p?.connected)))
+        .catch(() => setGoogleConnected(false))
+    }
+  }, [view, isGoogle])
+  const googleReady = !isGoogle || googleConnected === true
 
   // Manage view
   const [backupLogs, setBackupLogs] = useState([])
@@ -200,7 +214,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
   }
 
   const canTest = isGoogle
-    ? true  // Google Drive reuses the OAuth connection - nothing to fill in.
+    ? googleReady  // Google Drive reuses the OAuth connection; gate on it.
     : (
       serverUrl.trim().length > 4 &&
       username.trim().length > 0 &&
@@ -325,6 +339,24 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
               <ChevronLeft size={13} /> All providers
             </button>
 
+            {/* Google Drive is gated on the Google connection. Surface its state
+                first - a blocking warning until Google is connected, since
+                everything below depends on it. */}
+            {isGoogle && googleConnected === null && (
+              <div className="flex items-center gap-2 rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border border-paper-200 dark:border-pitch-600 text-xs text-paper-500 dark:text-paper-600">
+                <Loader2 size={13} className="animate-spin" /> Checking your Google connection…
+              </div>
+            )}
+            {isGoogle && googleConnected === false && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-mustard/10 border border-mustard/40 text-xs text-pitch-700 dark:text-paper-200 leading-relaxed">
+                <AlertCircle size={14} className="flex-shrink-0 mt-0.5 text-mustard" />
+                <span>
+                  Connect Google first under <strong>Settings → Integrations → Google</strong>.
+                  Google Drive backups sign in with that same account, so there is nothing to set up here until it is connected.
+                </span>
+              </div>
+            )}
+
             {/* "What is this?" - same idiom as the AI Engine setup card */}
             <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
               <div className="text-[10px] font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
@@ -336,12 +368,6 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                   : 'Nextcloud is your own private cloud. Effro will store attachments and daily encrypted database backups there. Your data never leaves infrastructure you control.'}
               </div>
             </div>
-
-            {isGoogle && currentConfig?.provider !== 'google_drive' && (
-              <div className="rounded-lg p-3 bg-sky-muted/10 border border-sky-muted/30 text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
-                Make sure you have connected Google under <strong>Settings → Integrations → Google Docs</strong> first. This backup option signs in with that same account.
-              </div>
-            )}
 
             {!isGoogle && (
               <>
@@ -425,6 +451,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                   onChange={e => f.set(e.target.value)}
                   placeholder={f.placeholder}
                   autoComplete="off"
+                  disabled={!googleReady}
                   className="
                     w-full px-3 py-2 rounded-lg text-sm font-mono
                     bg-paper-100 dark:bg-pitch-800
@@ -432,6 +459,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                     text-pitch-800 dark:text-white
                     placeholder:text-paper-400 dark:placeholder:text-paper-700
                     focus:outline-none focus:ring-2 focus:ring-mint-500
+                    disabled:opacity-40 disabled:cursor-not-allowed
                   "
                 />
                 {f.hint && (
@@ -450,8 +478,10 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
               </div>
               <button
                 onClick={() => setBackupEnabled(v => !v)}
+                disabled={!googleReady}
                 className={`
                   relative w-9 h-5 rounded-full transition-colors flex-shrink-0
+                  disabled:opacity-40 disabled:cursor-not-allowed
                   ${backupEnabled ? 'bg-mint-700' : 'bg-paper-300 dark:bg-pitch-500'}
                 `}
               >

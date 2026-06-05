@@ -19,6 +19,30 @@ async function invoke(cmd, args = {}) {
   return tauriInvoke(cmd, args)
 }
 
+/**
+ * Open a URL in the user's real browser.
+ *
+ * The desktop webview blocks ordinary `target="_blank"` navigation (only
+ * localhost is allow-listed), so external links did nothing. Here we hand the
+ * URL to the OS via the shell plugin's `open` command (gated by shell:allow-open
+ * in capabilities). In the browser/Docker build we just use window.open.
+ */
+export async function openExternal(url) {
+  if (!url) return
+  if (isTauri()) {
+    try {
+      const { invoke: tauriInvoke } = await import('@tauri-apps/api/core')
+      await tauriInvoke('plugin:shell|open', { path: url })
+      return
+    } catch (e) {
+      // Fall through to a normal window.open as a last resort.
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+}
+
 /** Returns the current data directory path string, or null outside Tauri. */
 export async function getDataDir() {
   return invoke('get_data_dir')

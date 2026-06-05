@@ -218,7 +218,7 @@ def get_storage_config_for_api(db: Session) -> dict:
     return {
         "provider": config.get("provider", "local"),
         "is_connected": config.get("provider", "local") != "local",
-        "remote_folder": config.get("remote_folder", "Trace"),
+        "remote_folder": config.get("remote_folder", "Effro"),
         "backup_enabled": config.get("backup_enabled", True),
         "server_url": config.get("server_url"),
         "username": config.get("username"),

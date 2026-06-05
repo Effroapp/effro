@@ -166,8 +166,9 @@ export default function GoogleIntegration() {
       )}
 
       <p className="text-[11px] text-paper-500 dark:text-paper-600 leading-snug">
-        With Google connected you can attach Docs to threads, ingest a Doc's text into Effro, and export content
-        back to a new Doc. It only reads the Docs you choose and creates files it owns, nothing else.
+        One Google connection powers everything: attach Docs to threads, ingest a Doc's text, export content to a
+        new Doc, and (under Settings → Storage) encrypted backups to Google Drive. It only reads the Docs you choose
+        and creates files it owns, nothing else.
       </p>
     </div>
   )
