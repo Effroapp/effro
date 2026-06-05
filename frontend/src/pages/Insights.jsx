@@ -402,10 +402,14 @@ function AheadLens({ data }) {
   const prevTotal = fp.meetings + fp.todos
   const compare = nextTotal === 0 ? '' : nextTotal > prevTotal ? ' A little busier than the past week.' : nextTotal < prevTotal ? ' A little lighter than the past week.' : ''
 
+  // "On your plate" is your to-do list - todos only. Meetings already live in
+  // Next up and the timeline, so including them here is redundant and mixes
+  // two item types (a meeting with a trailing time among area-tagged todos).
   const tl = data.timeline || []
-  const todayItems = tl[0]?.items || []
-  const tmrwItems = tl[1]?.items || []
-  const restItems = tl.slice(2).flatMap((d) => d.items)
+  const onlyTodos = (items) => (items || []).filter((u) => u.kind === 'todo')
+  const todayItems = onlyTodos(tl[0]?.items)
+  const tmrwItems = onlyTodos(tl[1]?.items)
+  const restItems = onlyTodos(tl.slice(2).flatMap((d) => d.items))
 
   return (
     <div className="space-y-7">
