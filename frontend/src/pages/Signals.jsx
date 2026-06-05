@@ -279,6 +279,7 @@ function SourceBadge({ source, kind }) {
   }
   const labels = {
     microsoft: { label: 'Outlook', color: 'text-[#0078D4] bg-[#0078D4]/10 border-[#0078D4]/20' },
+    google: { label: 'Google Docs', color: 'text-[#1a73e8] bg-[#1a73e8]/10 border-[#1a73e8]/20' },
   }
   const { label, color } = labels[source] || { label: source, color: 'text-paper-500 dark:text-paper-600 bg-paper-100 dark:bg-pitch-700 border-stone' }
   return (
@@ -318,7 +319,7 @@ function MetaRow({ signal }) {
           className="inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 hover:underline"
         >
           <ExternalLink size={11} />
-          Open in {signal.source === 'jira' ? 'Jira' : 'Outlook'}
+          Open in {signal.source === 'jira' ? 'Jira' : signal.source === 'google' ? 'Docs' : 'Outlook'}
         </a>
       )}
     </div>
