@@ -464,6 +464,14 @@ def get_today(
         )
     jira_filed_today = len(jira_rows)
 
+    # Accepted Jira issues commit as todos but are already represented by the
+    # "Jira filed" chip - drop them from the generic "todos added" count so a
+    # single triage isn't counted twice in the productivity headline.
+    jira_entry_ids = {e.id for s, e, t, a in jira_rows}
+    if jira_entry_ids:
+        todo_added_rows = [r for r in todo_added_rows if r[0].id not in jira_entry_ids]
+        n_todos_added = len(todo_added_rows)
+
     # ── Working window (heartbeat-derived) ────────────────────────────────────
     start_at, last_end, active_seconds = working_window(db, day_start, day_end)
     work_hours = (active_seconds / 3600) if active_seconds else 0.0  # active time, excludes breaks

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Check, ExternalLink, Loader2, AlertCircle, RefreshCw, LogOut, KanbanSquare } from 'lucide-react'
+import { Check, BookOpen, Loader2, AlertCircle, RefreshCw, LogOut, KanbanSquare } from 'lucide-react'
 import {
   getJiraConfig, saveJiraConfig,
   getJiraProfile, loginUrl, disconnectJira, jiraSyncNow,
   getJiraScope, setJiraScope,
 } from '../api/jira'
+import SetupGuide, { JIRA_GUIDE } from './SetupGuide'
 
 // Which Jira issues land in Signals. Personal preference — defaults to "mine".
 const SCOPE_OPTIONS = [
@@ -273,6 +274,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
   const [clientId, setClientId] = useState(existing?.client_id || '')
   const [clientSecret, setClientSecret] = useState('')
   const [saving, setSaving] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
 
   const handleSubmit = async (e) => {
     e?.preventDefault()
@@ -285,22 +287,23 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <SetupGuide guide={JIRA_GUIDE} open={showGuide} onClose={() => setShowGuide(false)} />
       <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
         <div className="text-[10px] font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
           One-time Atlassian setup
         </div>
         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
-          You need a free Atlassian OAuth 2.0 app. Full walk-through in{' '}
-          <a
-            href="https://github.com/Effroapp/effro/blob/main/docs/JIRA_SETUP.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-mint-700 dark:text-mint-300 font-medium hover:underline inline-flex items-center gap-0.5"
-          >
-            docs/JIRA_SETUP.md <ExternalLink size={10} />
-          </a>
-          {' '}takes about 5 minutes. Your client secret is Fernet-encrypted before it touches disk.
+          You need a free Atlassian OAuth 2.0 app. It takes about 5 minutes. Follow the
+          guided walk-through, then paste the values it gives you below. Your client secret
+          is Fernet-encrypted before it touches disk.
         </div>
+        <button
+          type="button"
+          onClick={() => setShowGuide(true)}
+          className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 text-mint-700 dark:text-mint-300 hover:border-mint/50 transition-colors"
+        >
+          <BookOpen size={12} /> Open setup guide
+        </button>
       </div>
 
       <Field

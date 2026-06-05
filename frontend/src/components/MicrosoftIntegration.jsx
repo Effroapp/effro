@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Check, ExternalLink, Loader2, AlertCircle, RefreshCw, LogOut } from 'lucide-react'
+import { Check, BookOpen, Loader2, AlertCircle, RefreshCw, LogOut } from 'lucide-react'
 import {
   getMicrosoftConfig, saveMicrosoftConfig,
   getMicrosoftProfile, loginUrl, disconnectMicrosoft, syncNow,
 } from '../api/microsoft'
+import SetupGuide, { AZURE_GUIDE } from './SetupGuide'
 
 /**
  * Microsoft 365 settings card.
@@ -270,6 +271,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
   const [clientSecret, setClientSecret] = useState('')
   const [tenantId, setTenantId] = useState(existing?.tenant_id || 'common')
   const [saving, setSaving] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
 
   const handleSubmit = async (e) => {
     e?.preventDefault()
@@ -284,24 +286,24 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <SetupGuide guide={AZURE_GUIDE} open={showGuide} onClose={() => setShowGuide(false)} />
       {/* What is this */}
       <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
         <div className="text-[10px] font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
           One-time Azure setup
         </div>
         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
-          You need a free Azure app registration. The full walk-through is in {' '}
-          <a
-            href="https://github.com/Effroapp/effro/blob/main/docs/AZURE_SETUP.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-mint-700 dark:text-mint-300 font-medium hover:underline inline-flex items-center gap-0.5"
-          >
-            docs/AZURE_SETUP.md <ExternalLink size={10} />
-          </a>
-          {' '}takes about 5 minutes. Paste the values it tells you to copy below.
-          Your client secret is encrypted before it touches disk.
+          You need a free Azure app registration. It takes about 5 minutes. Follow the
+          guided walk-through, then paste the values it gives you below. Your client secret
+          is encrypted before it touches disk.
         </div>
+        <button
+          type="button"
+          onClick={() => setShowGuide(true)}
+          className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 text-mint-700 dark:text-mint-300 hover:border-mint/50 transition-colors"
+        >
+          <BookOpen size={12} /> Open setup guide
+        </button>
       </div>
 
       <Field

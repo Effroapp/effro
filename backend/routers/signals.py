@@ -64,6 +64,21 @@ def list_signals(db: Session = Depends(get_db)):
     areas = {a.id: a.name for a in db.query(models.Area).filter(models.Area.id.in_(area_ids)).all()} if area_ids else {}
     threads = {t.id: t.title for t in db.query(models.Thread).filter(models.Thread.id.in_(thread_ids)).all()} if thread_ids else {}
 
+    # Jira site host (for "Open in Jira" deep links) - looked up once.
+    _jira = db.query(models.JiraIntegration).first() if any(r.source == "jira" for r in rows) else None
+    jira_host = _jira.cloud_name if _jira else None
+
+    def _external_url(r):
+        if r.source == "jira" and jira_host and r.external_id:
+            return f"https://{jira_host}/browse/{r.external_id}"
+        if r.source == "microsoft" and r.raw_json:
+            try:
+                link = json.loads(r.raw_json).get("webLink")
+                return link or None
+            except (ValueError, AttributeError):
+                return None
+        return None
+
     items = [
         schemas.SignalItemOut(
             id=r.id,
@@ -82,6 +97,7 @@ def list_signals(db: Session = Depends(get_db)):
             suggested_thread_id=r.suggested_thread_id,
             suggested_thread_title=threads.get(r.suggested_thread_id) if r.suggested_thread_id else None,
             assigned_entry_id=r.assigned_entry_id,
+            external_url=_external_url(r),
             created_at=r.created_at,
             updated_at=r.updated_at,
         )
@@ -174,15 +190,29 @@ def accept_signal(
         db.add(thread)
         db.flush()
 
-    # Build the meeting entry - content is the signal title, meeting_at is
-    # the start, external_id carries the upstream id so re-sync can update.
-    entry = models.Entry(
-        thread_id=thread.id,
-        content=signal.title,
-        type="meeting",
-        meeting_at=signal.starts_at,
-        external_id=signal.external_id,
-    )
+    # Build the committed entry, shaped by what the signal actually is. A
+    # calendar item becomes a meeting (it has a time you attend); anything
+    # else - a Jira issue, say - becomes a todo with its due date as a real
+    # deadline. Filing a Jira ticket as a "meeting" was wrong and skewed the
+    # Insights meeting / timeline figures. external_id carries the upstream id
+    # so a future re-sync can find this entry again.
+    if signal.kind == "meeting":
+        entry = models.Entry(
+            thread_id=thread.id,
+            content=signal.title,
+            type="meeting",
+            meeting_at=signal.starts_at,
+            external_id=signal.external_id,
+        )
+    else:
+        entry = models.Entry(
+            thread_id=thread.id,
+            content=signal.title,
+            type="todo",
+            completed=False,
+            due_date=signal.starts_at.date() if signal.starts_at else None,
+            external_id=signal.external_id,
+        )
     db.add(entry)
     db.flush()
 

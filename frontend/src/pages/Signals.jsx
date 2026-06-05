@@ -309,6 +309,18 @@ function MetaRow({ signal }) {
           <span className="truncate">{signal.location}</span>
         </span>
       )}
+      {signal.external_url && (
+        <a
+          href={signal.external_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 hover:underline"
+        >
+          <ExternalLink size={11} />
+          Open in {signal.source === 'jira' ? 'Jira' : 'Outlook'}
+        </a>
+      )}
     </div>
   )
 }

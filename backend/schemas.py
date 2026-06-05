@@ -716,6 +716,9 @@ class SignalItemOut(BaseModel):
     suggested_thread_id: Optional[int] = None
     suggested_thread_title: Optional[str] = None
     assigned_entry_id: Optional[int] = None
+    # Deep link back to the item in its source app (Jira issue / Outlook event),
+    # so the user can open the original in one click. Null if not resolvable.
+    external_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
