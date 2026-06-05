@@ -1520,10 +1520,6 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
                     due {format(parseISO(entry.due_date), 'dd MMM yyyy')}
                   </p>
                 )}
-                <TodoNotes
-                  initial={entry.notes || ''}
-                  onSave={onSaveNotes}
-                />
               </div>
             </div>
           ) : isMeeting ? (
@@ -1541,6 +1537,10 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
             <div className="prose-entry text-pitch-500 dark:text-paper-300">
               <ReactMarkdown>{entry.content}</ReactMarkdown>
             </div>
+          )}
+          {/* Notes - collapsible context, on every entry type for consistency. */}
+          {!editing && (
+            <EntryNotes initial={entry.notes || ''} onSave={onSaveNotes} />
           )}
         </div>
 
@@ -1764,12 +1764,12 @@ function toLocalInput(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-// ─── Todo notes - collapsible free-text capture for investigative todos ──────
+// ─── Entry notes - collapsible free-text context on any entry type ───────────
 
-function TodoNotes({ initial, onSave }) {
+function EntryNotes({ initial, onSave }) {
   const hasContent = (initial || '').trim().length > 0
   // Auto-expanded when there's content. Otherwise collapsed by default so
-  // straight-up tasks aren't cluttered. User toggle overrides per todo.
+  // entries aren't cluttered. User toggle overrides per entry.
   const [open, setOpen] = useState(hasContent)
   const [value, setValue] = useState(initial || '')
   const [saving, setSaving] = useState(false)
@@ -1819,7 +1819,7 @@ function TodoNotes({ initial, onSave }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onBlur={flush}
-          placeholder="Capture findings, links, attempts - saved when you click away."
+          placeholder="Add context, findings, or links - saved when you click away."
           rows={3}
           className="
             mt-1.5 w-full text-xs leading-relaxed
