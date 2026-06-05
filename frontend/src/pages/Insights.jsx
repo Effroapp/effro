@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Telescope, Sparkles, Rewind, CalendarClock, Scale as ScaleIcon,
   CheckSquare, Calendar, Ban, ArrowUpRight, Clock, Trophy,
-  Unlock, Undo2, Hourglass, Sun, Sunset, CircleCheck, Ticket,
+  Unlock, Undo2, Hourglass, Sun, Sunset, CircleCheck, Ticket, X,
 } from 'lucide-react'
 import { format, addDays, parseISO } from 'date-fns'
 import PageHeader from '../components/PageHeader'
@@ -59,6 +59,13 @@ function fmtDur(h) {
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
+// One calm line per lens, so a first-time viewer understands each at a glance.
+const LENS_INTRO = {
+  reflect: 'A calm look back at what you have actually done.',
+  ahead:   'The shape of what is coming, so nothing catches you off guard.',
+  balance: 'Where your attention has been going across your areas.',
+}
+
 export default function Insights() {
   const [tab, setTab] = useState('reflect')
   const [scope, setScope] = useState('week')        // reflect scope: week | today
@@ -74,19 +81,57 @@ export default function Insights() {
   useEffect(() => { if (tab === 'ahead' && !ahead) insightsApi.ahead().then(setAhead).catch(() => {}) }, [tab, ahead])
   useEffect(() => { if (tab === 'balance' && !balance) insightsApi.balance().then(setBalance).catch(() => {}) }, [tab, balance])
 
+  // First-run explainer: shown once, then it gets out of the way.
+  const [introSeen, setIntroSeen] = useState(() => localStorage.getItem('effro.insightsIntroSeen') === '1')
+  const dismissIntro = () => { localStorage.setItem('effro.insightsIntroSeen', '1'); setIntroSeen(true) }
+
   return (
     <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
       <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
         <PageHeader
           icon={Telescope}
           title="Insights"
-          subtitle="Step back and see how the week is really going."
+          subtitle="Step back and see how things are really going."
           right={
             <span className="font-mono text-xs text-paper-500 dark:text-paper-200">
               {format(new Date(), 'EEE d MMM')}
             </span>
           }
         />
+
+        {/* First-run explainer - shown once, then dismissed for good. */}
+        {!introSeen && (
+          <div className="relative rounded-xl border border-mint/25 bg-mint/[0.07] p-4 pr-10 mb-6 animate-rise motion-reduce:animate-none">
+            <button
+              onClick={dismissIntro}
+              aria-label="Dismiss"
+              className="absolute top-3 right-3 p-1 rounded text-paper-400 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-200 transition-colors"
+            >
+              <X size={15} />
+            </button>
+            <div className="flex items-start gap-3">
+              <span className="w-9 h-9 rounded-lg bg-mint/10 border border-mint/20 flex items-center justify-center flex-shrink-0">
+                <Telescope size={17} className="text-mint-600 dark:text-mint-400" />
+              </span>
+              <div>
+                <p className="text-sm font-medium text-pitch-800 dark:text-white">Welcome to Insights</p>
+                <p className="text-sm text-paper-600 dark:text-paper-300 leading-relaxed mt-1">
+                  A calm place to see how things are really going.{' '}
+                  <b className="font-medium text-pitch-700 dark:text-paper-200">Reflect</b> on what you've done,
+                  look <b className="font-medium text-pitch-700 dark:text-paper-200">Ahead</b> at what's coming,
+                  and check the <b className="font-medium text-pitch-700 dark:text-paper-200">Balance</b> across your areas.
+                  It's all real, and none of it is here to nag you.
+                </p>
+                <button
+                  onClick={dismissIntro}
+                  className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-mint-700 dark:text-mint-300 hover:underline"
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Narrative line - the calm "what to notice", deterministic + accurate. */}
         {week?.narrative && (
@@ -98,10 +143,14 @@ export default function Insights() {
 
         <Tabs tab={tab} onChange={setTab} />
 
+        {/* Per-lens description, with the Reflect scope toggle beside it. */}
+        <div className="flex items-center justify-between gap-3 mb-5 -mt-1">
+          <p className="text-[13px] text-paper-500 dark:text-paper-600">{LENS_INTRO[tab]}</p>
+          {tab === 'reflect' && <ScopeToggle scope={scope} onChange={setScope} />}
+        </div>
+
         <div key={tab} className="animate-rise motion-reduce:animate-none">
-          {tab === 'reflect' && (
-            <ReflectLens scope={scope} onScope={setScope} week={week} today={today} />
-          )}
+          {tab === 'reflect' && <ReflectLens scope={scope} week={week} today={today} />}
           {tab === 'ahead'   && <AheadLens data={ahead} />}
           {tab === 'balance' && <BalanceLens data={balance} />}
         </div>
@@ -159,21 +208,10 @@ function ScopeToggle({ scope, onChange }) {
 
 // ─── Reflect ──────────────────────────────────────────────────────────────────
 
-function ReflectLens({ scope, onScope, week, today }) {
-  const isToday = scope === 'today'
-  return (
-    <div className="space-y-7">
-      <div className="flex items-center justify-between">
-        <p className="text-[12px] text-paper-500 dark:text-paper-600">
-          {isToday ? 'A look at just today.' : 'A look back across your week.'}
-        </p>
-        <ScopeToggle scope={scope} onChange={onScope} />
-      </div>
-      {isToday
-        ? (today ? <TodayReflect data={today} /> : <BlockSkeleton n={3} />)
-        : (week ? <WeekReflect data={week} /> : <BlockSkeleton n={4} />)}
-    </div>
-  )
+function ReflectLens({ scope, week, today }) {
+  return scope === 'today'
+    ? (today ? <TodayReflect data={today} /> : <BlockSkeleton n={3} />)
+    : (week ? <WeekReflect data={week} /> : <BlockSkeleton n={4} />)
 }
 
 function TodayReflect({ data }) {
