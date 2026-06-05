@@ -173,6 +173,15 @@ const JiraLogo = ({ size = 18 }) => (
   </svg>
 )
 
+const GoogleLogo = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="#4285F4" d="M23.5 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.55-5.17 3.55-8.87Z" />
+    <path fill="#34A853" d="M12 24c3.24 0 5.96-1.08 7.95-2.91l-3.88-3a7.2 7.2 0 0 1-10.74-3.78H1.34v3.09A12 12 0 0 0 12 24Z" />
+    <path fill="#FBBC05" d="M5.33 14.31a7.2 7.2 0 0 1 0-4.62V6.6H1.34a12 12 0 0 0 0 10.8l3.99-3.09Z" />
+    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.43-3.43A11.99 11.99 0 0 0 1.34 6.6l3.99 3.09A7.2 7.2 0 0 1 12 4.75Z" />
+  </svg>
+)
+
 export const AZURE_GUIDE = {
   title: 'Connect Microsoft 365',
   logo: <MicrosoftLogo />,
@@ -283,6 +292,65 @@ export const JIRA_GUIDE = {
       title: 'Paste into Effro',
       body: (
         <p>Back here, paste your <b>Client ID</b> and <b>Secret</b>, click <b>Save config</b>, then <b>Sign in with Atlassian</b> and consent to the two permissions. The first sync runs straight away.</p>
+      ),
+    },
+  ],
+}
+
+export const GOOGLE_GUIDE = {
+  title: 'Connect Google Drive & Docs',
+  logo: <GoogleLogo />,
+  accent: 'mint',
+  estMinutes: 7,
+  intro:
+    'To work with your Google Docs, Effro needs a free Google Cloud OAuth app. You create it once and paste two values back here. Effro can read your Docs and create new ones it owns, nothing else.',
+  steps: [
+    {
+      title: 'Create a Google Cloud project',
+      body: <p>Sign in, then create a new project (or pick an existing one) using the project dropdown at the top. Projects are free.</p>,
+      link: { label: 'Open Google Cloud Console', href: 'https://console.cloud.google.com/projectcreate' },
+    },
+    {
+      title: 'Enable the APIs',
+      body: (
+        <p>Go to <b>APIs &amp; Services</b> → <b>Library</b> and enable both the <b>Google Drive API</b> and the <b>Google Docs API</b> (search each by name and click Enable).</p>
+      ),
+      link: { label: 'Open API Library', href: 'https://console.cloud.google.com/apis/library' },
+    },
+    {
+      title: 'Configure the consent screen',
+      body: (
+        <>
+          <p>Open <b>APIs &amp; Services</b> → <b>OAuth consent screen</b>. Choose <b>External</b>, give the app a name (e.g. <b>Effro</b>) and your email, and save.</p>
+          <p>Important: while the app is in <b>Testing</b>, add your own Google address under <b>Test users</b>, otherwise sign-in is blocked with "access_denied".</p>
+        </>
+      ),
+      link: { label: 'Open OAuth consent screen', href: 'https://console.cloud.google.com/apis/credentials/consent' },
+    },
+    {
+      title: 'Create the OAuth client',
+      body: (
+        <>
+          <p>Go to <b>APIs &amp; Services</b> → <b>Credentials</b> → <b>+ Create credentials</b> → <b>OAuth client ID</b>. Pick application type <b>Web application</b>.</p>
+          <p>Under <b>Authorized redirect URIs</b>, add this exact value, then click <b>Create</b>:</p>
+        </>
+      ),
+      copies: [{ label: 'Authorized redirect URI', value: 'http://localhost:8000/api/google/auth/callback' }],
+      link: { label: 'Open Credentials', href: 'https://console.cloud.google.com/apis/credentials' },
+    },
+    {
+      title: 'Copy the credentials',
+      body: (
+        <p>The dialog shows your <b>Client ID</b> and <b>Client secret</b>. Copy both (you can reopen the client later to see them again).</p>
+      ),
+    },
+    {
+      title: 'Paste into Effro and sign in',
+      body: (
+        <>
+          <p>Back here, paste your <b>Client ID</b> and <b>Secret</b>, click <b>Save config</b>, then <b>Sign in with Google</b>.</p>
+          <p>Because this is your own unverified app, Google shows a "Google hasn’t verified this app" screen. Click <b>Advanced</b> → <b>Go to Effro (unsafe)</b> to continue, then allow the permissions.</p>
+        </>
       ),
     },
   ],

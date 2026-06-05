@@ -282,6 +282,38 @@ class JiraIntegration(Base):
     last_synced = Column(DateTime, nullable=True)
 
 
+class GoogleIntegration(Base):
+    """
+    Connected Google account (one row, single-user app).
+
+    Tokens are Fernet-encrypted at rest using the same per-install key the
+    other integrations use. Google issues a refresh token only on the first
+    consent (access_type=offline, prompt=consent), so refresh_token_enc is
+    preserved across refreshes when Google omits it from a refresh response.
+
+    Powers the Google Drive/Docs features: docs as signals, attach-from-Drive,
+    ingest doc content, and export-to-Docs.
+    """
+    __tablename__ = "google_integrations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # Google account id ("sub" from the OpenID userinfo) - stable per account.
+    google_user_id = Column(String(256), unique=True, nullable=False)
+
+    # Encrypted secrets - never log, never return via API.
+    access_token_enc = Column(Text, nullable=False)
+    refresh_token_enc = Column(Text, nullable=True)
+    token_expiry = Column(DateTime, nullable=True)
+
+    # Profile cache
+    display_name = Column(String(256), nullable=True)
+    email = Column(String(256), nullable=True)
+    avatar_url = Column(String(500), nullable=True)
+
+    connected_at = Column(DateTime, server_default=func.now())
+    last_synced = Column(DateTime, nullable=True)
+
+
 class MicrosoftIntegration(Base):
     """
     Connected Microsoft 365 account (one row, single-user app).

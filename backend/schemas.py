@@ -698,6 +698,28 @@ class MicrosoftProfileOut(BaseModel):
     last_synced: Optional[str] = None
 
 
+class GoogleConfigIn(BaseModel):
+    """User-supplied Google Cloud OAuth client credentials."""
+    client_id: str
+    client_secret: str
+
+
+class GoogleConfigOut(BaseModel):
+    """API view - secret masked. is_configured iff client_id + secret are set."""
+    client_id: Optional[str] = None
+    client_secret_masked: Optional[str] = None
+    is_configured: bool = False
+
+
+class GoogleProfileOut(BaseModel):
+    """Connected Google account, minimal fields. Tokens never leave the server."""
+    connected: bool
+    display_name: Optional[str] = None
+    email: Optional[str] = None
+    connected_at: Optional[str] = None
+    last_synced: Optional[str] = None
+
+
 class SignalItemOut(BaseModel):
     """A pending/assigned Signal row, enriched with the AI suggestion's labels."""
     id: int

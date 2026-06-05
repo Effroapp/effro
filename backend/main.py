@@ -56,6 +56,7 @@ from routers import (
     microsoft as microsoft_router,
     signals as signals_router,
     jira as jira_router,
+    google as google_router,
     presence as presence_router,
 )
 
@@ -126,6 +127,8 @@ def _init_db():
             "CREATE INDEX IF NOT EXISTS idx_signal_items_status ON signal_items(status)",
             # Jira integration
             "CREATE TABLE IF NOT EXISTS jira_integrations (id INTEGER PRIMARY KEY, atlassian_user_id VARCHAR(256) NOT NULL UNIQUE, cloud_id VARCHAR(256) NOT NULL, cloud_name VARCHAR(256), access_token_enc TEXT NOT NULL, refresh_token_enc TEXT, token_expiry DATETIME, display_name VARCHAR(256), email VARCHAR(256), avatar_url VARCHAR(500), connected_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_synced DATETIME)",
+            # Google Drive/Docs integration
+            "CREATE TABLE IF NOT EXISTS google_integrations (id INTEGER PRIMARY KEY, google_user_id VARCHAR(256) NOT NULL UNIQUE, access_token_enc TEXT NOT NULL, refresh_token_enc TEXT, token_expiry DATETIME, display_name VARCHAR(256), email VARCHAR(256), avatar_url VARCHAR(500), connected_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_synced DATETIME)",
             # External provenance on Entry (Signals → committed meetings)
             "ALTER TABLE entries ADD COLUMN external_id VARCHAR(256)",
             "CREATE INDEX IF NOT EXISTS idx_entries_external_id ON entries(external_id)",
@@ -264,6 +267,7 @@ app.include_router(insights_router.router, prefix="/api")
 app.include_router(microsoft_router.router, prefix="/api")
 app.include_router(signals_router.router, prefix="/api")
 app.include_router(jira_router.router, prefix="/api")
+app.include_router(google_router.router, prefix="/api")
 app.include_router(presence_router.router, prefix="/api")
 
 # Serve uploaded files at /uploads/<stored_name>

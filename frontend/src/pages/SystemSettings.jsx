@@ -21,6 +21,7 @@ import StorageSetupModal from '../components/StorageSetupModal'
 import IntegrationsHub from '../components/IntegrationsHub'
 import MicrosoftIntegration from '../components/MicrosoftIntegration'
 import JiraIntegration from '../components/JiraIntegration'
+import GoogleIntegration from '../components/GoogleIntegration'
 import { useAppVersion } from '../hooks/useAppVersion'
 import { notifyAIConfigChanged } from '../hooks/useAIConfigured'
 
@@ -73,6 +74,7 @@ export default function SystemSettings({ updater }) {
         <StorageSection id="integration-storage" />
         <MicrosoftSection id="integration-microsoft" />
         <JiraSection id="integration-jira" />
+        <GoogleSection id="integration-google" />
         {isTauri() && <UpdateSection updater={updater} />}
         <AboutSection />
       </main>
@@ -987,6 +989,32 @@ function JiraLogo({ size = 16 }) {
           <stop offset="1" stopColor="#2684FF"/>
         </linearGradient>
       </defs>
+    </svg>
+  )
+}
+
+// ─── Google ───────────────────────────────────────────────────────────────────
+
+function GoogleSection({ id }) {
+  return (
+    <Card id={id}>
+      <CardHeader
+        icon={GoogleLogo}
+        title="Google Docs"
+        subtitle="Docs as signals, attach from Drive, ingest text, export to Docs."
+      />
+      <GoogleIntegration />
+    </Card>
+  )
+}
+
+function GoogleLogo({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className="flex-shrink-0 mt-1">
+      <path fill="#4285F4" d="M23.5 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.55-5.17 3.55-8.87Z" />
+      <path fill="#34A853" d="M12 24c3.24 0 5.96-1.08 7.95-2.91l-3.88-3a7.2 7.2 0 0 1-10.74-3.78H1.34v3.09A12 12 0 0 0 12 24Z" />
+      <path fill="#FBBC05" d="M5.33 14.31a7.2 7.2 0 0 1 0-4.62V6.6H1.34a12 12 0 0 0 0 10.8l3.99-3.09Z" />
+      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.43-3.43A11.99 11.99 0 0 0 1.34 6.6l3.99 3.09A7.2 7.2 0 0 1 12 4.75Z" />
     </svg>
   )
 }
