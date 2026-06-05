@@ -173,6 +173,11 @@ def build_storage_backend(config: dict) -> StorageBackend:
         from storage_googledrive import GoogleDriveBackend
         return GoogleDriveBackend(remote_folder=config.get("remote_folder", "Effro Backups"))
 
+    if provider == "dropbox":
+        # Reuses the Dropbox OAuth connection - no secrets in the storage config.
+        from storage_dropbox import DropboxBackend
+        return DropboxBackend(remote_folder=config.get("remote_folder", "Effro Backups"))
+
     return LocalBackend(UPLOAD_DIR)
 
 

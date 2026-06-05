@@ -57,6 +57,12 @@ export default function SystemSettings({ updater }) {
   const [tab, setTab] = useState('ai')
   const active = SETTINGS_TABS.find((t) => t.key === tab) || SETTINGS_TABS[0]
 
+  // Land on the right tab after an OAuth round-trip (Dropbox returns here).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('dropbox_connected') || params.get('dropbox_error')) setTab('storage')
+  }, [])
+
   return (
     <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800 bg-grid-light dark:bg-grid-dark">
       <header className="
@@ -828,10 +834,19 @@ function StorageSection({ id }) {
   // Cloud sync state
   const [storageConfig, setStorageConfig] = useState(null)
   const [showStorageModal, setShowStorageModal] = useState(false)
+  const [modalInitialProvider, setModalInitialProvider] = useState(null)
 
   useEffect(() => {
     if (isTauri()) getDataDir().then(setDataDir)
     getStorageConfig().then(setStorageConfig).catch(() => setStorageConfig(null))
+    // Returning from a Dropbox OAuth redirect: reopen the modal at the Dropbox
+    // step so the user can finish (pick a folder + save).
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('dropbox_connected') === 'true' || params.get('dropbox_error')) {
+      setModalInitialProvider('dropbox')
+      setShowStorageModal(true)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
   }, [])
 
   const handleChangeDataDir = async () => {
@@ -991,7 +1006,8 @@ function StorageSection({ id }) {
       {showStorageModal && (
         <StorageSetupModal
           currentConfig={storageConfig}
-          onClose={() => setShowStorageModal(false)}
+          initialProvider={modalInitialProvider}
+          onClose={() => { setShowStorageModal(false); setModalInitialProvider(null) }}
           onSaved={() => reloadStorage()}
         />
       )}

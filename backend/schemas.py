@@ -720,6 +720,26 @@ class GoogleProfileOut(BaseModel):
     last_synced: Optional[str] = None
 
 
+class DropboxConfigIn(BaseModel):
+    """User-supplied Dropbox app credentials."""
+    app_key: str
+    app_secret: str
+
+
+class DropboxConfigOut(BaseModel):
+    app_key: Optional[str] = None
+    app_secret_masked: Optional[str] = None
+    is_configured: bool = False
+
+
+class DropboxProfileOut(BaseModel):
+    """Connected Dropbox account. Tokens never leave the server."""
+    connected: bool
+    display_name: Optional[str] = None
+    email: Optional[str] = None
+    connected_at: Optional[str] = None
+
+
 class SignalItemOut(BaseModel):
     """A pending/assigned Signal row, enriched with the AI suggestion's labels."""
     id: int

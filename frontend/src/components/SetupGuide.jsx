@@ -173,6 +173,12 @@ const JiraLogo = ({ size = 18 }) => (
   </svg>
 )
 
+const DropboxLogo = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="#0061FF" aria-hidden="true">
+    <path d="M6 2 0 6l6 4 6-4-6-4Zm12 0-6 4 6 4 6-4-6-4ZM0 14l6 4 6-4-6-4-6 4Zm18-4-6 4 6 4 6-4-6-4ZM6 19.5l6 4 6-4-6-4-6 4Z" />
+  </svg>
+)
+
 const GoogleLogo = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
     <path fill="#4285F4" d="M23.5 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.55-5.17 3.55-8.87Z" />
@@ -351,6 +357,56 @@ export const GOOGLE_GUIDE = {
           <p>Back here, paste your <b>Client ID</b> and <b>Secret</b>, click <b>Save config</b>, then <b>Sign in with Google</b>.</p>
           <p>Because this is your own unverified app, Google shows a "Google hasn’t verified this app" screen. Click <b>Advanced</b> → <b>Go to Effro (unsafe)</b> to continue, then allow the permissions.</p>
         </>
+      ),
+    },
+  ],
+}
+
+export const DROPBOX_GUIDE = {
+  title: 'Connect Dropbox',
+  logo: <DropboxLogo />,
+  accent: 'mint',
+  estMinutes: 5,
+  intro:
+    'To back up to Dropbox, Effro needs a free Dropbox app. You create it once and paste two values back here. With "App folder" access, Effro only ever sees its own folder, nothing else in your Dropbox.',
+  steps: [
+    {
+      title: 'Create a Dropbox app',
+      body: (
+        <>
+          <p>Sign in, then <b>Create app</b>. Choose <b>Scoped access</b>, and for access type pick <b>App folder</b> (the safest - Effro gets its own folder only). Give it a name like <b>Effro</b>.</p>
+        </>
+      ),
+      link: { label: 'Open Dropbox App Console', href: 'https://www.dropbox.com/developers/apps/create' },
+    },
+    {
+      title: 'Set the permissions',
+      body: (
+        <p>On the app's <b>Permissions</b> tab, enable these scopes and click <b>Submit</b>:</p>
+      ),
+      copies: [
+        { label: 'Scope', value: 'account_info.read' },
+        { label: 'Scope', value: 'files.content.write' },
+        { label: 'Scope', value: 'files.content.read' },
+      ],
+    },
+    {
+      title: 'Add the redirect URI',
+      body: (
+        <p>On the <b>Settings</b> tab, under <b>OAuth 2 → Redirect URIs</b>, paste this exact value and click <b>Add</b>:</p>
+      ),
+      copies: [{ label: 'Redirect URI', value: 'http://localhost:8000/api/dropbox/auth/callback' }],
+    },
+    {
+      title: 'Copy the credentials',
+      body: (
+        <p>Still on the <b>Settings</b> tab, copy the <b>App key</b> and the <b>App secret</b> (click <b>Show</b> next to the secret).</p>
+      ),
+    },
+    {
+      title: 'Paste into Effro and connect',
+      body: (
+        <p>Back here, paste the <b>App key</b> and <b>App secret</b>, click <b>Save</b>, then <b>Connect Dropbox</b> and allow access. After that, pick a folder name and you are set.</p>
       ),
     },
   ],

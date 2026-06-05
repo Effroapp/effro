@@ -314,6 +314,28 @@ class GoogleIntegration(Base):
     last_synced = Column(DateTime, nullable=True)
 
 
+class DropboxIntegration(Base):
+    """
+    Connected Dropbox account (one row, single-user app) - used purely as a
+    Cloud Storage backup target, not a Signals source. Tokens are Fernet-
+    encrypted; Dropbox issues a refresh token with token_access_type=offline,
+    preserved across refreshes the same way the Google one is.
+    """
+    __tablename__ = "dropbox_integrations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dropbox_account_id = Column(String(256), unique=True, nullable=False)
+
+    access_token_enc = Column(Text, nullable=False)
+    refresh_token_enc = Column(Text, nullable=True)
+    token_expiry = Column(DateTime, nullable=True)
+
+    display_name = Column(String(256), nullable=True)
+    email = Column(String(256), nullable=True)
+
+    connected_at = Column(DateTime, server_default=func.now())
+
+
 class MicrosoftIntegration(Base):
     """
     Connected Microsoft 365 account (one row, single-user app).

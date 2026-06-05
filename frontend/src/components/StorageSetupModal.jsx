@@ -8,6 +8,8 @@ import {
   runManualBackup, getBackupLogs
 } from '../api/storage'
 import { getGoogleProfile } from '../api/google'
+import { getDropboxConfig, getDropboxProfile, saveDropboxConfig, loginUrl as dropboxLoginUrl } from '../api/dropbox'
+import SetupGuide, { DROPBOX_GUIDE } from './SetupGuide'
 
 /**
  * Storage setup / management modal.
@@ -53,8 +55,8 @@ const PROVIDERS = [
     badgeColor: 'bg-indigo-100 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400',
     icon: '📦',
     iconBg: 'bg-indigo-50 dark:bg-indigo-950/30',
-    live: false,
-    comingSoonNote: 'Click Dropbox, log in, done - coming in the next update.',
+    live: true,
+    what: 'Encrypted backups in your Dropbox. Connect once with your own Dropbox app; with App-folder access Effro only sees its own folder.',
   },
   {
     key: 'onedrive',
@@ -78,20 +80,31 @@ const PROVIDERS = [
   },
 ]
 
+const PROVIDER_LABEL = {
+  nextcloud: 'Nextcloud',
+  google_drive: 'Google Drive',
+  dropbox: 'Dropbox',
+}
+
 // ── Main component ────────────────────────────────────────────────────────
 
-export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
+export default function StorageSetupModal({ onClose, onSaved, currentConfig, initialProvider }) {
   const isConnected = currentConfig?.is_connected
-  const [view, setView] = useState(isConnected ? 'manage' : 'pick')
+  // initialProvider (e.g. after a Dropbox OAuth redirect) jumps straight to that
+  // provider's setup view, even if no storage config is saved yet.
+  const [view, setView] = useState(initialProvider ? 'setup' : (isConnected ? 'manage' : 'pick'))
   // Which provider the setup view is configuring.
-  const [picked, setPicked] = useState(currentConfig?.provider || 'nextcloud')
+  const [picked, setPicked] = useState(initialProvider || currentConfig?.provider || 'nextcloud')
   const isGoogle = picked === 'google_drive'
+  const isDropbox = picked === 'dropbox'
 
   // Nextcloud form state - prefilled from currentConfig if the user is editing
   const [serverUrl, setServerUrl] = useState(currentConfig?.server_url || '')
   const [username, setUsername] = useState(currentConfig?.username || '')
   const [password, setPassword] = useState('')
-  const [remoteFolder, setRemoteFolder] = useState(currentConfig?.remote_folder || 'Effro')
+  const [remoteFolder, setRemoteFolder] = useState(
+    currentConfig?.remote_folder || ((initialProvider === 'dropbox' || initialProvider === 'google_drive') ? 'Effro Backups' : 'Effro')
+  )
   const [backupEnabled, setBackupEnabled] = useState(currentConfig?.backup_enabled !== false)
 
   const [testing, setTesting] = useState(false)
@@ -112,6 +125,22 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
   }, [view, isGoogle])
   const googleReady = !isGoogle || googleConnected === true
 
+  // Dropbox: storage-only OAuth, configured + connected inside this flow.
+  const [dropboxConfig, setDropboxConfig] = useState(null)
+  const [dropboxConnected, setDropboxConnected] = useState(null)
+  const loadDropbox = () => {
+    Promise.all([getDropboxConfig().catch(() => null), getDropboxProfile().catch(() => null)])
+      .then(([cfg, prof]) => { setDropboxConfig(cfg); setDropboxConnected(Boolean(prof?.connected)) })
+  }
+  useEffect(() => {
+    if (view === 'setup' && isDropbox) {
+      setDropboxConnected(null)
+      loadDropbox()
+    }
+  }, [view, isDropbox])
+  const dropboxReady = !isDropbox || dropboxConnected === true
+  const dropboxNeedsSetup = isDropbox && dropboxConnected === false
+
   // Manage view
   const [backupLogs, setBackupLogs] = useState([])
   const [runningBackup, setRunningBackup] = useState(false)
@@ -128,7 +157,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
     setTestResult(null)
     setError('')
     // Sensible default folder per provider when starting fresh.
-    if (key === 'google_drive' && (!remoteFolder || remoteFolder === 'Effro')) {
+    if ((key === 'google_drive' || key === 'dropbox') && (!remoteFolder || remoteFolder === 'Effro')) {
       setRemoteFolder('Effro Backups')
     }
     setView('setup')
@@ -137,9 +166,9 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
   // Build the config payload for the currently-picked provider. Google Drive
   // needs no server/credentials - it reuses the Google OAuth connection.
   function configPayload() {
-    if (isGoogle) {
+    if (isGoogle || isDropbox) {
       return {
-        provider: 'google_drive',
+        provider: isDropbox ? 'dropbox' : 'google_drive',
         remote_folder: remoteFolder || 'Effro Backups',
         backup_enabled: backupEnabled,
       }
@@ -215,11 +244,13 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
 
   const canTest = isGoogle
     ? googleReady  // Google Drive reuses the OAuth connection; gate on it.
-    : (
-      serverUrl.trim().length > 4 &&
-      username.trim().length > 0 &&
-      password.trim().length > 0
-    )
+    : isDropbox
+      ? dropboxReady  // Dropbox must be connected (handled before this step)
+      : (
+        serverUrl.trim().length > 4 &&
+        username.trim().length > 0 &&
+        password.trim().length > 0
+      )
   const canSave = testResult?.ok === true
 
   return (
@@ -238,12 +269,12 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
           <div>
             <div className="text-sm font-semibold text-pitch-800 dark:text-white">
               {view === 'pick' && 'Connect cloud storage'}
-              {view === 'setup' && (isGoogle ? 'Setting up Google Drive' : 'Setting up Nextcloud')}
+              {view === 'setup' && (isGoogle ? 'Setting up Google Drive' : isDropbox ? 'Setting up Dropbox' : 'Setting up Nextcloud')}
               {view === 'manage' && 'Storage & backups'}
             </div>
             <div className="text-xs text-paper-500 dark:text-paper-500 mt-0.5">
               {view === 'pick' && 'Attachments and encrypted backups sync to your provider'}
-              {view === 'setup' && (isGoogle ? 'Reuses your Google connection' : 'Takes about 3 minutes')}
+              {view === 'setup' && (isGoogle ? 'Reuses your Google connection' : isDropbox ? 'Connect your Dropbox app' : 'Takes about 3 minutes')}
               {view === 'manage' && `Connected to ${currentConfig?.provider}`}
             </div>
           </div>
@@ -365,11 +396,28 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
               <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
                 {isGoogle
                   ? 'Effro will store daily encrypted database backups in a folder in your Google Drive. It reuses the Google account you connect under Integrations and only touches the folder it creates, nothing else in your Drive.'
-                  : 'Nextcloud is your own private cloud. Effro will store attachments and daily encrypted database backups there. Your data never leaves infrastructure you control.'}
+                  : isDropbox
+                    ? 'Effro will store daily encrypted database backups in a folder in your Dropbox. With App-folder access it only ever touches its own folder, nothing else in your Dropbox.'
+                    : 'Nextcloud is your own private cloud. Effro will store attachments and daily encrypted database backups there. Your data never leaves infrastructure you control.'}
               </div>
             </div>
 
-            {!isGoogle && (
+            {/* Dropbox: configure the app + OAuth connect, all here. Until it's
+                connected we show this instead of the folder/test/save below. */}
+            {isDropbox && dropboxConnected === null && (
+              <div className="flex items-center gap-2 rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border border-paper-200 dark:border-pitch-600 text-xs text-paper-500 dark:text-paper-600">
+                <Loader2 size={13} className="animate-spin" /> Checking your Dropbox connection…
+              </div>
+            )}
+            {dropboxNeedsSetup && (
+              <DropboxConnect
+                config={dropboxConfig}
+                onSavedConfig={loadDropbox}
+                onConnect={() => { window.location.href = dropboxLoginUrl() }}
+              />
+            )}
+
+            {!isGoogle && !isDropbox && (
               <>
                 <div>
                   <div className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
@@ -396,15 +444,19 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
               </>
             )}
 
-            {(isGoogle
+            {dropboxReady && (
+            <>
+            {((isGoogle || isDropbox)
               ? [
                   {
-                    label: 'Folder name in Google Drive',
+                    label: isDropbox ? 'Folder name in Dropbox' : 'Folder name in Google Drive',
                     value: remoteFolder,
                     set: v => { setRemoteFolder(v); setTestResult(null) },
                     type: 'text',
                     placeholder: 'Effro Backups',
-                    hint: "Effro will create this folder in your Drive if it doesn't exist",
+                    hint: isDropbox
+                      ? "Effro will create this folder in your Dropbox if it doesn't exist"
+                      : "Effro will create this folder in your Drive if it doesn't exist",
                   },
                 ]
               : [
@@ -544,6 +596,8 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                 Test the connection first to enable Save
               </div>
             )}
+            </>
+            )}
 
             {error && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-terracotta/10 dark:bg-terracotta/15 border border-terracotta/30 text-xs text-terracotta">
@@ -561,10 +615,10 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
             <div className="flex items-center gap-2 p-3 rounded-lg bg-mint-50 dark:bg-mint-900/20 border border-mint/40">
               <CheckCircle2 size={14} className="text-mint-700 dark:text-mint-300 flex-shrink-0" />
               <div className="text-xs text-mint-700 dark:text-mint-300 leading-snug">
-                <strong>{currentConfig?.provider === 'google_drive' ? 'Google Drive connected' : 'Nextcloud connected'}</strong>
-                {currentConfig?.provider === 'google_drive'
-                  ? <span className="opacity-80"> - folder "{currentConfig?.remote_folder || 'Effro Backups'}"</span>
-                  : currentConfig?.server_url && <span className="opacity-80"> - {currentConfig.server_url}</span>}
+                <strong>{PROVIDER_LABEL[currentConfig?.provider] || 'Cloud'} connected</strong>
+                {currentConfig?.provider === 'nextcloud'
+                  ? (currentConfig?.server_url && <span className="opacity-80"> - {currentConfig.server_url}</span>)
+                  : <span className="opacity-80"> - folder "{currentConfig?.remote_folder || 'Effro Backups'}"</span>}
               </div>
             </div>
 
@@ -575,11 +629,11 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
               <div className="text-xs text-paper-500 dark:text-paper-600 leading-relaxed mb-3">
                 Daily encrypted snapshots stored in{' '}
                 <code className="text-[11px] bg-paper-100 dark:bg-pitch-800 px-1 py-0.5 rounded font-mono">
-                  {currentConfig?.provider === 'google_drive'
-                    ? `${currentConfig?.remote_folder || 'Effro Backups'}/`
-                    : `${currentConfig?.remote_folder || 'Effro'}/backups/`}
+                  {currentConfig?.provider === 'nextcloud'
+                    ? `${currentConfig?.remote_folder || 'Effro'}/backups/`
+                    : `${currentConfig?.remote_folder || 'Effro Backups'}/`}
                 </code>{' '}
-                on your {currentConfig?.provider === 'google_drive' ? 'Google Drive' : 'Nextcloud'}. Last 7 kept.
+                on your {PROVIDER_LABEL[currentConfig?.provider] || 'cloud'}. Last 7 kept.
               </div>
 
               {backupLogs.length > 0 ? (
@@ -685,5 +739,118 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
         )}
       </div>
     </div>
+  )
+}
+
+// ── Dropbox connect step (config app creds, then OAuth) ─────────────────────
+// Shown inside the Storage flow until Dropbox is connected. Unlike Google
+// (connected under Integrations), Dropbox is storage-only, so its app config +
+// sign-in happen right here.
+function DropboxConnect({ config, onSavedConfig, onConnect }) {
+  const [appKey, setAppKey] = useState(config?.app_key || '')
+  const [appSecret, setAppSecret] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [err, setErr] = useState('')
+
+  const save = async (e) => {
+    e?.preventDefault()
+    if (!appKey.trim() || !appSecret.trim()) return
+    setSaving(true); setErr('')
+    try {
+      await saveDropboxConfig({ app_key: appKey, app_secret: appSecret })
+      setEditing(false)
+      onSavedConfig()
+    } catch (e2) { setErr(e2.message) } finally { setSaving(false) }
+  }
+
+  if (config === null) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-paper-500 dark:text-paper-600 italic">
+        <Loader2 size={12} className="animate-spin" /> Loading…
+      </div>
+    )
+  }
+
+  // Configured already -> just need the OAuth sign-in.
+  if (config.is_configured && !editing) {
+    return (
+      <div className="space-y-3">
+        <SetupGuide guide={DROPBOX_GUIDE} open={showGuide} onClose={() => setShowGuide(false)} />
+        <div className="rounded-lg p-3 bg-sky-muted/10 border border-sky-muted/30 text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
+          App credentials saved. Sign in to your Dropbox to finish connecting.
+        </div>
+        <button
+          onClick={onConnect}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-mint-700 hover:bg-mint-800 text-white transition-colors"
+        >
+          Connect Dropbox
+        </button>
+        <button
+          onClick={() => { setAppSecret(''); setEditing(true) }}
+          className="w-full text-center text-xs text-paper-500 hover:text-paper-700 dark:hover:text-paper-300 transition-colors"
+        >
+          Edit app credentials
+        </button>
+      </div>
+    )
+  }
+
+  // Need app key + secret first.
+  return (
+    <form onSubmit={save} className="space-y-3">
+      <SetupGuide guide={DROPBOX_GUIDE} open={showGuide} onClose={() => setShowGuide(false)} />
+      <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
+        <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
+          You need a free Dropbox app (about 5 minutes). Follow the guide, then paste the
+          App key and App secret below. The secret is encrypted before it touches disk.
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowGuide(true)}
+          className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 text-mint-700 dark:text-mint-300 hover:border-mint/50 transition-colors"
+        >
+          Open setup guide
+        </button>
+      </div>
+
+      <div>
+        <label className="text-xs font-medium text-pitch-700 dark:text-paper-300 block mb-1.5">App key</label>
+        <input
+          value={appKey}
+          onChange={(e) => setAppKey(e.target.value)}
+          placeholder="abcd1234efgh567"
+          autoComplete="off"
+          className="w-full px-3 py-2 rounded-lg text-sm font-mono bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500 text-pitch-800 dark:text-white placeholder:text-paper-400 dark:placeholder:text-paper-700 focus:outline-none focus:ring-2 focus:ring-mint-500"
+        />
+      </div>
+      <div>
+        <label className="text-xs font-medium text-pitch-700 dark:text-paper-300 block mb-1.5">App secret</label>
+        <input
+          type="password"
+          value={appSecret}
+          onChange={(e) => setAppSecret(e.target.value)}
+          placeholder={config?.app_secret_masked || 'Paste the app secret'}
+          autoComplete="off"
+          className="w-full px-3 py-2 rounded-lg text-sm font-mono bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500 text-pitch-800 dark:text-white placeholder:text-paper-400 dark:placeholder:text-paper-700 focus:outline-none focus:ring-2 focus:ring-mint-500"
+        />
+      </div>
+
+      {err && (
+        <div className="flex items-start gap-2 p-2 rounded-md bg-terracotta/10 dark:bg-terracotta/15 border border-terracotta/30 text-xs text-terracotta">
+          <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
+          {err}
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={saving || !appKey.trim() || !appSecret.trim()}
+        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      >
+        {saving ? (<><Loader2 size={14} className="animate-spin" /> Saving…</>) : 'Save'}
+      </button>
+    </form>
   )
 }
