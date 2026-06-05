@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react'
 
 export const FONT_OPTIONS = [
-  { key: 'geist',  label: 'Geist',  stack: "'Geist', system-ui, sans-serif",            hint: 'Brand default' },
-  { key: 'lexend', label: 'Lexend', stack: "'Lexend', 'Geist', system-ui, sans-serif",  hint: 'ADHD-friendly' },
+  {
+    key: 'geist', label: 'Geist', stack: "'Geist', system-ui, sans-serif", hint: 'Default',
+    desc: "The app's default. A clean, modern sans-serif tuned for screens.",
+  },
+  {
+    key: 'lexend', label: 'Lexend', stack: "'Lexend', 'Geist', system-ui, sans-serif", hint: 'ADHD-friendly',
+    desc: 'Spaced and shaped to reduce visual stress and improve reading speed. A strong default for ADHD readers.',
+  },
+  {
+    key: 'opendyslexic', label: 'OpenDyslexic', stack: "'OpenDyslexic', 'Geist', system-ui, sans-serif", hint: 'Dyslexia',
+    desc: 'Letters have weighted bottoms and distinct shapes, which helps stop them rotating or swapping. Designed for dyslexia.',
+  },
 ]
 
 const DEFAULT_FONT = 'geist'

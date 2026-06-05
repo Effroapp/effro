@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Sun, Moon, Check, Upload, X } from 'lucide-react'
+import { Sun, Moon, Check, Upload, X, Info, ChevronDown } from 'lucide-react'
 import { getInitials } from '../hooks/useDisplayName'
 import { FONT_OPTIONS } from '../hooks/useFont'
 import { TEXT_SIZES } from '../hooks/useTextSize'
@@ -200,19 +200,7 @@ export default function SettingsMenu({
 
           {/* Font */}
           <Section label="Font">
-            <Segmented
-              value={font}
-              options={FONT_OPTIONS.map((o) => ({ key: o.key, label: o.label }))}
-              onChange={onChangeFont}
-              renderLabel={(opt) => (
-                <span
-                  style={{ fontFamily: FONT_OPTIONS.find((f) => f.key === opt.key)?.stack }}
-                  className="text-sm"
-                >
-                  {opt.label}
-                </span>
-              )}
-            />
+            <FontSelect value={font} options={FONT_OPTIONS} onChange={onChangeFont} />
           </Section>
 
           {/* Text size */}
@@ -236,6 +224,65 @@ function Section({ label, children }) {
         {label}
       </div>
       {children}
+    </div>
+  )
+}
+
+// Font dropdown: each option previewed in its own typeface, with an info "i"
+// (hover tooltip) explaining what the font is and who it helps.
+function FontSelect({ value, options, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+  const current = options.find((o) => o.key === value) || options[0]
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500 hover:border-paper-400 dark:hover:border-pitch-400 transition-colors"
+      >
+        <span className="flex items-baseline gap-1.5 min-w-0">
+          <span style={{ fontFamily: current.stack }} className="text-sm text-pitch-800 dark:text-white truncate">{current.label}</span>
+          <span className="font-mono text-[10px] text-paper-500 dark:text-paper-600 flex-shrink-0">{current.hint}</span>
+        </span>
+        <ChevronDown size={13} className={`flex-shrink-0 text-paper-500 dark:text-paper-600 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-30 rounded-lg shadow-xl bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 p-1 animate-fade-in">
+          {options.map((opt) => {
+            const active = opt.key === value
+            return (
+              <div
+                key={opt.key}
+                className={`flex items-center rounded-md ${active ? 'bg-paper-200 dark:bg-pitch-800' : 'hover:bg-paper-100 dark:hover:bg-pitch-800'}`}
+              >
+                <button
+                  onClick={() => { onChange(opt.key); setOpen(false) }}
+                  className="flex-1 flex items-center gap-2 px-2 py-2 text-left min-w-0"
+                >
+                  <Check size={12} className={`flex-shrink-0 ${active ? 'opacity-100 text-mint-600 dark:text-mint-400' : 'opacity-0'}`} />
+                  <span style={{ fontFamily: opt.stack }} className="flex-1 text-sm text-pitch-700 dark:text-paper-200 truncate">{opt.label}</span>
+                  <span className="font-mono text-[10px] text-paper-500 dark:text-paper-600 flex-shrink-0">{opt.hint}</span>
+                </button>
+                <span
+                  title={opt.desc}
+                  aria-label={opt.desc}
+                  className="px-2 py-2 flex-shrink-0 text-paper-400 dark:text-paper-600 hover:text-pitch-600 dark:hover:text-paper-300 cursor-help"
+                >
+                  <Info size={13} />
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
