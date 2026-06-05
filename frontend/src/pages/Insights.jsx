@@ -22,6 +22,7 @@ import PageHeader from '../components/PageHeader'
 import { AreaIcon } from '../components/IconPicker'
 import { getAreaStatus } from '../utils/status'
 import { insightsApi } from '../api/client'
+import { BionicText } from '../utils/bionic.jsx'
 
 // ─── Shared meta ──────────────────────────────────────────────────────────────
 
@@ -143,7 +144,7 @@ export default function Insights() {
         {week?.narrative && (
           <p className="font-lexend text-[13px] leading-relaxed text-paper-600 dark:text-pitch-100 italic mb-6 -mt-1 flex items-start gap-1.5">
             <Sparkles size={13} className="mt-1 flex-shrink-0 text-mint/70" />
-            <span>{week.narrative}</span>
+            <span><BionicText>{week.narrative}</BionicText></span>
           </p>
         )}
 
@@ -153,7 +154,7 @@ export default function Insights() {
 
         {/* Per-lens description, with the Reflect scope toggle beside it. */}
         <div className="flex items-center justify-between gap-3 mb-5 -mt-1">
-          <p className="text-[13px] text-paper-500 dark:text-paper-600">{LENS_INTRO[tab]}</p>
+          <p className="text-[13px] text-paper-500 dark:text-paper-600"><BionicText>{LENS_INTRO[tab]}</BionicText></p>
           {tab === 'reflect' && <ScopeToggle scope={scope} onChange={setScope} />}
         </div>
 
@@ -405,7 +406,7 @@ function WindDownCard({ mode, narrative, startedLabel, tip, onRefresh }) {
           {startedLabel && (
             <p className="font-mono text-[12px] text-paper-500 dark:text-paper-600 mb-1">Going since {startedLabel}</p>
           )}
-          <p className="text-sm text-paper-600 dark:text-paper-300 leading-relaxed">{tip}</p>
+          <p className="text-sm text-paper-600 dark:text-paper-300 leading-relaxed"><BionicText>{tip}</BionicText></p>
         </div>
       </div>
     )
@@ -418,7 +419,7 @@ function WindDownCard({ mode, narrative, startedLabel, tip, onRefresh }) {
       </span>
       <div>
         <p className="text-sm font-medium text-pitch-800 dark:text-white">A good place to stop</p>
-        <p className="text-sm text-paper-600 dark:text-paper-300 leading-relaxed mt-1">{narrative}</p>
+        <p className="text-sm text-paper-600 dark:text-paper-300 leading-relaxed mt-1"><BionicText>{narrative}</BionicText></p>
       </div>
     </div>
   )
@@ -440,7 +441,7 @@ function Celebrations({ items }) {
               <m.Icon size={lead ? 17 : 14} style={{ color: m.color }} />
             </span>
             <p className={`leading-snug ${lead ? 'text-base font-medium text-pitch-800 dark:text-white pt-1.5' : 'text-sm text-pitch-700 dark:text-paper-300 pt-1'}`}>
-              {c.text}
+              <BionicText>{c.text}</BionicText>
             </p>
           </div>
         )

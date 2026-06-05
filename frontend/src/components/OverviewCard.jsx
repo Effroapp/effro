@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Sparkles, Edit3, Wand2, Clock, Check, X } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { SECTION_ICONS } from '../utils/entityIcons'
+import { BionicText } from '../utils/bionic.jsx'
 
 /**
  * OverviewCard — the AI "Overview" for an Area or a Thread. One component so
@@ -272,7 +273,7 @@ export default function OverviewCard({
             className="text-base text-pitch-700 dark:text-paper-200 leading-relaxed whitespace-pre-wrap cursor-text"
             onClick={() => { setDraft(data.summary || ''); setEditing(true) }}
           >
-            {data.summary || (
+            {data.summary ? <BionicText>{data.summary}</BionicText> : (
               <span className="italic text-paper-400 dark:text-paper-700">{emptyHint}</span>
             )}
           </p>

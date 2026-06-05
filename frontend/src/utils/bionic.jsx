@@ -4,6 +4,7 @@
  * faster. Implemented at the React/markdown layer so the app renders the bold
  * itself - no global DOM mutation that would fight React and crash on updates.
  */
+import { useBionic } from '../hooks/useBionic'
 
 // How many leading characters to embolden. Matches Bionic Reading's default
 // "fixation" of 30% of the word, rounded up, at least one character. The
@@ -11,6 +12,13 @@
 const FIXATION = 0.3
 function boldLen(word) {
   return Math.max(1, Math.ceil(word.length * FIXATION))
+}
+
+// Wrap any plain-text string so it bionic-izes when the mode is on, and renders
+// untouched otherwise. For markdown content, use the rehypeBionic plugin instead.
+export function BionicText({ children }) {
+  const on = useBionic()
+  return on && typeof children === 'string' ? bionicizeReact(children) : children
 }
 
 // Plain string -> React nodes, with each word's prefix wrapped in <b>.
