@@ -36,6 +36,16 @@ const PROVIDERS = [
     what: "Your own Nextcloud server. Files and backups stay on infrastructure you control. Best choice if you run your own homelab.",
   },
   {
+    key: 'google_drive',
+    label: 'Google Drive',
+    badge: 'Personal',
+    badgeColor: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400',
+    icon: '🗂️',
+    iconBg: 'bg-emerald-50 dark:bg-emerald-950/30',
+    live: true,
+    what: 'Encrypted backups in your Google Drive. Reuses the Google account you connect under Integrations, no extra password needed.',
+  },
+  {
     key: 'dropbox',
     label: 'Dropbox',
     badge: 'Personal',
@@ -72,6 +82,9 @@ const PROVIDERS = [
 export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
   const isConnected = currentConfig?.is_connected
   const [view, setView] = useState(isConnected ? 'manage' : 'pick')
+  // Which provider the setup view is configuring.
+  const [picked, setPicked] = useState(currentConfig?.provider || 'nextcloud')
+  const isGoogle = picked === 'google_drive'
 
   // Nextcloud form state - prefilled from currentConfig if the user is editing
   const [serverUrl, setServerUrl] = useState(currentConfig?.server_url || '')
@@ -96,10 +109,35 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
     }
   }, [view])
 
-  function goToSetup() {
+  function goToSetup(key = 'nextcloud') {
+    setPicked(key)
     setTestResult(null)
     setError('')
+    // Sensible default folder per provider when starting fresh.
+    if (key === 'google_drive' && (!remoteFolder || remoteFolder === 'Effro')) {
+      setRemoteFolder('Effro Backups')
+    }
     setView('setup')
+  }
+
+  // Build the config payload for the currently-picked provider. Google Drive
+  // needs no server/credentials - it reuses the Google OAuth connection.
+  function configPayload() {
+    if (isGoogle) {
+      return {
+        provider: 'google_drive',
+        remote_folder: remoteFolder || 'Effro Backups',
+        backup_enabled: backupEnabled,
+      }
+    }
+    return {
+      provider: 'nextcloud',
+      server_url: serverUrl,
+      username,
+      password,
+      remote_folder: remoteFolder,
+      backup_enabled: backupEnabled,
+    }
   }
 
   async function handleTest() {
@@ -108,16 +146,9 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
     setError('')
     try {
       // Test against the form values directly - do NOT save first. A failed
-      // test used to corrupt the saved config (provider='nextcloud' with bad
-      // creds) which then made is_connected falsely report a working link.
-      const result = await testStorageConnection({
-        provider: 'nextcloud',
-        server_url: serverUrl,
-        username,
-        password,
-        remote_folder: remoteFolder,
-        backup_enabled: backupEnabled,
-      })
+      // test used to corrupt the saved config which then made is_connected
+      // falsely report a working link.
+      const result = await testStorageConnection(configPayload())
       setTestResult(result)
     } catch (e) {
       setTestResult({ ok: false, message: e.message })
@@ -130,14 +161,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
     setSaving(true)
     setError('')
     try {
-      await saveStorageConfig({
-        provider: 'nextcloud',
-        server_url: serverUrl,
-        username,
-        password,
-        remote_folder: remoteFolder,
-        backup_enabled: backupEnabled,
-      })
+      await saveStorageConfig(configPayload())
       onSaved()
       onClose()
     } catch (e) {
@@ -175,11 +199,13 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
     }
   }
 
-  const canTest = (
-    serverUrl.trim().length > 4 &&
-    username.trim().length > 0 &&
-    password.trim().length > 0
-  )
+  const canTest = isGoogle
+    ? true  // Google Drive reuses the OAuth connection - nothing to fill in.
+    : (
+      serverUrl.trim().length > 4 &&
+      username.trim().length > 0 &&
+      password.trim().length > 0
+    )
   const canSave = testResult?.ok === true
 
   return (
@@ -198,12 +224,12 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
           <div>
             <div className="text-sm font-semibold text-pitch-800 dark:text-white">
               {view === 'pick' && 'Connect cloud storage'}
-              {view === 'setup' && 'Setting up Nextcloud'}
+              {view === 'setup' && (isGoogle ? 'Setting up Google Drive' : 'Setting up Nextcloud')}
               {view === 'manage' && 'Storage & backups'}
             </div>
             <div className="text-xs text-paper-500 dark:text-paper-500 mt-0.5">
               {view === 'pick' && 'Attachments and encrypted backups sync to your provider'}
-              {view === 'setup' && 'Takes about 3 minutes'}
+              {view === 'setup' && (isGoogle ? 'Reuses your Google connection' : 'Takes about 3 minutes')}
               {view === 'manage' && `Connected to ${currentConfig?.provider}`}
             </div>
           </div>
@@ -222,7 +248,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
               <div key={p.key}>
                 {p.live ? (
                   <button
-                    onClick={goToSetup}
+                    onClick={() => goToSetup(p.key)}
                     className="
                       w-full text-left rounded-lg border-2
                       border-paper-200 dark:border-pitch-500
@@ -305,35 +331,57 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                 What is this?
               </div>
               <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
-                Nextcloud is your own private cloud. Effro will store attachments and daily encrypted database backups there. Your data never leaves infrastructure you control.
+                {isGoogle
+                  ? 'Effro will store daily encrypted database backups in a folder in your Google Drive. It reuses the Google account you connect under Integrations and only touches the folder it creates, nothing else in your Drive.'
+                  : 'Nextcloud is your own private cloud. Effro will store attachments and daily encrypted database backups there. Your data never leaves infrastructure you control.'}
               </div>
             </div>
 
-            <div>
-              <div className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
-                To get your app password
+            {isGoogle && currentConfig?.provider !== 'google_drive' && (
+              <div className="rounded-lg p-3 bg-sky-muted/10 border border-sky-muted/30 text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
+                Make sure you have connected Google under <strong>Settings → Integrations → Google Docs</strong> first. This backup option signs in with that same account.
               </div>
-              <div className="space-y-2">
-                {[
-                  { text: 'Log into your Nextcloud and go to ', bold: 'Settings → Security' },
-                  { text: 'Scroll to App passwords. Type a name like "Effro" and click ', bold: 'Create new app password' },
-                  { text: 'Copy the password - it only shows once, then paste it below' },
-                ].map((s, i) => (
-                  <div key={i} className="flex gap-3 items-start">
-                    <div className="w-5 h-5 rounded-full bg-mint-700 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                      {i + 1}
-                    </div>
-                    <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
-                      {s.text}{s.bold && <strong>{s.bold}</strong>}
-                    </div>
+            )}
+
+            {!isGoogle && (
+              <>
+                <div>
+                  <div className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
+                    To get your app password
                   </div>
-                ))}
-              </div>
-            </div>
+                  <div className="space-y-2">
+                    {[
+                      { text: 'Log into your Nextcloud and go to ', bold: 'Settings → Security' },
+                      { text: 'Scroll to App passwords. Type a name like "Effro" and click ', bold: 'Create new app password' },
+                      { text: 'Copy the password - it only shows once, then paste it below' },
+                    ].map((s, i) => (
+                      <div key={i} className="flex gap-3 items-start">
+                        <div className="w-5 h-5 rounded-full bg-mint-700 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                          {i + 1}
+                        </div>
+                        <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
+                          {s.text}{s.bold && <strong>{s.bold}</strong>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="border-t border-paper-200 dark:border-pitch-500" />
+              </>
+            )}
 
-            <div className="border-t border-paper-200 dark:border-pitch-500" />
-
-            {[
+            {(isGoogle
+              ? [
+                  {
+                    label: 'Folder name in Google Drive',
+                    value: remoteFolder,
+                    set: v => { setRemoteFolder(v); setTestResult(null) },
+                    type: 'text',
+                    placeholder: 'Effro Backups',
+                    hint: "Effro will create this folder in your Drive if it doesn't exist",
+                  },
+                ]
+              : [
               {
                 label: 'Server URL',
                 value: serverUrl,
@@ -366,7 +414,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                 placeholder: 'Effro',
                 hint: "Effro will create this folder if it doesn't exist",
               },
-            ].map(f => (
+            ]).map(f => (
               <div key={f.label}>
                 <label className="text-xs font-medium text-pitch-700 dark:text-paper-300 block mb-1.5">
                   {f.label}
@@ -483,10 +531,10 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
             <div className="flex items-center gap-2 p-3 rounded-lg bg-mint-50 dark:bg-mint-900/20 border border-mint/40">
               <CheckCircle2 size={14} className="text-mint-700 dark:text-mint-300 flex-shrink-0" />
               <div className="text-xs text-mint-700 dark:text-mint-300 leading-snug">
-                <strong>Nextcloud connected</strong>
-                {currentConfig?.server_url && (
-                  <span className="opacity-80"> - {currentConfig.server_url}</span>
-                )}
+                <strong>{currentConfig?.provider === 'google_drive' ? 'Google Drive connected' : 'Nextcloud connected'}</strong>
+                {currentConfig?.provider === 'google_drive'
+                  ? <span className="opacity-80"> - folder "{currentConfig?.remote_folder || 'Effro Backups'}"</span>
+                  : currentConfig?.server_url && <span className="opacity-80"> - {currentConfig.server_url}</span>}
               </div>
             </div>
 
@@ -495,11 +543,13 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                 Database backups
               </div>
               <div className="text-xs text-paper-500 dark:text-paper-600 leading-relaxed mb-3">
-                Daily encrypted snapshots stored under{' '}
+                Daily encrypted snapshots stored in{' '}
                 <code className="text-[11px] bg-paper-100 dark:bg-pitch-800 px-1 py-0.5 rounded font-mono">
-                  {currentConfig?.remote_folder || 'Effro'}/backups/
+                  {currentConfig?.provider === 'google_drive'
+                    ? `${currentConfig?.remote_folder || 'Effro Backups'}/`
+                    : `${currentConfig?.remote_folder || 'Effro'}/backups/`}
                 </code>{' '}
-                on your Nextcloud. Last 7 kept.
+                on your {currentConfig?.provider === 'google_drive' ? 'Google Drive' : 'Nextcloud'}. Last 7 kept.
               </div>
 
               {backupLogs.length > 0 ? (
@@ -591,7 +641,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig }) {
                 <Unplug size={12} /> Disconnect
               </button>
               <div className="text-[10px] text-paper-500 dark:text-paper-600 text-center leading-snug">
-                Disconnecting stops future syncs. Files already on Nextcloud are not deleted.
+                Disconnecting stops future syncs. Files already uploaded are not deleted.
               </div>
             </div>
 

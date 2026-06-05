@@ -168,6 +168,11 @@ def build_storage_backend(config: dict) -> StorageBackend:
             remote_folder=config.get("remote_folder", "Effro"),
         )
 
+    if provider == "google_drive":
+        # Reuses the Google OAuth connection - no secrets in the storage config.
+        from storage_googledrive import GoogleDriveBackend
+        return GoogleDriveBackend(remote_folder=config.get("remote_folder", "Effro Backups"))
+
     return LocalBackend(UPLOAD_DIR)
 
 
