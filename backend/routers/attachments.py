@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from database import get_db
-from audit import log_audit
+from audit import log_audit, log_activity_entry
 
 router = APIRouter(tags=["attachments"])
 
@@ -68,6 +68,9 @@ async def upload_file(
     log_audit(db, entity_type='attachment', entity_id=attachment.id, area_id=thread.area_id,
               thread_id=thread_id, action='created', field='file',
               new_value=attachment.original_name or attachment.name)
+
+    # Log the activity on the timeline so it reads as something that happened.
+    log_activity_entry(db, thread_id, f"Attached a file: **{attachment.name}**")
 
     # Queue background upload to the configured remote backend. The local
     # write has already succeeded - this is best-effort sync that won't block
@@ -162,6 +165,9 @@ def add_link(
 
     log_audit(db, entity_type='attachment', entity_id=attachment.id, area_id=thread.area_id,
               thread_id=thread_id, action='created', field='link', new_value=attachment.name)
+
+    link_md = f"[**{attachment.name}**]({attachment.url})" if attachment.url else f"**{attachment.name}**"
+    log_activity_entry(db, thread_id, f"Added a link: {link_md}")
 
     return attachment
 

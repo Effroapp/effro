@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import models
 import schemas
 from database import get_db
-from audit import log_audit
+from audit import log_audit, log_activity_entry
 
 router = APIRouter(tags=["threads"])
 
@@ -210,6 +210,9 @@ def add_thread_link(thread_id: int, payload: schemas.ThreadLinkCreate, db: Sessi
         action="created", field=payload.kind, new_value=to_thread.title,
     )
     db.commit()
+
+    verb = "Marked as blocking" if payload.kind == "blocks" else "Linked to"
+    log_activity_entry(db, thread_id, f"{verb} **{to_thread.title}**")
 
     return _linked_ref(db, link, link.to_thread_id)
 

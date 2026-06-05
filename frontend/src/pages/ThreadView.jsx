@@ -400,6 +400,16 @@ export default function ThreadView() {
 
   // Modal-driven link add (Label + URL form). Kept as an optional fallback -
   // drag/paste straight onto the Links card is the primary path now.
+  // Attaching a file/link or linking a thread now logs a timeline entry on the
+  // backend. Pull just the entries back (no spinner) so that logged activity
+  // shows up immediately without a full reload.
+  const syncEntries = async () => {
+    try {
+      const t = await threadsApi.get(threadId)
+      setThread((cur) => (cur ? { ...cur, entries: t.entries } : t))
+    } catch { /* non-fatal: entry appears on next load */ }
+  }
+
   const addLink = async (payload) => {
     const form = payload ?? linkForm
     if (!form.name?.trim() || !form.url?.trim()) return
@@ -409,6 +419,7 @@ export default function ThreadView() {
       setThread((t) => ({ ...t, attachments: [...t.attachments, att] }))
       setLinkModalOpen(false)
       setLinkForm({ name: '', url: '' })
+      syncEntries()
       toast('Link added')
     } catch (e) { toast(e.message, 'error') }
     finally { setAddingLink(false) }
@@ -421,6 +432,7 @@ export default function ThreadView() {
     try {
       const att = await attachmentsApi.uploadFile(threadId, file)
       setThread((t) => ({ ...t, attachments: [...t.attachments, att] }))
+      syncEntries()
       toast(`File "${file.name}" uploaded`)
     } catch (e) { toast(e.message, 'error') }
     finally { setUploadingFile(false) }
@@ -477,6 +489,7 @@ export default function ThreadView() {
       setThread((t) => ({ ...t, attachments: [...t.attachments, att] }))
       setInlineLinkUrl('')
       setInlineLinkName('')
+      syncEntries()
       toast('Link added')
     } catch (e) { toast(e.message, 'error') }
     finally { setAddingInlineLink(false) }
@@ -508,6 +521,7 @@ export default function ThreadView() {
       setThread((t) => ({ ...t, outgoing_links: [...(t.outgoing_links || []), ref] }))
       setLinkThreadOpen(false)
       setLinkThreadForm({ to_thread_id: '', kind: 'blocks' })
+      syncEntries()
       toast('Link added')
     } catch (e) {
       toast(e.message, 'error')

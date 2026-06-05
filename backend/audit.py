@@ -2,6 +2,28 @@ from sqlalchemy.orm import Session
 import models
 
 
+def log_activity_entry(db: Session, thread_id: int, content: str):
+    """Record a thread activity as a visible timeline Entry (e.g. a file
+    attached, a link added, a thread linked). Kept consistent across all of
+    those so the timeline always reflects what happened. Best-effort - a
+    failure here never poisons the caller's transaction.
+
+    Returns the created Entry, or None on failure.
+    """
+    try:
+        entry = models.Entry(thread_id=thread_id, type="entry", content=content)
+        db.add(entry)
+        db.commit()
+        db.refresh(entry)
+        return entry
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        return None
+
+
 def log_audit(
     db: Session,
     entity_type: str,
