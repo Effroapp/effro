@@ -302,6 +302,7 @@ def _plural(n, singular, plural):
 @router.get("/insights/today", response_model=schemas.TodayInsights)
 def get_today(
     tz_offset_min: int = Query(default=0, ge=-840, le=840),
+    nonce: int = Query(default=0, ge=0, le=100000),
     db: Session = Depends(get_db),
 ):
     """The wind-down: an honest, grounded recap of *today* in local time.
@@ -515,7 +516,7 @@ def get_today(
         narrative, ai_generated = _narrative(db, facts)
     else:
         local_date = (now_utc - timedelta(minutes=tz_offset_min)).date()
-        tip = get_workday_tip(db, local_date)
+        tip = get_workday_tip(db, local_date, nonce)
 
     return schemas.TodayInsights(
         date=date_str,
@@ -718,9 +719,10 @@ def _generate_workday_tips(db):
         return None
 
 
-def get_workday_tip(db, local_date):
-    """One ADHD workday tip, rotating daily. The pool is AI-refreshed every couple
-    of days (cached), falling back to the hand-written seed."""
+def get_workday_tip(db, local_date, nonce=0):
+    """One ADHD workday tip, rotating daily (nonce lets the user shuffle to
+    another). The pool is AI-refreshed every couple of days (cached), falling
+    back to the hand-written seed."""
     tips = list(WORKDAY_TIPS_SEED)
     stale = True
     try:
@@ -745,7 +747,7 @@ def get_workday_tip(db, local_date):
                 pass
     if not tips:
         tips = list(WORKDAY_TIPS_SEED)
-    return tips[local_date.toordinal() % len(tips)]
+    return tips[(local_date.toordinal() + nonce) % len(tips)]
 
 
 # ─── Shared aggregate helpers (Reflect-week / Ahead / Balance) ────────────────

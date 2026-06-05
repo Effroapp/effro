@@ -211,8 +211,8 @@ export const insightsApi = {
 
   // The end-of-day wind-down. tz offset (JS getTimezoneOffset, minutes) lets
   // the backend compute "today" in the user's local day, not UTC.
-  today: (tzOffsetMin = new Date().getTimezoneOffset()) =>
-    request(`/insights/today?tz_offset_min=${tzOffsetMin}`),
+  today: (tzOffsetMin = new Date().getTimezoneOffset(), nonce = 0) =>
+    request(`/insights/today?tz_offset_min=${tzOffsetMin}&nonce=${nonce}`),
 
   // Reflect → This week: closed loops, celebrations, working-day bars, rhythm.
   week: (tzOffsetMin = new Date().getTimezoneOffset()) =>

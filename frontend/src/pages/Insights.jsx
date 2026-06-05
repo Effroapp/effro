@@ -15,7 +15,7 @@ import {
   Telescope, Sparkles, Rewind, CalendarClock, Scale as ScaleIcon,
   CheckSquare, Calendar, Ban, ArrowUpRight, Clock, Trophy,
   Unlock, Undo2, Hourglass, Sun, Sunset, CircleCheck, Ticket, X, ChevronDown, Coffee,
-  Eye, EyeOff,
+  Eye, EyeOff, RefreshCw,
 } from 'lucide-react'
 import { format, addDays, parseISO } from 'date-fns'
 import PageHeader from '../components/PageHeader'
@@ -76,8 +76,9 @@ export default function Insights() {
   const [balance, setBalance] = useState(null)
 
   useEffect(() => { insightsApi.week().then(setWeek).catch(() => {}) }, [])
+  const fetchToday = (nonce = 0) => insightsApi.today(undefined, nonce).then(setToday).catch(() => {})
   useEffect(() => {
-    if (tab === 'reflect' && scope === 'today' && !today) insightsApi.today().then(setToday).catch(() => {})
+    if (tab === 'reflect' && scope === 'today' && !today) fetchToday()
   }, [tab, scope, today])
   useEffect(() => { if (tab === 'ahead' && !ahead) insightsApi.ahead().then(setAhead).catch(() => {}) }, [tab, ahead])
   useEffect(() => { if (tab === 'balance' && !balance) insightsApi.balance().then(setBalance).catch(() => {}) }, [tab, balance])
@@ -151,7 +152,14 @@ export default function Insights() {
         </div>
 
         <div key={tab} className="animate-rise motion-reduce:animate-none">
-          {tab === 'reflect' && <ReflectLens scope={scope} week={week} today={today} />}
+          {tab === 'reflect' && (
+            <ReflectLens
+              scope={scope}
+              week={week}
+              today={today}
+              onRefreshToday={() => fetchToday(Math.floor(Math.random() * 99999) + 1)}
+            />
+          )}
           {tab === 'ahead'   && <AheadLens data={ahead} />}
           {tab === 'balance' && <BalanceLens data={balance} />}
         </div>
@@ -208,13 +216,13 @@ function ScopeToggle({ scope, onChange }) {
 
 // ─── Reflect ──────────────────────────────────────────────────────────────────
 
-function ReflectLens({ scope, week, today }) {
+function ReflectLens({ scope, week, today, onRefreshToday }) {
   return scope === 'today'
-    ? (today ? <TodayReflect data={today} /> : <BlockSkeleton n={3} />)
+    ? (today ? <TodayReflect data={today} onRefresh={onRefreshToday} /> : <BlockSkeleton n={3} />)
     : (week ? <WeekReflect data={week} /> : <BlockSkeleton n={4} />)
 }
 
-function TodayReflect({ data }) {
+function TodayReflect({ data, onRefresh }) {
   const navigate = useNavigate()
   const items = (data.done_items || []).map((d) => ({
     id: `${d.type}-${d.id}`, type: d.type, content: d.content,
@@ -230,7 +238,7 @@ function TodayReflect({ data }) {
         items={items}
         onOpenItem={(id) => id && navigate(`/thread/${id}`)}
       />
-      <WindDownCard mode={data.workday_mode} narrative={data.narrative} startedLabel={data.started_label} tip={data.tip} />
+      <WindDownCard mode={data.workday_mode} narrative={data.narrative} startedLabel={data.started_label} tip={data.tip} onRefresh={onRefresh} />
     </div>
   )
 }
@@ -324,10 +332,21 @@ function Hero({ count, unit = 'done today', caption, chips = [], items = [], onO
 
 // Two states: a calm "time to stop" once a real day's work is in (>= 7h), or,
 // while the day's still in flow, the start time plus a rotating ADHD workday tip.
-function WindDownCard({ mode, narrative, startedLabel, tip }) {
+function WindDownCard({ mode, narrative, startedLabel, tip, onRefresh }) {
+  const refresh = onRefresh && (
+    <button
+      onClick={onRefresh}
+      aria-label={mode === 'in_progress' ? 'Show another tip' : 'Reword this'}
+      title={mode === 'in_progress' ? 'Show another tip' : 'Reword this'}
+      className="absolute top-3 right-3 p-1 rounded text-paper-400 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-200 transition-colors"
+    >
+      <RefreshCw size={13} />
+    </button>
+  )
   if (mode === 'in_progress') {
     return (
-      <div className="rounded-xl border border-paper-300 dark:border-pitch-500 bg-white dark:bg-pitch-700 p-5 flex items-start gap-3">
+      <div className="relative rounded-xl border border-paper-300 dark:border-pitch-500 bg-white dark:bg-pitch-700 p-5 pr-10 flex items-start gap-3">
+        {refresh}
         <span className="w-9 h-9 rounded-lg bg-sky-muted/10 flex items-center justify-center flex-shrink-0">
           <Coffee size={18} className="text-sky-muted" />
         </span>
@@ -341,7 +360,8 @@ function WindDownCard({ mode, narrative, startedLabel, tip }) {
     )
   }
   return (
-    <div className="rounded-xl border border-mint/25 bg-mint/5 p-5 flex items-start gap-3">
+    <div className="relative rounded-xl border border-mint/25 bg-mint/5 p-5 pr-10 flex items-start gap-3">
+      {refresh}
       <span className="w-9 h-9 rounded-lg bg-mint/10 flex items-center justify-center flex-shrink-0">
         <Sunset size={18} className="text-mint-600 dark:text-mint-400" />
       </span>
