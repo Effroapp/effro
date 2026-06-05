@@ -427,11 +427,13 @@ class StorageConfig(BaseModel):
     Only fields relevant to the active provider are populated. The password
     is encrypted at rest (Fernet symmetric encryption); see storage_backend.py.
     """
-    provider: str = "local"               # local | nextcloud
-    server_url: Optional[str] = None
-    username: Optional[str] = None
-    password: Optional[str] = None        # Nextcloud app password, encrypted
-    remote_folder: str = "Effro"
+    provider: str = "local"               # local | nextcloud | webdav | s3 | google_drive | dropbox
+    server_url: Optional[str] = None      # base/WebDAV URL, or S3 endpoint
+    username: Optional[str] = None        # or S3 access key
+    password: Optional[str] = None        # app password / S3 secret key, encrypted
+    remote_folder: str = "Effro"          # or S3 key prefix
+    bucket: Optional[str] = None          # S3 bucket
+    region: Optional[str] = None          # S3 region
     backup_enabled: bool = True
 
 
@@ -443,6 +445,8 @@ class StorageConfigOut(BaseModel):
     backup_enabled: bool
     server_url: Optional[str]
     username: Optional[str]
+    bucket: Optional[str] = None
+    region: Optional[str] = None
     last_backup_at: Optional[str]
     last_backup_status: Optional[str]
 

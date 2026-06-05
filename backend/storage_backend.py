@@ -178,6 +178,30 @@ def build_storage_backend(config: dict) -> StorageBackend:
         from storage_dropbox import DropboxBackend
         return DropboxBackend(remote_folder=config.get("remote_folder", "Effro Backups"))
 
+    if provider == "webdav":
+        from storage_webdav import WebDAVBackend
+        raw_password = config.get("password", "") or ""
+        password = decrypt_secret(raw_password) if raw_password.startswith("gAAAAA") else raw_password
+        return WebDAVBackend(
+            server_url=config.get("server_url", ""),
+            username=config.get("username", ""),
+            password=password,
+            remote_folder=config.get("remote_folder", "Effro"),
+        )
+
+    if provider == "s3":
+        from storage_s3 import S3Backend
+        raw_secret = config.get("password", "") or ""
+        secret = decrypt_secret(raw_secret) if raw_secret.startswith("gAAAAA") else raw_secret
+        return S3Backend(
+            endpoint=config.get("server_url", ""),
+            bucket=config.get("bucket", ""),
+            region=config.get("region", "us-east-1"),
+            access_key=config.get("username", ""),
+            secret_key=secret,
+            prefix=config.get("remote_folder", "Effro Backups"),
+        )
+
     return LocalBackend(UPLOAD_DIR)
 
 
@@ -227,6 +251,8 @@ def get_storage_config_for_api(db: Session) -> dict:
         "backup_enabled": config.get("backup_enabled", True),
         "server_url": config.get("server_url"),
         "username": config.get("username"),
+        "bucket": config.get("bucket"),
+        "region": config.get("region"),
         "last_backup_at": last.occurred_at.isoformat() if last else None,
         "last_backup_status": last.status if last else None,
     }

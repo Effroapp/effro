@@ -59,6 +59,26 @@ const PROVIDERS = [
     what: 'Encrypted backups in your Dropbox. Connect once with your own Dropbox app; with App-folder access Effro only sees its own folder.',
   },
   {
+    key: 's3',
+    label: 'S3-compatible',
+    badge: 'Object storage',
+    badgeColor: 'bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-400',
+    icon: '🪣',
+    iconBg: 'bg-orange-50 dark:bg-orange-950/30',
+    live: true,
+    what: 'Any S3-compatible bucket: Backblaze B2, Wasabi, Cloudflare R2, MinIO, DigitalOcean Spaces, AWS S3. Access key + secret, no OAuth.',
+  },
+  {
+    key: 'webdav',
+    label: 'WebDAV',
+    badge: 'Self-hosted',
+    badgeColor: 'bg-sky-100 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400',
+    icon: '🗄️',
+    iconBg: 'bg-sky-50 dark:bg-sky-950/30',
+    live: true,
+    what: 'Any WebDAV server: Synology NAS, ownCloud, Box, and most NAS boxes. Server URL, username and password.',
+  },
+  {
     key: 'onedrive',
     label: 'OneDrive',
     badge: 'Personal',
@@ -66,7 +86,7 @@ const PROVIDERS = [
     icon: '🔷',
     iconBg: 'bg-blue-50 dark:bg-blue-950/30',
     live: false,
-    comingSoonNote: 'Personal Microsoft account sync - coming soon.',
+    comingSoonNote: 'Arrives with the Microsoft 365 integration.',
   },
   {
     key: 'sharepoint',
@@ -76,7 +96,7 @@ const PROVIDERS = [
     icon: '🏢',
     iconBg: 'bg-amber-50 dark:bg-amber-950/30',
     live: false,
-    comingSoonNote: "For work deployments - files stay inside your company's Microsoft tenancy.",
+    comingSoonNote: 'Arrives with the Microsoft 365 integration.',
   },
 ]
 
@@ -84,6 +104,8 @@ const PROVIDER_LABEL = {
   nextcloud: 'Nextcloud',
   google_drive: 'Google Drive',
   dropbox: 'Dropbox',
+  webdav: 'WebDAV',
+  s3: 'S3-compatible',
 }
 
 // ── Main component ────────────────────────────────────────────────────────
@@ -97,6 +119,8 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
   const [picked, setPicked] = useState(initialProvider || currentConfig?.provider || 'nextcloud')
   const isGoogle = picked === 'google_drive'
   const isDropbox = picked === 'dropbox'
+  const isWebdav = picked === 'webdav'
+  const isS3 = picked === 's3'
 
   // Nextcloud form state - prefilled from currentConfig if the user is editing
   const [serverUrl, setServerUrl] = useState(currentConfig?.server_url || '')
@@ -105,6 +129,9 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
   const [remoteFolder, setRemoteFolder] = useState(
     currentConfig?.remote_folder || ((initialProvider === 'dropbox' || initialProvider === 'google_drive') ? 'Effro Backups' : 'Effro')
   )
+  // S3 extras (endpoint=serverUrl, access key=username, secret=password).
+  const [bucket, setBucket] = useState(currentConfig?.bucket || '')
+  const [region, setRegion] = useState(currentConfig?.region || '')
   const [backupEnabled, setBackupEnabled] = useState(currentConfig?.backup_enabled !== false)
 
   const [testing, setTesting] = useState(false)
@@ -157,7 +184,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
     setTestResult(null)
     setError('')
     // Sensible default folder per provider when starting fresh.
-    if ((key === 'google_drive' || key === 'dropbox') && (!remoteFolder || remoteFolder === 'Effro')) {
+    if ((key === 'google_drive' || key === 'dropbox' || key === 's3') && (!remoteFolder || remoteFolder === 'Effro')) {
       setRemoteFolder('Effro Backups')
     }
     setView('setup')
@@ -173,8 +200,21 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
         backup_enabled: backupEnabled,
       }
     }
+    if (isS3) {
+      return {
+        provider: 's3',
+        server_url: serverUrl,   // endpoint
+        username,                // access key
+        password,                // secret key
+        bucket,
+        region: region || 'us-east-1',
+        remote_folder: remoteFolder || 'Effro Backups',
+        backup_enabled: backupEnabled,
+      }
+    }
+    // nextcloud or generic webdav (same shape)
     return {
-      provider: 'nextcloud',
+      provider: isWebdav ? 'webdav' : 'nextcloud',
       server_url: serverUrl,
       username,
       password,
@@ -246,12 +286,60 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
     ? googleReady  // Google Drive reuses the OAuth connection; gate on it.
     : isDropbox
       ? dropboxReady  // Dropbox must be connected (handled before this step)
-      : (
-        serverUrl.trim().length > 4 &&
-        username.trim().length > 0 &&
-        password.trim().length > 0
-      )
+      : isS3
+        ? (serverUrl.trim().length > 4 && bucket.trim().length > 0 &&
+           username.trim().length > 0 && password.trim().length > 0)
+        : (
+          serverUrl.trim().length > 4 &&
+          username.trim().length > 0 &&
+          password.trim().length > 0
+        )
   const canSave = testResult?.ok === true
+
+  // The input fields shown in the setup form, per provider.
+  const clearResult = (setter) => (v) => { setter(v); setTestResult(null) }
+  const folderField = (label, hint) => ({
+    label, value: remoteFolder, set: clearResult(setRemoteFolder), type: 'text',
+    placeholder: 'Effro Backups', hint,
+  })
+  let fields
+  if (isGoogle) {
+    fields = [folderField('Folder name in Google Drive', "Effro will create this folder in your Drive if it doesn't exist")]
+  } else if (isDropbox) {
+    fields = [folderField('Folder name in Dropbox', "Effro will create this folder in your Dropbox if it doesn't exist")]
+  } else if (isS3) {
+    fields = [
+      { label: 'Endpoint URL', value: serverUrl, set: clearResult(setServerUrl), type: 'url',
+        placeholder: 'https://s3.us-west-002.backblazeb2.com', hint: 'Your provider’s S3 endpoint (B2, Wasabi, R2, MinIO, Spaces, AWS).' },
+      { label: 'Region', value: region, set: clearResult(setRegion), type: 'text',
+        placeholder: 'us-east-1', hint: 'The bucket’s region (use "auto" for Cloudflare R2).' },
+      { label: 'Bucket', value: bucket, set: clearResult(setBucket), type: 'text',
+        placeholder: 'my-effro-backups', hint: 'An existing bucket Effro can write to.' },
+      { label: 'Access key', value: username, set: clearResult(setUsername), type: 'text',
+        placeholder: 'AKIA… / key id', hint: '' },
+      { label: 'Secret key', value: password, set: clearResult(setPassword), type: 'password',
+        placeholder: 'Paste the secret key', hint: 'Stored Fernet-encrypted.' },
+      folderField('Folder (key prefix)', 'Backups are stored under this prefix in the bucket.'),
+    ]
+  } else if (isWebdav) {
+    fields = [
+      { label: 'WebDAV URL', value: serverUrl, set: clearResult(setServerUrl), type: 'url',
+        placeholder: 'https://nas.local/dav', hint: 'The full WebDAV collection URL.' },
+      { label: 'Username', value: username, set: clearResult(setUsername), type: 'text', placeholder: 'username', hint: '' },
+      { label: 'Password', value: password, set: clearResult(setPassword), type: 'password',
+        placeholder: 'password', hint: 'Stored Fernet-encrypted.' },
+      folderField('Folder name', "Effro will create this folder if it doesn't exist"),
+    ]
+  } else {
+    fields = [
+      { label: 'Server URL', value: serverUrl, set: clearResult(setServerUrl), type: 'url',
+        placeholder: 'https://nextcloud.yourdomain.com', hint: 'The root URL of your Nextcloud instance' },
+      { label: 'Username', value: username, set: clearResult(setUsername), type: 'text', placeholder: 'your-nextcloud-username', hint: '' },
+      { label: 'App password', value: password, set: clearResult(setPassword), type: 'password',
+        placeholder: 'xxxx-xxxx-xxxx-xxxx-xxxx', hint: 'Not your login password - create a dedicated app password in Nextcloud Security settings' },
+      folderField('Folder name on Nextcloud', "Effro will create this folder if it doesn't exist"),
+    ]
+  }
 
   return (
     <div
@@ -269,7 +357,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
           <div>
             <div className="text-sm font-semibold text-pitch-800 dark:text-white">
               {view === 'pick' && 'Connect cloud storage'}
-              {view === 'setup' && (isGoogle ? 'Setting up Google Drive' : isDropbox ? 'Setting up Dropbox' : 'Setting up Nextcloud')}
+              {view === 'setup' && `Setting up ${PROVIDER_LABEL[picked] || 'storage'}`}
               {view === 'manage' && 'Storage & backups'}
             </div>
             <div className="text-xs text-paper-500 dark:text-paper-500 mt-0.5">
@@ -398,7 +486,11 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
                   ? 'Effro will store daily encrypted database backups in a folder in your Google Drive. It reuses the Google account you connect under Integrations and only touches the folder it creates, nothing else in your Drive.'
                   : isDropbox
                     ? 'Effro will store daily encrypted database backups in a folder in your Dropbox. With App-folder access it only ever touches its own folder, nothing else in your Dropbox.'
-                    : 'Nextcloud is your own private cloud. Effro will store attachments and daily encrypted database backups there. Your data never leaves infrastructure you control.'}
+                    : isS3
+                      ? 'Effro will store daily encrypted database backups in an S3-compatible bucket (Backblaze B2, Wasabi, Cloudflare R2, MinIO, DigitalOcean Spaces, AWS S3). Paste the endpoint, bucket and an access key/secret.'
+                      : isWebdav
+                        ? 'Effro will store daily encrypted database backups on any WebDAV server (Synology, ownCloud, a NAS). Paste the WebDAV URL plus your username and password.'
+                        : 'Nextcloud is your own private cloud. Effro will store attachments and daily encrypted database backups there. Your data never leaves infrastructure you control.'}
               </div>
             </div>
 
@@ -417,7 +509,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
               />
             )}
 
-            {!isGoogle && !isDropbox && (
+            {picked === 'nextcloud' && (
               <>
                 <div>
                   <div className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
@@ -446,53 +538,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
 
             {dropboxReady && (
             <>
-            {((isGoogle || isDropbox)
-              ? [
-                  {
-                    label: isDropbox ? 'Folder name in Dropbox' : 'Folder name in Google Drive',
-                    value: remoteFolder,
-                    set: v => { setRemoteFolder(v); setTestResult(null) },
-                    type: 'text',
-                    placeholder: 'Effro Backups',
-                    hint: isDropbox
-                      ? "Effro will create this folder in your Dropbox if it doesn't exist"
-                      : "Effro will create this folder in your Drive if it doesn't exist",
-                  },
-                ]
-              : [
-              {
-                label: 'Server URL',
-                value: serverUrl,
-                set: v => { setServerUrl(v); setTestResult(null) },
-                type: 'url',
-                placeholder: 'https://nextcloud.yourdomain.com',
-                hint: 'The root URL of your Nextcloud instance',
-              },
-              {
-                label: 'Username',
-                value: username,
-                set: v => { setUsername(v); setTestResult(null) },
-                type: 'text',
-                placeholder: 'your-nextcloud-username',
-                hint: '',
-              },
-              {
-                label: 'App password',
-                value: password,
-                set: v => { setPassword(v); setTestResult(null) },
-                type: 'password',
-                placeholder: 'xxxx-xxxx-xxxx-xxxx-xxxx',
-                hint: 'Not your login password - create a dedicated app password in Nextcloud Security settings',
-              },
-              {
-                label: 'Folder name on Nextcloud',
-                value: remoteFolder,
-                set: v => { setRemoteFolder(v); setTestResult(null) },
-                type: 'text',
-                placeholder: 'Effro',
-                hint: "Effro will create this folder if it doesn't exist",
-              },
-            ]).map(f => (
+            {fields.map(f => (
               <div key={f.label}>
                 <label className="text-xs font-medium text-pitch-700 dark:text-paper-300 block mb-1.5">
                   {f.label}

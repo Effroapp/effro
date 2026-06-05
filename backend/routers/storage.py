@@ -60,6 +60,8 @@ def save_config(payload: schemas.StorageConfig, db: Session = Depends(get_db)):
         "server_url": (payload.server_url or "").rstrip("/"),
         "username": payload.username or "",
         "remote_folder": payload.remote_folder or "Effro",
+        "bucket": payload.bucket or "",
+        "region": payload.region or "",
         "backup_enabled": payload.backup_enabled,
         "password": (
             existing.get("password", "")
