@@ -15,7 +15,7 @@ import {
   Telescope, Sparkles, Rewind, CalendarClock, Scale as ScaleIcon,
   CheckSquare, Calendar, Ban, ArrowUpRight, Clock, Trophy,
   Unlock, Undo2, Hourglass, Sun, Sunset, CircleCheck, Ticket, X, ChevronDown, Coffee,
-  Eye, EyeOff, RefreshCw,
+  Eye, EyeOff, RefreshCw, Target, Pencil,
 } from 'lucide-react'
 import { format, addDays, parseISO } from 'date-fns'
 import PageHeader from '../components/PageHeader'
@@ -74,9 +74,13 @@ export default function Insights() {
   const [today, setToday] = useState(null)
   const [ahead, setAhead] = useState(null)
   const [balance, setBalance] = useState(null)
+  const [focus, setFocus] = useState(null)  // null until the week load resolves
 
-  useEffect(() => { insightsApi.week().then(setWeek).catch(() => {}) }, [])
+  useEffect(() => {
+    insightsApi.week().then((d) => { setWeek(d); setFocus(d.focus || '') }).catch(() => {})
+  }, [])
   const fetchToday = (nonce = 0) => insightsApi.today(undefined, nonce).then(setToday).catch(() => {})
+  const saveFocus = (text) => { setFocus(text); insightsApi.setFocus(text).catch(() => {}); setToday(null) }
   useEffect(() => {
     if (tab === 'reflect' && scope === 'today' && !today) fetchToday()
   }, [tab, scope, today])
@@ -142,6 +146,8 @@ export default function Insights() {
             <span>{week.narrative}</span>
           </p>
         )}
+
+        {focus !== null && <FocusPrompt focus={focus} onSave={saveFocus} />}
 
         <Tabs tab={tab} onChange={setTab} />
 
@@ -211,6 +217,51 @@ function ScopeToggle({ scope, onChange }) {
         </button>
       ))}
     </div>
+  )
+}
+
+// A calm "what are you focused on this week?" note. Optional and dismissible.
+// It only shapes the tone of the grounded wind-down narrative, never the numbers.
+function FocusPrompt({ focus, onSave }) {
+  const [editing, setEditing] = useState(false)
+  const [text, setText] = useState(focus || '')
+  useEffect(() => { setText(focus || '') }, [focus])
+  const save = () => { onSave(text.trim()); setEditing(false) }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2 mb-5">
+        <Target size={13} className="text-mint/70 flex-shrink-0" />
+        <input
+          autoFocus
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
+          placeholder="What are you focused on this week?"
+          className="flex-1 bg-transparent border-b border-paper-300 dark:border-pitch-500 text-[13px] text-pitch-700 dark:text-paper-200 placeholder:text-paper-400 dark:placeholder:text-paper-600 focus:outline-none focus:border-mint/50 py-0.5"
+        />
+        <button onClick={save} className="text-[12px] font-medium text-mint-700 dark:text-mint-300 hover:underline">Save</button>
+      </div>
+    )
+  }
+  if (focus) {
+    return (
+      <div className="group flex items-center gap-2 mb-5 text-[13px]">
+        <Target size={13} className="text-mint/70 flex-shrink-0" />
+        <span className="text-paper-600 dark:text-paper-400">Focused on <span className="font-medium text-pitch-700 dark:text-paper-200">{focus}</span></span>
+        <button onClick={() => setEditing(true)} aria-label="Edit focus" className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-paper-400 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300"><Pencil size={12} /></button>
+        <button onClick={() => onSave('')} aria-label="Clear focus" className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-paper-400 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300"><X size={12} /></button>
+      </div>
+    )
+  }
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      className="flex items-center gap-1.5 mb-5 text-[13px] text-paper-500 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300 transition-colors"
+    >
+      <Target size={13} className="text-mint/60" />
+      What are you focused on this week?
+    </button>
   )
 }
 

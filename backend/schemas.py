@@ -595,6 +595,11 @@ class WeekInsights(BaseModel):
     celebrations: List[Celebration] = []
     your_days: List[WorkDay] = []
     rhythm: List[RhythmDay] = []
+    focus: Optional[str] = None      # the user's "what I'm focused on this week" note
+
+
+class FocusIn(BaseModel):
+    text: str = ""
 
 
 # ─── Ahead ────────────────────────────────────────────────────────────────────

@@ -225,6 +225,10 @@ export const insightsApi = {
   // Balance: per-area activity, drift, "not on you".
   balance: (tzOffsetMin = new Date().getTimezoneOffset()) =>
     request(`/insights/balance?tz_offset_min=${tzOffsetMin}`),
+
+  // Save the "what I'm focused on this week" note (shapes the wind-down tone).
+  setFocus: (text) =>
+    request('/insights/focus', { method: 'POST', body: { text } }),
 }
 
 // ─── Presence / heartbeat ─────────────────────────────────────────────────────

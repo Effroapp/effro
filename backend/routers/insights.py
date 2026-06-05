@@ -512,6 +512,7 @@ def get_today(
             "jira_connected": jira_connected,
             "jira_filed_today": jira_filed_today,
             "jira_pending": jira_pending,
+            "focus": _get_setting(db, "insights_focus") or "",
         }
         narrative, ai_generated = _narrative(db, facts)
     else:
@@ -567,18 +568,23 @@ def _narrative(db, f):
         "calm work app for people with ADHD. The goal is to help them feel it is "
         "okay to stop for the day.\n"
         "Follow these rules exactly:\n"
-        "- Keep every number, name, and fact from the draft EXACTLY as written. "
-        "Never add, remove, sum, combine, or change any number or detail.\n"
-        "- Do not introduce any new count, fact, or noun that is not in the draft.\n"
+        "- Keep every number from the draft EXACTLY. Never add, remove, sum, "
+        "combine, or change any number.\n"
+        "- Do not invent facts, counts, or names that are not in the draft, with "
+        "one exception: you may gently nod to the person's stated focus (if given "
+        "below) in tone only.\n"
         "- Never mention undone work or tomorrow.\n"
         "- 2 to 3 short, warm sentences, second person.\n"
         "- End by gently giving permission to stop for the day.\n"
         "- No em dashes, no bullet points, no preamble, no headings."
     )
+    focus = (f.get("focus") or "").strip()
     user_msg = (
         "Draft:\n" + template +
         "\n\nReword the draft to feel warm and natural, keeping every fact and "
         "number exactly as written."
+        + (f"\n\nFor gentle context only, the person noted they are focused on: "
+           f"\"{focus}\". Reflect it softly only if it fits, and add no numbers." if focus else "")
     )
     try:
         from ai_provider import get_provider
@@ -985,7 +991,16 @@ def get_week(tz_offset_min: int = Query(default=0, ge=-840, le=840), db: Session
         narrative=narrative, headline_count=wd["headline"], breakdown=wd["chips"],
         closed_items=wd["done_items"][:50], celebrations=celebrations,
         your_days=your_days, rhythm=rhythm,
+        focus=(_get_setting(db, "insights_focus") or ""),
     )
+
+
+@router.post("/insights/focus")
+def set_focus(payload: schemas.FocusIn, db: Session = Depends(get_db)):
+    """Save the user's 'what I'm focused on this week' note. It shapes the tone of
+    the grounded wind-down narrative; it never changes any computed number."""
+    _set_setting(db, "insights_focus", (payload.text or "").strip()[:200])
+    return {"ok": True}
 
 
 def _count_load(db, start, end):
