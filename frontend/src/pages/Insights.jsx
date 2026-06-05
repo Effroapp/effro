@@ -15,7 +15,7 @@ import {
   Telescope, Sparkles, Rewind, CalendarClock, Scale as ScaleIcon,
   CheckSquare, Calendar, Ban, ArrowUpRight, Clock, Trophy,
   Unlock, Undo2, Hourglass, Sun, Sunset, CircleCheck, Ticket, X, ChevronDown, Coffee,
-  Eye, EyeOff, RefreshCw, Target, Pencil,
+  Eye, EyeOff, RefreshCw, Target, Pencil, ListPlus, AlertTriangle, FolderPlus, Info,
 } from 'lucide-react'
 import { format, addDays, parseISO } from 'date-fns'
 import PageHeader from '../components/PageHeader'
@@ -23,13 +23,20 @@ import { AreaIcon } from '../components/IconPicker'
 import { getAreaStatus } from '../utils/status'
 import { insightsApi } from '../api/client'
 import { BionicText } from '../utils/bionic.jsx'
+import { InfoTip } from '../components/Tooltip'
 
 // ─── Shared meta ──────────────────────────────────────────────────────────────
 
 const ENTRY_META = {
+  // Productivity (things added/logged today)
+  update:          { Icon: Pencil,        color: '#7B8794' },
+  todo_added:      { Icon: ListPlus,      color: '#6B8AB8' },
+  decision:        { Icon: ScaleIcon,     color: '#C99A5C' },
+  meeting:         { Icon: Calendar,      color: '#8A7BB8' },
+  blockage_logged: { Icon: AlertTriangle, color: '#C99A5C' },
+  thread_started:  { Icon: FolderPlus,    color: '#7A9579' },
+  // Completions (things closed)
   todo:     { Icon: CheckSquare, color: '#6B8AB8' },
-  decision: { Icon: ScaleIcon,   color: '#C99A5C' },
-  meeting:  { Icon: Calendar,    color: '#8A7BB8' },
   blockage: { Icon: Ban,         color: '#B86A5C' },
   resolved: { Icon: CircleCheck, color: '#7A9579' },
   jira:     { Icon: Ticket,      color: '#6B8AB8' },
@@ -285,7 +292,10 @@ function TodayReflect({ data, onRefresh }) {
     <div className="space-y-7 animate-rise motion-reduce:animate-none">
       <Hero
         count={data.headline_count}
-        caption={data.headline_count > 0 ? 'finished since you started today' : 'a calm day so far'}
+        unit="things today"
+        caption={data.headline_count > 0
+          ? 'updates, todos, decisions, meetings, everything you moved'
+          : 'a genuinely quiet day, and that is okay'}
         chips={data.breakdown}
         items={items}
         onOpenItem={(id) => id && navigate(`/thread/${id}`)}
@@ -425,22 +435,21 @@ function WindDownCard({ mode, narrative, startedLabel, tip, onRefresh }) {
   )
 }
 
-// Celebrations centrepiece. The single hardest-earned win is featured (a cleared
-// blocker, a resolved thread, a return to a quiet area - anything but the bare
-// decisions tally), with the rest kept quiet beneath. Calm, not confetti.
+// Celebrations centrepiece. Each win is grouped into one line and rendered with
+// the SAME weight - no arbitrary "lead" line, so the section reads as a calm,
+// consistent list rather than one big item and some small ones.
 function Celebrations({ items }) {
   if (!items?.length) return null
   return (
-    <div className="rounded-xl bg-gradient-to-br from-mint/10 to-mint/[0.03] dark:from-mint/[0.12] dark:to-mint/[0.03] p-4 space-y-3.5">
+    <div className="rounded-xl bg-gradient-to-br from-mint/10 to-mint/[0.03] dark:from-mint/[0.12] dark:to-mint/[0.03] p-4 space-y-3">
       {items.map((c, i) => {
         const m = CELEB_META[c.type] || CELEB_META.decisions
-        const lead = i === 0
         return (
           <div key={i} className="flex items-start gap-3">
-            <span className={`rounded-lg flex items-center justify-center flex-shrink-0 ${lead ? 'w-9 h-9 bg-mint/15' : 'w-7 h-7 bg-mint/10'}`}>
-              <m.Icon size={lead ? 17 : 14} style={{ color: m.color }} />
+            <span className="w-8 h-8 rounded-lg bg-mint/12 flex items-center justify-center flex-shrink-0">
+              <m.Icon size={15} style={{ color: m.color }} />
             </span>
-            <p className={`leading-snug ${lead ? 'text-base font-medium text-pitch-800 dark:text-white pt-1.5' : 'text-sm text-pitch-700 dark:text-paper-300 pt-1'}`}>
+            <p className="text-sm text-pitch-700 dark:text-paper-300 leading-snug pt-1.5">
               <BionicText>{c.text}</BionicText>
             </p>
           </div>
@@ -452,9 +461,14 @@ function Celebrations({ items }) {
 
 // Expanded detail behind the "loops closed" hero: the actual items, grouped by
 // type (todos, decisions, blockers cleared, threads resolved, Jira filed).
-const CLOSED_ORDER = ['todo', 'decision', 'blockage', 'resolved', 'jira']
+const CLOSED_ORDER = [
+  'update', 'todo_added', 'decision', 'meeting', 'blockage_logged',
+  'todo', 'blockage', 'resolved', 'jira',
+]
 const CLOSED_GROUP_LABEL = {
-  todo: 'Todos done', decision: 'Decisions made', blockage: 'Blockers cleared',
+  update: 'Updates logged', todo_added: 'Todos added', decision: 'Decisions made',
+  meeting: 'Meetings', blockage_logged: 'Blockers flagged',
+  todo: 'Todos done', blockage: 'Blockers cleared',
   resolved: 'Threads resolved', jira: 'Jira items filed',
 }
 
@@ -797,8 +811,37 @@ function _setHidden(key, val) {
   try { localStorage.setItem(HIDDEN_KEY, JSON.stringify(m)) } catch { /* best effort */ }
 }
 
-function Section({ label, children, hideable = true }) {
+// What each section is + how it's worked out. Shown in the branded 'i' tooltip
+// beside every section title. Phrased to match the real backend calculation so
+// the explanation is always accurate (principle #1).
+const SECTION_INFO = {
+  'Worth celebrating':
+    'The wins worth a pause this week, one calm line per kind. Built from blockers you cleared, threads you resolved, areas you returned to after a 7-plus day gap, and decisions you logged.',
+  'Your days — when you start and stop':
+    'When each of the last 7 days began and ended, read from app activity (heartbeats): your first and last active moment each day, with the bar showing the hours between.',
+  'Your rhythm — last 14 days':
+    'How busy each of the last 14 days was. Each bar is the number of entries logged that day, with notes, todos, decisions and meetings all counting.',
+  'The shape of your next 10 days':
+    'A 10-day look ahead. Each column shows the meetings and todo due-dates that fall on that day.',
+  'Next up':
+    'Your nearest upcoming meeting, the soonest calendar entry dated after now.',
+  'On your plate':
+    'Open todos that have a due date, grouped into today, tomorrow and the rest of this week. Only todos appear here, not meetings or notes.',
+  'A good window':
+    'An area that has been quiet for a while paired with a lightly-booked day ahead, as a gentle suggestion of when to give it time. Never a deadline.',
+  'Where your attention went':
+    'How your activity split across areas over the last 14 days. Each share is that area’s entries as a percentage of all entries in the period.',
+  'Each plate, last 14 days':
+    'Every area’s 14-day activity at a glance. The sparkline is entries per day; the label on the right is days since its last activity.',
+  'Not on you':
+    'Threads currently marked blocked, waiting on something external. Listed so a quiet stretch there reads as not your delay, rather than a backlog.',
+  'A gentle nudge or two':
+    'Areas with no activity for 7-plus days. A soft heads-up so nothing slips off the radar, never a demand.',
+}
+
+function Section({ label, children, hideable = true, info }) {
   const key = label
+  const tip = info || SECTION_INFO[label]
   const [hidden, setHidden] = useState(() => !!_hiddenMap()[key])
   const toggle = () => { const v = !hidden; setHidden(v); _setHidden(key, v) }
 
@@ -821,7 +864,10 @@ function Section({ label, children, hideable = true }) {
   return (
     <section>
       <div className="group/sec flex items-center justify-between mb-2.5">
-        <h2 className="font-mono uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">{label}</h2>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <h2 className="font-mono uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">{label}</h2>
+          {tip && <InfoTip content={tip} />}
+        </div>
         {hideable && (
           <button
             onClick={toggle}

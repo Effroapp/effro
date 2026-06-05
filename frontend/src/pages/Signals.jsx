@@ -11,6 +11,7 @@ import { listSignals, acceptSignal, reassignSignal, dismissSignal } from '../api
 import { syncNow } from '../api/microsoft'
 import { jiraSyncNow } from '../api/jira'
 import { areasApi } from '../api/client'
+import { BionicText } from '../utils/bionic.jsx'
 
 /**
  * Signals - triage surface for externally-sourced items waiting on a decision.
@@ -238,7 +239,7 @@ function SignalCard({
             <SourceBadge source={signal.source} kind={signal.kind} />
           </div>
           <h3 className="font-display font-medium text-base text-pitch-800 dark:text-white leading-tight">
-            {signal.title}
+            <BionicText>{signal.title}</BionicText>
           </h3>
           <MetaRow signal={signal} />
         </div>

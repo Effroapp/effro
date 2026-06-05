@@ -414,6 +414,31 @@ def get_today(
         .all()
     )
 
+    # ── Productivity: things logged / created today (not just things closed) ──
+    # "0 done" never means a quiet day — capturing updates, adding todos, making
+    # decisions and sitting in meetings is all real work. Count top-level entries
+    # created today, by type, alongside the completions above.
+    def _created_today(entry_type):
+        return (
+            entry_join()
+            .filter(
+                models.Entry.type == entry_type,
+                models.Entry.parent_id.is_(None),
+                models.Entry.created_at >= day_start,
+                models.Entry.created_at < day_end,
+            )
+            .order_by(models.Entry.created_at.asc())
+            .all()
+        )
+
+    update_rows = _created_today("entry")
+    todo_added_rows = _created_today("todo")
+    blocker_flagged_rows = _created_today("blockage")
+    n_updates = len(update_rows)
+    n_todos_added = len(todo_added_rows)
+    n_blockers_flagged = len(blocker_flagged_rows)
+    n_threads_started = sum(cnt for _, cnt in created_rows)
+
     # ── Jira ──────────────────────────────────────────────────────────────────
     jira_connected = db.query(models.JiraIntegration).first() is not None
     jira_pending = 0
@@ -448,12 +473,27 @@ def get_today(
     reasonable_finish = len(finishes) >= 3 and len(early) >= max(2, len(finishes) - 1)
     workday_mode = "wind_down" if (start_at is not None and work_hours >= WIND_DOWN_HOURS) else "in_progress"
 
-    # ── Assemble chips + done list ────────────────────────────────────────────
+    # ── Assemble chips + activity list ────────────────────────────────────────
+    # Productivity-first: what you *added* today (updates, todos, decisions,
+    # meetings, flagged blockers, new threads), then what you *closed* (todos
+    # done, blockers cleared, threads resolved, Jira filed). The headline is the
+    # sum, so a day full of updates and meetings never reads as "0 done".
+    n_meetings = len(meeting_rows)
     chips = []
-    if n_todos:
-        chips.append(schemas.TodayChip(type="todo", label=f"{_plural(n_todos, 'todo', 'todos')} done", count=n_todos))
+    if n_updates:
+        chips.append(schemas.TodayChip(type="update", label=f"{_plural(n_updates, 'update', 'updates')} logged", count=n_updates))
+    if n_todos_added:
+        chips.append(schemas.TodayChip(type="todo_added", label=f"{_plural(n_todos_added, 'todo', 'todos')} added", count=n_todos_added))
     if n_decisions:
         chips.append(schemas.TodayChip(type="decision", label=f"{_plural(n_decisions, 'decision', 'decisions')} made", count=n_decisions))
+    if n_meetings:
+        chips.append(schemas.TodayChip(type="meeting", label=f"{_plural(n_meetings, 'meeting', 'meetings')}", count=n_meetings))
+    if n_blockers_flagged:
+        chips.append(schemas.TodayChip(type="blockage_logged", label=f"{_plural(n_blockers_flagged, 'blocker', 'blockers')} flagged", count=n_blockers_flagged))
+    if n_threads_started:
+        chips.append(schemas.TodayChip(type="thread_started", label=f"{_plural(n_threads_started, 'thread', 'threads')} started", count=n_threads_started))
+    if n_todos:
+        chips.append(schemas.TodayChip(type="todo", label=f"{_plural(n_todos, 'todo', 'todos')} done", count=n_todos))
     if n_cleared:
         chips.append(schemas.TodayChip(type="blockage", label=f"{_plural(n_cleared, 'blocker', 'blockers')} cleared", count=n_cleared))
     if n_resolved:
@@ -464,10 +504,18 @@ def get_today(
     headline_count = sum(c.count for c in chips)
 
     done_items = []
-    for e, t, a in todo_rows:
-        done_items.append(schemas.TodayDoneItem(id=e.id, type="todo", content=e.content, area_name=a.name, thread_id=t.id, at=e.completed_at))
+    for e, t, a in update_rows:
+        done_items.append(schemas.TodayDoneItem(id=e.id, type="update", content=e.content, area_name=a.name, thread_id=t.id, at=e.created_at))
+    for e, t, a in todo_added_rows:
+        done_items.append(schemas.TodayDoneItem(id=e.id, type="todo_added", content=e.content, area_name=a.name, thread_id=t.id, at=e.created_at))
     for e, t, a in decision_rows:
         done_items.append(schemas.TodayDoneItem(id=e.id, type="decision", content=e.content, area_name=a.name, thread_id=t.id, at=e.created_at))
+    for e, t, a in meeting_rows:
+        done_items.append(schemas.TodayDoneItem(id=e.id, type="meeting", content=e.content, area_name=a.name, thread_id=t.id, at=e.meeting_at))
+    for e, t, a in blocker_flagged_rows:
+        done_items.append(schemas.TodayDoneItem(id=e.id, type="blockage_logged", content=e.content, area_name=a.name, thread_id=t.id, at=e.created_at))
+    for e, t, a in todo_rows:
+        done_items.append(schemas.TodayDoneItem(id=e.id, type="todo", content=e.content, area_name=a.name, thread_id=t.id, at=e.completed_at))
     for log, t, a in cleared_rows:
         done_items.append(schemas.TodayDoneItem(id=t.id, type="blockage", content=t.title, area_name=a.name, thread_id=t.id, at=log.occurred_at))
     for log, t, a in resolved_rows:

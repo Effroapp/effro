@@ -10,6 +10,7 @@ import { AreaIcon } from '../components/IconPicker'
 import { getAreaStatus } from '../utils/status'
 import { useDisplayName } from '../hooks/useDisplayName'
 import { useAIConfigured } from '../hooks/useAIConfigured'
+import { BionicText } from '../utils/bionic.jsx'
 
 const INACTIVITY_THRESHOLD_DAYS = 7
 
@@ -322,7 +323,7 @@ function AreaCard({ area }) {
 
         {/* Summary */}
         <p className="text-sm text-paper-600 dark:text-paper-500 leading-relaxed flex-1 line-clamp-3 mb-4">
-          {area.summary || (
+          {area.summary ? <BionicText>{area.summary}</BionicText> : (
             <span className="italic text-paper-400 dark:text-paper-700">
               No summary yet - click to add one.
             </span>
@@ -503,7 +504,7 @@ function ComingUpStrip() {
                       </span>
                       <span className="text-paper-400 dark:text-paper-700 text-xs flex-shrink-0">/</span>
                       <span className="flex-1 text-xs text-pitch-600 dark:text-paper-300 truncate">
-                        {t.content}
+                        <BionicText>{t.content}</BionicText>
                       </span>
                       {t.due_date && (
                         <span className="font-mono text-xs text-paper-500 dark:text-paper-600 flex-shrink-0">

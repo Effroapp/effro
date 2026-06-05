@@ -3,6 +3,7 @@ import { Sun, Moon, Check, Upload, X, Info, ChevronDown } from 'lucide-react'
 import { getInitials } from '../hooks/useDisplayName'
 import { FONT_OPTIONS } from '../hooks/useFont'
 import { TEXT_SIZES } from '../hooks/useTextSize'
+import { Tooltip } from './Tooltip'
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024  // 2 MB
 
@@ -271,13 +272,15 @@ function FontSelect({ value, options, onChange }) {
                   <span style={{ fontFamily: opt.stack }} className="flex-1 text-sm text-pitch-700 dark:text-paper-200 truncate">{opt.label}</span>
                   <span className="font-mono text-[10px] text-paper-500 dark:text-paper-600 flex-shrink-0">{opt.hint}</span>
                 </button>
-                <span
-                  title={opt.desc}
-                  aria-label={opt.desc}
-                  className="px-2 py-2 flex-shrink-0 text-paper-400 dark:text-paper-600 hover:text-pitch-600 dark:hover:text-paper-300 cursor-help"
-                >
-                  <Info size={13} />
-                </span>
+                <Tooltip content={opt.desc} side="left">
+                  <span
+                    tabIndex={0}
+                    aria-label={opt.desc}
+                    className="px-2 py-2 flex-shrink-0 text-paper-400 dark:text-paper-600 hover:text-pitch-600 dark:hover:text-paper-300 cursor-help focus:outline-none"
+                  >
+                    <Info size={13} />
+                  </span>
+                </Tooltip>
               </div>
             )
           })}

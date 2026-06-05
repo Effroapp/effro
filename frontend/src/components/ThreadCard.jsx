@@ -3,6 +3,7 @@ import { MessageSquare, Paperclip, ChevronRight } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import StatusBadge from './StatusBadge'
 import { getThreadStatus } from '../utils/status'
+import { BionicText } from '../utils/bionic.jsx'
 
 export default function ThreadCard({ thread, areaId }) {
   const config = getThreadStatus(thread.status)
@@ -31,7 +32,7 @@ export default function ThreadCard({ thread, areaId }) {
         {/* Title row */}
         <div className="flex items-start justify-between gap-3 mb-2">
           <h3 className="font-display font-semibold text-sm text-pitch-800 dark:text-white group-hover:text-paper-700 dark:group-hover:text-paper-200 transition-colors leading-snug">
-            {thread.title}
+            <BionicText>{thread.title}</BionicText>
           </h3>
           <ChevronRight
             size={14}
@@ -42,7 +43,7 @@ export default function ThreadCard({ thread, areaId }) {
         {/* Description */}
         {thread.description && (
           <p className="text-xs text-paper-600 dark:text-paper-500 line-clamp-2 mb-3 leading-relaxed">
-            {thread.description}
+            <BionicText>{thread.description}</BionicText>
           </p>
         )}
 

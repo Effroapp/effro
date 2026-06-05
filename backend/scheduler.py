@@ -11,10 +11,11 @@ Skips silently if the AI provider isn't configured or the call fails.
 
 from __future__ import annotations
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.date import DateTrigger
 
 import models
 from database import SessionLocal
@@ -229,6 +230,44 @@ def run_nightly_backup():
         db.close()
 
 
+_REFRESH_MARKER = "overviews_last_refresh"  # app_settings key: 'YYYY-MM-DD'
+
+
+def _get_marker(db):
+    row = db.query(models.AppSettings).filter(models.AppSettings.key == _REFRESH_MARKER).first()
+    return row.value if row else None
+
+
+def _set_marker(db, value):
+    row = db.query(models.AppSettings).filter(models.AppSettings.key == _REFRESH_MARKER).first()
+    if row:
+        row.value = value
+    else:
+        db.add(models.AppSettings(key=_REFRESH_MARKER, value=value))
+    db.commit()
+
+
+def catchup_overviews():
+    """On launch, run the daily Overview refresh if it was missed today (a
+    desktop app is often closed at the scheduled 12:00, so the cron alone is
+    unreliable). No-op if already done today or nobody opted in."""
+    db = SessionLocal()
+    try:
+        today = datetime.now().strftime("%Y-%m-%d")
+        if _get_marker(db) == today:
+            return
+        opted_in = (
+            db.query(models.Area).filter(models.Area.summary_auto_update == True).first()  # noqa: E712
+            or db.query(models.Thread).filter(models.Thread.summary_auto_update == True).first()  # noqa: E712
+        )
+        if not opted_in:
+            return
+    finally:
+        db.close()
+    log.info("Auto-overview catch-up: today's refresh was missed, running now.")
+    refresh_all_overviews()
+
+
 def refresh_all_overviews():
     """Cron entry point - refresh the Overview for every area the user has
     OPTED IN to auto-update (summary_auto_update = True), via the configured
@@ -261,6 +300,10 @@ def refresh_all_overviews():
         if not ok:
             log.info("Skipping Overview refresh: %s", msg)
             return
+
+        # Mark today as done up-front so the startup catch-up won't re-run it,
+        # even if individual refreshes are no-ops (nothing changed).
+        _set_marker(db, datetime.now().strftime("%Y-%m-%d"))
 
         log.info("Lunchtime refresh: %d areas + %d threads opted in", len(areas), len(threads))
         for area in areas:
@@ -300,6 +343,16 @@ def start():
         id="daily-nudge-topup",
         replace_existing=True,
         misfire_grace_time=3600,
+    )
+    # Startup catch-up: a desktop app is usually closed at the 12:00 cron, so
+    # run the Overview refresh shortly after launch if today's was missed. The
+    # ~60s delay keeps it off the critical startup path (it makes AI calls).
+    _scheduler.add_job(
+        catchup_overviews,
+        DateTrigger(run_date=datetime.now() + timedelta(seconds=60)),
+        id="overview-catchup",
+        replace_existing=True,
+        misfire_grace_time=600,
     )
     # Jira Cloud → signal_items sync.
     _scheduler.add_job(
