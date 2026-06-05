@@ -768,20 +768,36 @@ def get_week(tz_offset_min: int = Query(default=0, ge=-840, le=840), db: Session
     window_start = now - timedelta(days=7)
     wd = _work_done(db, window_start, now)
 
-    # Celebrations - earned only.
+    # Celebrations - earned only, and GROUPED by type so we never show several
+    # near-identical lines (four "you came back to X" rows reads as monotonous,
+    # not celebratory). One calm line per kind, most significant first.
     celebrations = []
-    for log, t, a in wd["cleared"]:
-        celebrations.append(schemas.Celebration(type="unblocked", text=f"You cleared the blocker on {t.title}."))
-    for log, t, a in wd["resolved"]:
+
+    cleared = wd["cleared"]
+    if len(cleared) == 1:
+        celebrations.append(schemas.Celebration(type="unblocked", text=f"You cleared the blocker on {cleared[0][1].title}."))
+    elif len(cleared) > 1:
+        celebrations.append(schemas.Celebration(type="unblocked", text=f"You cleared {len(cleared)} blockers this week."))
+
+    resolved = wd["resolved"]
+    if len(resolved) == 1:
+        t = resolved[0][1]
         age = (now - t.created_at).days if t.created_at else None
-        txt = f"You resolved {t.title}" + (f" after {age} days." if age and age >= 1 else ".")
-        celebrations.append(schemas.Celebration(type="resolved", text=txt))
-    for name, gap in _reengagements(db, window_start, now):
+        celebrations.append(schemas.Celebration(type="resolved", text=f"You resolved {t.title}" + (f" after {age} days." if age and age >= 1 else ".")))
+    elif len(resolved) > 1:
+        celebrations.append(schemas.Celebration(type="resolved", text=f"You resolved {len(resolved)} threads this week."))
+
+    reeng = _reengagements(db, window_start, now)
+    if len(reeng) == 1:
+        name, gap = reeng[0]
         celebrations.append(schemas.Celebration(type="comeback", text=f"You came back to {name} after {gap} quiet days."))
+    elif len(reeng) > 1:
+        names = [name for name, _ in reeng]
+        celebrations.append(schemas.Celebration(type="comeback", text=f"You came back to {len(names)} areas after a quiet spell: {_join_clauses(names)}."))
+
     if wd["counts"]["decisions"]:
         d = wd["counts"]["decisions"]
         celebrations.append(schemas.Celebration(type="decisions", text=f"You made {d} {_plural(d, 'decision', 'decisions')} this week."))
-    celebrations = celebrations[:5]
 
     # Working-day bars (last 7 local days).
     your_days = []

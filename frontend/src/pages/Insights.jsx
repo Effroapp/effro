@@ -325,37 +325,22 @@ function WindDownCard({ narrative }) {
 // decisions tally), with the rest kept quiet beneath. Calm, not confetti.
 function Celebrations({ items }) {
   if (!items?.length) return null
-  const heroIdx = items.findIndex((c) => c.type !== 'decisions')
-  const hi = heroIdx === -1 ? 0 : heroIdx
-  const hero = items[hi]
-  const rest = items.filter((_, i) => i !== hi)
-  const hm = CELEB_META[hero.type] || CELEB_META.decisions
-
   return (
-    <div className="space-y-2">
-      <div className="rounded-xl border border-mint/30 bg-mint/[0.07] shadow-sm shadow-mint/10 p-4 flex items-start gap-3.5">
-        <span className="w-10 h-10 rounded-lg bg-mint/10 border border-mint/20 flex items-center justify-center flex-shrink-0">
-          <hm.Icon size={18} style={{ color: hm.color }} />
-        </span>
-        <p className="text-base font-medium text-pitch-800 dark:text-white leading-snug pt-1">{hero.text}</p>
-      </div>
-      {rest.length > 0 && (
-        <div className="rounded-xl border border-mint/25 bg-mint/5 p-2">
-          <ul>
-            {rest.map((c, i) => {
-              const m = CELEB_META[c.type] || CELEB_META.decisions
-              return (
-                <li key={i} className={`flex items-start gap-3 px-2 py-2.5 ${i > 0 ? 'border-t border-mint/10' : ''}`}>
-                  <span className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${m.color}1F` }}>
-                    <m.Icon size={14} style={{ color: m.color }} />
-                  </span>
-                  <p className="text-sm text-pitch-700 dark:text-paper-300 leading-relaxed pt-1">{c.text}</p>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      )}
+    <div className="rounded-xl bg-gradient-to-br from-mint/10 to-mint/[0.03] dark:from-mint/[0.12] dark:to-mint/[0.03] p-4 space-y-3.5">
+      {items.map((c, i) => {
+        const m = CELEB_META[c.type] || CELEB_META.decisions
+        const lead = i === 0
+        return (
+          <div key={i} className="flex items-start gap-3">
+            <span className={`rounded-lg flex items-center justify-center flex-shrink-0 ${lead ? 'w-9 h-9 bg-mint/15' : 'w-7 h-7 bg-mint/10'}`}>
+              <m.Icon size={lead ? 17 : 14} style={{ color: m.color }} />
+            </span>
+            <p className={`leading-snug ${lead ? 'text-base font-medium text-pitch-800 dark:text-white pt-1.5' : 'text-sm text-pitch-700 dark:text-paper-300 pt-1'}`}>
+              {c.text}
+            </p>
+          </div>
+        )
+      })}
     </div>
   )
 }
