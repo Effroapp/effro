@@ -211,21 +211,7 @@ function WeekReflect({ data }) {
 
       {data.celebrations?.length > 0 && (
         <Section label="Worth celebrating">
-          <div className="rounded-xl border border-mint/25 bg-mint/5 p-2">
-            <ul>
-              {data.celebrations.map((c, i) => {
-                const m = CELEB_META[c.type] || CELEB_META.decisions
-                return (
-                  <li key={i} className={`flex items-start gap-3 px-2 py-2.5 ${i > 0 ? 'border-t border-mint/10' : ''}`}>
-                    <span className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${m.color}1F` }}>
-                      <m.Icon size={14} style={{ color: m.color }} />
-                    </span>
-                    <p className="text-sm text-pitch-700 dark:text-paper-300 leading-relaxed pt-1">{c.text}</p>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
+          <Celebrations items={data.celebrations} />
         </Section>
       )}
 
@@ -293,6 +279,46 @@ function WindDownCard({ narrative }) {
         <p className="text-sm font-medium text-pitch-800 dark:text-white">A good place to stop</p>
         <p className="text-sm text-paper-600 dark:text-paper-300 leading-relaxed mt-1">{narrative}</p>
       </div>
+    </div>
+  )
+}
+
+// Celebrations centrepiece. The single hardest-earned win is featured (a cleared
+// blocker, a resolved thread, a return to a quiet area - anything but the bare
+// decisions tally), with the rest kept quiet beneath. Calm, not confetti.
+function Celebrations({ items }) {
+  if (!items?.length) return null
+  const heroIdx = items.findIndex((c) => c.type !== 'decisions')
+  const hi = heroIdx === -1 ? 0 : heroIdx
+  const hero = items[hi]
+  const rest = items.filter((_, i) => i !== hi)
+  const hm = CELEB_META[hero.type] || CELEB_META.decisions
+
+  return (
+    <div className="space-y-2">
+      <div className="rounded-xl border border-mint/30 bg-mint/[0.07] shadow-sm shadow-mint/10 p-4 flex items-start gap-3.5">
+        <span className="w-10 h-10 rounded-lg bg-mint/10 border border-mint/20 flex items-center justify-center flex-shrink-0">
+          <hm.Icon size={18} style={{ color: hm.color }} />
+        </span>
+        <p className="text-base font-medium text-pitch-800 dark:text-white leading-snug pt-1">{hero.text}</p>
+      </div>
+      {rest.length > 0 && (
+        <div className="rounded-xl border border-mint/25 bg-mint/5 p-2">
+          <ul>
+            {rest.map((c, i) => {
+              const m = CELEB_META[c.type] || CELEB_META.decisions
+              return (
+                <li key={i} className={`flex items-start gap-3 px-2 py-2.5 ${i > 0 ? 'border-t border-mint/10' : ''}`}>
+                  <span className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${m.color}1F` }}>
+                    <m.Icon size={14} style={{ color: m.color }} />
+                  </span>
+                  <p className="text-sm text-pitch-700 dark:text-paper-300 leading-relaxed pt-1">{c.text}</p>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
