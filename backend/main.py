@@ -33,6 +33,33 @@ os.makedirs(_DATA_DIR, exist_ok=True)
 _db_path = os.environ.get("DB_PATH", os.path.join(_DATA_DIR, "effro.db"))
 os.environ["DB_PATH"] = _db_path
 
+# One-time DB migration for the Trace -> Effro rebrand: if the new effro.db
+# doesn't exist yet but a legacy trace.db does in this data dir, hand it to
+# SQLite (which recovers any hot rollback-journal and checkpoints a WAL on open)
+# and then rename it across. Done here, before database.py builds the engine, so
+# the app opens the user's real data instead of creating an empty DB. Idempotent
+# (no-op once effro.db exists); harmless for Docker (uses department.db, with no
+# trace.db present).
+_legacy_db = os.path.join(_DATA_DIR, "trace.db")
+if not os.path.exists(_db_path) and os.path.exists(_legacy_db):
+    try:
+        import sqlite3
+        _c = sqlite3.connect(_legacy_db)  # opening recovers any hot journal
+        try:
+            _c.execute("PRAGMA wal_checkpoint(TRUNCATE)")  # no-op in rollback mode
+            _c.commit()
+        finally:
+            _c.close()
+        os.replace(_legacy_db, _db_path)
+        for _ext in ("-wal", "-shm", "-journal"):
+            _src, _dst = _legacy_db + _ext, _db_path + _ext
+            if os.path.exists(_src) and not os.path.exists(_dst):
+                os.replace(_src, _dst)
+        print(f"Migrated database {_legacy_db} -> {_db_path}", flush=True)
+    except Exception as _e:
+        print(f"DB migration failed ({_legacy_db} -> {_db_path}): {_e}",
+              file=sys.stderr, flush=True)
+
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", os.path.join(_DATA_DIR, "uploads"))
 FRONTEND_DIST = os.environ.get("FRONTEND_DIST", _DEFAULT_FRONTEND)
 

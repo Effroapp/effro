@@ -118,6 +118,89 @@ fn default_data_dir(app: &AppHandle) -> std::path::PathBuf {
         })
 }
 
+/// One-time migration for the Trace -> Effro rebrand.
+///
+/// Older builds used the bundle identifier `com.trace.app`, so the per-user data
+/// + config dir was `%APPDATA%\com.trace.app\` (and OS equivalents). After the
+/// rename to `com.effro.app`, `app_data_dir()` points at a fresh folder - which
+/// would strand an upgrading user's database, uploads, and saved settings.
+///
+/// Crash-safe by construction: we copy the old dir into a temp sibling and only
+/// atomically rename it into place once the copy fully succeeds. A partial or
+/// failed copy leaves only the throwaway temp dir - `new_dir` is created in one
+/// atomic rename or not at all, so a later launch never mistakes a half-written
+/// dir for a finished migration.
+///
+/// Guarded on `new_dir` not existing. This runs FIRST in setup(), before
+/// anything (incl. the plugin-store) can create that dir, so its presence always
+/// means a prior launch already completed the migration - we never overwrite.
+///
+/// The DB file is left named `trace.db` inside the copied dir; the backend
+/// renames it to `effro.db` on startup via SQLite (see backend/main.py), which
+/// recovers any hot rollback-journal / checkpoints a WAL first - safer than a
+/// bare multi-file rename here.
+///
+/// Windows-focused (the shipping target): there `app_data_dir == app_config_dir`,
+/// so copying the data dir carries the plugin-store config across too.
+///
+/// Known limitation: a user who set an explicit *custom* data dir keeps that
+/// path verbatim (carried in config.json); the backend migrates the DB at that
+/// real location, and the copied default-dir DB is just an unused orphan.
+fn migrate_legacy_identifier_data(app: &AppHandle) {
+    const LEGACY_IDENTIFIER: &str = "com.trace.app";
+
+    let Ok(new_dir) = app.path().app_data_dir() else { return };
+    // Already migrated, or a normal subsequent launch - never overwrite.
+    if new_dir.exists() {
+        return;
+    }
+    let Some(parent) = new_dir.parent() else { return };
+    let old_dir = parent.join(LEGACY_IDENTIFIER);
+    if old_dir == new_dir || !old_dir.exists() {
+        return;
+    }
+    // Only migrate if the old dir actually holds state worth carrying over.
+    if !old_dir.join(CONFIG_STORE).exists() && !old_dir.join("trace.db").exists() {
+        return;
+    }
+
+    // Copy into a temp sibling, then atomically promote it.
+    let tmp_name = format!(
+        "{}.migrating",
+        new_dir.file_name().and_then(|s| s.to_str()).unwrap_or("com.effro.app")
+    );
+    let tmp_dir = parent.join(tmp_name);
+    if tmp_dir.exists() {
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+    }
+
+    if let Err(e) = copy_dir_recursive(&old_dir, &tmp_dir) {
+        eprintln!(
+            "Legacy data migration copy failed: {}. Old data untouched at {}.",
+            e,
+            old_dir.display()
+        );
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+        return;
+    }
+    match std::fs::rename(&tmp_dir, &new_dir) {
+        Ok(()) => println!(
+            "Migrated data from {} to {}",
+            old_dir.display(),
+            new_dir.display()
+        ),
+        Err(e) => {
+            eprintln!(
+                "Failed to finalise migration ({} -> {}): {}. Old data untouched.",
+                tmp_dir.display(),
+                new_dir.display(),
+                e
+            );
+            let _ = std::fs::remove_dir_all(&tmp_dir);
+        }
+    }
+}
+
 /// Reads the user-chosen data dir from the config store, falling back to the
 /// OS default when nothing is saved (first launch, or after a fresh install).
 /// Validates that the saved path is at least theoretically usable - i.e. the
@@ -423,6 +506,13 @@ fn main() {
             app_version,
         ])
         .setup(move |app| {
+            // One-time Trace -> Effro migration. Runs FIRST, before any config-
+            // store access, so an upgrading user's data + settings follow the
+            // renamed bundle identifier instead of being stranded under the old
+            // com.trace.app dir. The DB file is renamed just below, once the
+            // data dir is resolved.
+            migrate_legacy_identifier_data(&app.handle());
+
             // Clean up any orphan backend from a previous launch (crash,
             // Task Manager force-close, antivirus-killed process, etc.)
             // BEFORE we try to spawn a new one - saves the user from
