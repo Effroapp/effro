@@ -49,7 +49,7 @@
 /* ─── Base ───────────────────────────────────────────────────────────────── */
 @layer base {
   html {
-    font-family: var(--font-body, 'Geist'), 'Lexend', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-family: var(--font-body, 'Geist Sans'), 'Lexend', ui-sans-serif, system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -105,13 +105,13 @@
 /* ─── Typography utilities ──────────────────────────────────────────────── */
 @layer utilities {
   .font-display {
-    font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    font-family: 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
     font-weight: 500;
     letter-spacing: -0.025em;
   }
 
   .font-lexend {
-    font-family: 'Lexend', 'Geist', ui-sans-serif, system-ui, sans-serif;
+    font-family: 'Lexend', 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
   }
 
   .font-mono {
@@ -145,7 +145,7 @@
 .prose-entry {
   @apply text-sm leading-relaxed;
   color: inherit;
-  font-family: 'Geist', 'Lexend', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Geist Sans', 'Lexend', ui-sans-serif, system-ui, sans-serif;
 }
 
 .prose-entry p {

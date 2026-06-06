@@ -205,7 +205,7 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
 
         {/* Title */}
         <h2 style={{
-          fontFamily: "'Geist', sans-serif",
+          fontFamily: "'Geist Sans', sans-serif",
           fontSize: isFirst || isCommitment ? 18 : 16,
           fontWeight: 600,
           letterSpacing: '-.02em',
@@ -219,7 +219,7 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
         {/* Body */}
         {step.body.split('\n\n').map((para, i) => (
           <p key={i} style={{
-            fontFamily: "'Lexend', 'Geist', sans-serif",
+            fontFamily: "'Lexend', 'Geist Sans', sans-serif",
             fontSize: 13, fontWeight: 300,
             lineHeight: 1.65,
             color: 'var(--paper-sd, var(--paper-soft-d))',
@@ -259,7 +259,7 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
                 color: 'var(--paper-sd, var(--paper-soft-d))',
                 cursor: 'pointer', fontSize: 13,
                 display: 'flex', alignItems: 'center', gap: 5,
-                fontFamily: "'Geist', sans-serif",
+                fontFamily: "'Geist Sans', sans-serif",
                 transition: 'border-color .15s, color .15s',
               }}
               title="Back"
@@ -277,7 +277,7 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
               color: isLast ? '#fff' : 'var(--paper-d, var(--paper-d))',
               cursor: 'pointer', fontSize: 13, fontWeight: isLast ? 600 : 400,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              fontFamily: "'Geist', sans-serif",
+              fontFamily: "'Geist Sans', sans-serif",
               transition: 'background .15s, transform .1s',
             }}
           >
