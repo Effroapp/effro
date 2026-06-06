@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 import models
 import icloud_client as ic
 
-log = logging.getLogger("trace.services.icloud")
+log = logging.getLogger("effro.services.icloud")
 
 
 def run_icloud_sync(db: Session) -> dict:

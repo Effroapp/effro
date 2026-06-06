@@ -23,7 +23,7 @@ import os
 from abc import ABC, abstractmethod
 from sqlalchemy.orm import Session
 
-log = logging.getLogger("trace.storage")
+log = logging.getLogger("effro.storage")
 
 # Where attachments land on disk. Resolved from env so the Tauri shell can
 # point it at the user-configurable data directory at startup.

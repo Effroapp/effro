@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 import models
 
-log = logging.getLogger("trace.github")
+log = logging.getLogger("effro.github")
 
 API_BASE = "https://api.github.com"
 _GH_CONFIG_KEY = "github_config"

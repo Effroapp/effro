@@ -1,5 +1,5 @@
 /**
- * Settings API helpers - talks to the Trace. backend's /settings/* routes.
+ * Settings API helpers - talks to the Effro backend's /settings/* routes.
  *
  * All functions throw on non-2xx with the server's `detail` message (falling
  * back to a generic message), so callers can render errors directly without

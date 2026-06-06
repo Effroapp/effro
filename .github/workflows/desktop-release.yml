@@ -83,7 +83,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
-          # v2 prefix busts the cache after the Trace→Effro repo rename.
+          # v2 prefix busts the cache after the repo rename.
           # Absolute paths baked into the old target/ artifacts no longer
           # match the new D:\a\effro\effro runner path.
           key: ${{ matrix.platform }}-cargo-v2-${{ hashFiles('src-tauri/Cargo.lock') }}
@@ -115,7 +115,7 @@ jobs:
           # GitHub PAT for fetching from the private releases endpoint.
           # build.rs picks this up and bakes it into the binary as a
           # compile-time const. End users never touch this directly.
-          TRACE_UPDATER_TOKEN: ${{ secrets.TRACE_UPDATER_TOKEN }}
+          EFFRO_UPDATER_TOKEN: ${{ secrets.EFFRO_UPDATER_TOKEN }}
           # Windows signing - picked up by tauri.conf.json's signCommand if
           # configured. Empty values are tolerated (build proceeds unsigned).
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}

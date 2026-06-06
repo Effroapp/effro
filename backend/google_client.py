@@ -28,7 +28,7 @@ from sqlalchemy.orm import Session
 
 import models
 
-log = logging.getLogger("trace.google")
+log = logging.getLogger("effro.google")
 
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -117,9 +117,9 @@ def save_config(db: Session, *, client_id: str, client_secret: str) -> None:
 def get_redirect_uri() -> str:
     """Loopback redirect the backend listens on (matches the setup guide)."""
     import os
-    build = os.environ.get("TRACE_BUILD", "web").lower()
+    build = os.environ.get("EFFRO_BUILD", "web").lower()
     if build == "desktop":
-        return "trace://auth/callback"
+        return "effro://auth/callback"
     port = os.environ.get("BACKEND_PORT", "8000")
     return f"http://localhost:{port}/api/google/auth/callback"
 

@@ -655,7 +655,7 @@ function AreaSkeleton() {
 
 // ─── Loading visuals for the Overview Update flow ─────────────────────────────
 
-function TraceMarkSpinner() {
+function EffroMarkSpinner() {
   return (
     <svg
       width="48"

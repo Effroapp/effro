@@ -105,8 +105,8 @@ fn wait_for_backend(port: u16) -> Result<(), String> {
 }
 
 /// OS-appropriate default per-user data dir. On Windows this is
-/// `%APPDATA%\com.trace.app\` (driven by the identifier in tauri.conf.json).
-/// Falls back to a `Trace` folder in the platform's local-data dir if Tauri's
+/// `%APPDATA%\com.effro.app\` (driven by the identifier in tauri.conf.json).
+/// Falls back to an `Effro` folder in the platform's local-data dir if Tauri's
 /// path resolver fails - which it shouldn't, but defensive code is cheap.
 fn default_data_dir(app: &AppHandle) -> std::path::PathBuf {
     app.path()
@@ -114,8 +114,91 @@ fn default_data_dir(app: &AppHandle) -> std::path::PathBuf {
         .unwrap_or_else(|_| {
             dirs::data_local_dir()
                 .unwrap_or_else(|| std::path::PathBuf::from("."))
-                .join("Trace")
+                .join("Effro")
         })
+}
+
+/// One-time migration for the Trace -> Effro rebrand.
+///
+/// Older builds used the bundle identifier `com.trace.app`, so the per-user data
+/// + config dir was `%APPDATA%\com.trace.app\` (and OS equivalents). After the
+/// rename to `com.effro.app`, `app_data_dir()` points at a fresh folder - which
+/// would strand an upgrading user's database, uploads, and saved settings.
+///
+/// Crash-safe by construction: we copy the old dir into a temp sibling and only
+/// atomically rename it into place once the copy fully succeeds. A partial or
+/// failed copy leaves only the throwaway temp dir - `new_dir` is created in one
+/// atomic rename or not at all, so a later launch never mistakes a half-written
+/// dir for a finished migration.
+///
+/// Guarded on `new_dir` not existing. This runs FIRST in setup(), before
+/// anything (incl. the plugin-store) can create that dir, so its presence always
+/// means a prior launch already completed the migration - we never overwrite.
+///
+/// The DB file is left named `trace.db` inside the copied dir; the backend
+/// renames it to `effro.db` on startup via SQLite (see backend/main.py), which
+/// recovers any hot rollback-journal / checkpoints a WAL first - safer than a
+/// bare multi-file rename here.
+///
+/// Windows-focused (the shipping target): there `app_data_dir == app_config_dir`,
+/// so copying the data dir carries the plugin-store config across too.
+///
+/// Known limitation: a user who set an explicit *custom* data dir keeps that
+/// path verbatim (carried in config.json); the backend migrates the DB at that
+/// real location, and the copied default-dir DB is just an unused orphan.
+fn migrate_legacy_identifier_data(app: &AppHandle) {
+    const LEGACY_IDENTIFIER: &str = "com.trace.app";
+
+    let Ok(new_dir) = app.path().app_data_dir() else { return };
+    // Already migrated, or a normal subsequent launch - never overwrite.
+    if new_dir.exists() {
+        return;
+    }
+    let Some(parent) = new_dir.parent() else { return };
+    let old_dir = parent.join(LEGACY_IDENTIFIER);
+    if old_dir == new_dir || !old_dir.exists() {
+        return;
+    }
+    // Only migrate if the old dir actually holds state worth carrying over.
+    if !old_dir.join(CONFIG_STORE).exists() && !old_dir.join("trace.db").exists() {
+        return;
+    }
+
+    // Copy into a temp sibling, then atomically promote it.
+    let tmp_name = format!(
+        "{}.migrating",
+        new_dir.file_name().and_then(|s| s.to_str()).unwrap_or("com.effro.app")
+    );
+    let tmp_dir = parent.join(tmp_name);
+    if tmp_dir.exists() {
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+    }
+
+    if let Err(e) = copy_dir_recursive(&old_dir, &tmp_dir) {
+        eprintln!(
+            "Legacy data migration copy failed: {}. Old data untouched at {}.",
+            e,
+            old_dir.display()
+        );
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+        return;
+    }
+    match std::fs::rename(&tmp_dir, &new_dir) {
+        Ok(()) => println!(
+            "Migrated data from {} to {}",
+            old_dir.display(),
+            new_dir.display()
+        ),
+        Err(e) => {
+            eprintln!(
+                "Failed to finalise migration ({} -> {}): {}. Old data untouched.",
+                tmp_dir.display(),
+                new_dir.display(),
+                e
+            );
+            let _ = std::fs::remove_dir_all(&tmp_dir);
+        }
+    }
 }
 
 /// Reads the user-chosen data dir from the config store, falling back to the
@@ -155,7 +238,7 @@ async fn pick_data_dir(app: AppHandle) -> Result<Option<String>, String> {
     Ok(result.map(|p| p.to_string()))
 }
 
-/// Copies the user's data (trace.db + uploads/) from the current location to
+/// Copies the user's data (effro.db + uploads/) from the current location to
 /// `new_path`, verifies the copy, and writes the new path to the config store.
 /// The old location is **never** deleted - copy-not-move is intentional.
 ///
@@ -176,8 +259,8 @@ async fn migrate_and_set_data_dir(app: AppHandle, new_path: String) -> Result<()
 
     // Copy the SQLite DB. Skip if the destination already has one - we'd
     // rather refuse than silently clobber data the user might still want.
-    let old_db = old_dir.join("trace.db");
-    let new_db = new_dir.join("trace.db");
+    let old_db = old_dir.join("effro.db");
+    let new_db = new_dir.join("effro.db");
     if old_db.exists() && !new_db.exists() {
         std::fs::copy(&old_db, &new_db)
             .map_err(|e| format!("Failed to copy database: {}", e))?;
@@ -279,7 +362,7 @@ fn get_update_endpoint(app: AppHandle) -> String {
 ///
 /// Always `None` now: the Effroapp/effro repo is PUBLIC, so release assets
 /// download anonymously. Sending the old fine-grained PAT (scoped to the
-/// long-gone private lukeogh/Trace repo) made GitHub answer 401 even for
+/// long-gone private releases repo) made GitHub answer 401 even for
 /// public files — the root cause of auto-update being broken through v0.9.x.
 /// The frontend no longer sends any Authorization header; this command is
 /// kept (returning None) only so older callers degrade safely.
@@ -423,6 +506,13 @@ fn main() {
             app_version,
         ])
         .setup(move |app| {
+            // One-time Trace -> Effro migration. Runs FIRST, before any config-
+            // store access, so an upgrading user's data + settings follow the
+            // renamed bundle identifier instead of being stranded under the old
+            // com.trace.app dir. The DB file is renamed just below, once the
+            // data dir is resolved.
+            migrate_legacy_identifier_data(&app.handle());
+
             // Clean up any orphan backend from a previous launch (crash,
             // Task Manager force-close, antivirus-killed process, etc.)
             // BEFORE we try to spawn a new one - saves the user from

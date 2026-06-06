@@ -32,12 +32,6 @@
   Pop $0
   nsExec::Exec /TIMEOUT=4000 'cmd /c taskkill /F /T /IM effro.exe >nul 2>&1'
   Pop $0
-  ; Also kill any leftover Trace-era processes, so users upgrading from a
-  ; pre-rename install don't hit a file lock during the migration install.
-  nsExec::Exec /TIMEOUT=4000 'cmd /c taskkill /F /T /IM trace-backend.exe >nul 2>&1'
-  Pop $0
-  nsExec::Exec /TIMEOUT=4000 'cmd /c taskkill /F /T /IM trace.exe >nul 2>&1'
-  Pop $0
   ; Brief pause — gives Windows time to release file handles after the
   ; process exits. 500ms is conservative; usually it's instant.
   Sleep 500

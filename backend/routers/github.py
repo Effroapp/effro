@@ -22,7 +22,7 @@ import schemas
 import github_client as gh
 from database import get_db
 
-log = logging.getLogger("trace.routers.github")
+log = logging.getLogger("effro.routers.github")
 router = APIRouter(prefix="/github", tags=["github"])
 
 

@@ -57,7 +57,7 @@ export async function pickDataDir() {
 }
 
 /**
- * Copies trace.db + uploads/ from the current data dir to `newPath` and
+ * Copies effro.db + uploads/ from the current data dir to `newPath` and
  * saves the new path to the config store. The old data is **not** deleted -
  * intentional safety net. Caller must `relaunch()` afterwards because the
  * running sidecar still points at the old location.
@@ -129,7 +129,7 @@ async function getUpdaterAuthHeader() {
  *
  * NB: NO Authorization header. The Effroapp/effro repo is PUBLIC, so release
  * assets download anonymously. Sending a stale Bearer token (left over from
- * when the repo was the private lukeogh/Trace) makes GitHub return 401 even
+ * when the repo was private) makes GitHub return 401 even
  * for public files — which is exactly what broke auto-update through v0.9.x.
  */
 export async function checkForUpdate() {

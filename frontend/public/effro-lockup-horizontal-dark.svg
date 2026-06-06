@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 100" width="320" height="100" fill="none" role="img" aria-label="Effro">
+  <!-- Mark — curved fork, mint top branch (matches Logo.jsx) -->
+  <g stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 78 22 Q 64 42, 50 50" stroke="#10B981"/>
+    <path d="M 78 78 Q 64 58, 50 50" stroke="#F7F4ED"/>
+    <path d="M 22 50 L 50 50" stroke="#F7F4ED"/>
+  </g>
+  <text x="108" y="68" font-family="Geist, system-ui, -apple-system, sans-serif" font-weight="500" font-size="56" letter-spacing="-2.5" fill="#F7F4ED">Effro</text>
+  <circle cx="237" cy="62" r="6" fill="#10B981"/>
+</svg>

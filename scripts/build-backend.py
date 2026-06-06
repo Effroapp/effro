@@ -6,7 +6,7 @@ Tauri's sidecar mechanism expects it.
 Tauri v2 sidecar naming convention:
     src-tauri/binaries/{name}-{rust-target-triple}/
 e.g. on Windows x64:
-    src-tauri/binaries/trace-backend-x86_64-pc-windows-msvc/
+    src-tauri/binaries/effro-backend-x86_64-pc-windows-msvc/
 
 Run from the repo root:
     python scripts/build-backend.py

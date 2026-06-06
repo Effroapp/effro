@@ -27,7 +27,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 from sqlalchemy.orm import Session
 
-log = logging.getLogger("trace.ai")
+log = logging.getLogger("effro.ai")
 
 
 # ─── Provider presets ─────────────────────────────────────────────────────────

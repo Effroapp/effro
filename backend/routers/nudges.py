@@ -23,7 +23,7 @@ import models
 from database import get_db
 from ai_provider import get_provider
 
-log = logging.getLogger("trace.nudges")
+log = logging.getLogger("effro.nudges")
 router = APIRouter(tags=["nudges"])
 
 # Don't let the AI balloon the pool indefinitely.

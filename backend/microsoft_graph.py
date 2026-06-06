@@ -30,7 +30,7 @@ from sqlalchemy.orm import Session
 
 import models
 
-log = logging.getLogger("trace.microsoft")
+log = logging.getLogger("effro.microsoft")
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
 
@@ -121,21 +121,21 @@ def save_config(db: Session, *, client_id: str, client_secret: str, tenant_id: s
 
 
 def get_redirect_uri() -> str:
-    """Pick the redirect URI based on TRACE_BUILD.
+    """Pick the redirect URI based on EFFRO_BUILD.
 
     web (default) - Docker/browser: backend handles /api/microsoft/auth/callback.
     desktop       - Tauri shell: custom scheme caught by the deep-link plugin.
 
-    The desktop redirect uses the custom `trace://` scheme registered in
+    The desktop redirect uses the custom `effro://` scheme registered in
     tauri.conf.json (see spec §6.2). Until v0.6.x ships that wiring, the
     desktop frontend should show the "browser-only for v0.6.0" affordance
     in the MS settings card; the URI here is in place so v0.6.x just flips
     the env flag with no backend change.
     """
     import os
-    build = os.environ.get("TRACE_BUILD", "web").lower()
+    build = os.environ.get("EFFRO_BUILD", "web").lower()
     if build == "desktop":
-        return "trace://auth/callback"
+        return "effro://auth/callback"
     # Web/Docker: backend port + path. The frontend opens this URL via
     # window.location.href so cookies and CORS aren't in play.
     port = os.environ.get("BACKEND_PORT", "8000")

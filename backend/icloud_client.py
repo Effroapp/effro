@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 import models
 
-log = logging.getLogger("trace.icloud")
+log = logging.getLogger("effro.icloud")
 
 CALDAV_ROOT = "https://caldav.icloud.com"
 IMAP_HOST = "imap.mail.me.com"

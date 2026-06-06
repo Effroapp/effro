@@ -9,7 +9,7 @@ import AIRequiredCard from '../components/AIRequiredCard'
 import { useAIConfigured } from '../hooks/useAIConfigured'
 import { ENTITY, entityFor } from '../utils/entityIcons'
 
-const STORAGE_KEY = 'trace-process'
+const STORAGE_KEY = 'effro-process'
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 

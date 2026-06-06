@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 import models
 import github_client as gh
 
-log = logging.getLogger("trace.services.github")
+log = logging.getLogger("effro.services.github")
 
 
 def _parse_dt(s):
