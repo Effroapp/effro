@@ -18,6 +18,7 @@ import {
   Eye, EyeOff, RefreshCw, Target, Pencil, ListPlus, AlertTriangle, FolderPlus, Info,
 } from 'lucide-react'
 import { format, addDays, parseISO } from 'date-fns'
+import IntroPanel, { Key } from '../components/IntroPanel'
 import PageHeader from '../components/PageHeader'
 import { AreaIcon } from '../components/IconPicker'
 import { getAreaStatus } from '../utils/status'
@@ -95,10 +96,6 @@ export default function Insights() {
   useEffect(() => { if (tab === 'ahead' && !ahead) insightsApi.ahead().then(setAhead).catch(() => {}) }, [tab, ahead])
   useEffect(() => { if (tab === 'balance' && !balance) insightsApi.balance().then(setBalance).catch(() => {}) }, [tab, balance])
 
-  // First-run explainer: shown once, then it gets out of the way.
-  const [introSeen, setIntroSeen] = useState(() => localStorage.getItem('effro.insightsIntroSeen') === '1')
-  const dismissIntro = () => { localStorage.setItem('effro.insightsIntroSeen', '1'); setIntroSeen(true) }
-
   return (
     <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
       <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
@@ -114,38 +111,13 @@ export default function Insights() {
         />
 
         {/* First-run explainer - shown once, then dismissed for good. */}
-        {!introSeen && (
-          <div className="relative rounded-xl bg-gradient-to-br from-mint/10 to-mint/[0.03] dark:from-mint/[0.12] dark:to-mint/[0.03] p-5 pr-10 mb-6 animate-rise motion-reduce:animate-none">
-            <button
-              onClick={dismissIntro}
-              aria-label="Dismiss"
-              className="absolute top-3 right-3 p-1 rounded text-paper-400 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-200 transition-colors"
-            >
-              <X size={15} />
-            </button>
-            <div className="flex items-start gap-3">
-              <span className="w-9 h-9 rounded-lg bg-mint/15 flex items-center justify-center flex-shrink-0">
-                <Telescope size={17} className="text-mint-600 dark:text-mint-400" />
-              </span>
-              <div>
-                <p className="text-base font-semibold text-pitch-800 dark:text-white">Welcome to Insights</p>
-                <p className="text-sm text-paper-600 dark:text-paper-300 leading-relaxed mt-1">
-                  A calm place to see how things are really going.{' '}
-                  <b className="font-medium text-pitch-700 dark:text-paper-200">Reflect</b> on what you've done,
-                  look <b className="font-medium text-pitch-700 dark:text-paper-200">Ahead</b> at what's coming,
-                  and check the <b className="font-medium text-pitch-700 dark:text-paper-200">Balance</b> across your areas.
-                  It's all real, and none of it is here to nag you.
-                </p>
-                <button
-                  onClick={dismissIntro}
-                  className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-mint-700 dark:text-mint-300 hover:underline"
-                >
-                  Got it
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <IntroPanel icon={Telescope} title="Welcome to Insights" storageKey="effro.insightsIntroSeen">
+          A calm place to see how things are really going.{' '}
+          <Key>Reflect</Key> on what you've done,
+          look <Key>Ahead</Key> at what's coming,
+          and check the <Key>Balance</Key> across your areas.
+          It's all real, and none of it is here to nag you.
+        </IntroPanel>
 
         {/* Narrative line - the calm "what to notice", deterministic + accurate. */}
         {week?.narrative && (

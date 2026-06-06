@@ -24,7 +24,7 @@ import JiraIntegration from '../components/JiraIntegration'
 import GoogleIntegration from '../components/GoogleIntegration'
 import IcloudIntegration from '../components/IcloudIntegration'
 import GithubIntegration from '../components/GithubIntegration'
-import IntroCard from '../components/IntroCard'
+import IntroPanel, { Key } from '../components/IntroPanel'
 import IntegrationsPanel from '../components/IntegrationsPanel'
 import ProviderLogo from '../components/ProviderLogos'
 import { useAppVersion } from '../hooks/useAppVersion'
@@ -49,28 +49,34 @@ import { notifyAIConfigChanged } from '../hooks/useAIConfigured'
 // on screen. Tabs mirror the Insights page for a consistent feel.
 const SETTINGS_TABS = [
   {
-    key: 'ai', label: 'AI', Icon: Cpu, introTitle: 'the AI Engine',
-    beats: [
-      { label: 'What it is', text: 'The brain behind smart capture, summaries and gentle suggestions, using your own key.' },
-      { label: 'How it helps', text: 'You pick the provider, the model, the cost, and where your prompts go.' },
-      { label: 'Why we do it', text: 'Maximum control, nothing forced on you. Your key and data never route through us.' },
-    ],
+    key: 'ai', label: 'AI', Icon: Cpu, introTitle: 'The AI engine',
+    body: (
+      <>
+        The brain behind smart capture, summaries and gentle suggestions, running on your{' '}
+        <Key>own API key</Key>. You choose the <Key>provider</Key>, the <Key>model</Key>, the cost,
+        and where your prompts go. Nothing is forced on you, and your key and data never route through us.
+      </>
+    ),
   },
   {
     key: 'storage', label: 'Storage', Icon: Database, introTitle: 'Storage',
-    beats: [
-      { label: 'What it is', text: 'Where your data is stored day to day, and where it is backed up.' },
-      { label: 'How it helps', text: 'Safe, in a place you choose, with encrypted backups you can restore anywhere.' },
-      { label: 'Why we do it', text: 'Your data is yours. Effro never reads your files or your backups.' },
-    ],
+    body: (
+      <>
+        Where your data lives day to day, and where it is backed up. Keep it{' '}
+        <Key>somewhere you choose</Key>, with <Key>encrypted backups</Key> you can restore anywhere.
+        Your data is yours: Effro never reads your files or your backups.
+      </>
+    ),
   },
   {
     key: 'integrations', label: 'Integrations', Icon: Plug, introTitle: 'Integrations',
-    beats: [
-      { label: 'What it is', text: 'The apps you already work in: calendar, email, Jira, GitHub and more.' },
-      { label: 'How it helps', text: 'Their meetings, flagged emails and assigned issues flow in as work items, filed by area.' },
-      { label: 'Why we do it', text: 'Your tools are often not your choice, or ones you love. We sit alongside them, not replace them.' },
-    ],
+    body: (
+      <>
+        The apps you already work in: <Key>calendar, email, Jira, GitHub</Key> and more. Their meetings,
+        flagged emails and assigned issues flow in as <Key>work items</Key>, filed by area.
+        We sit alongside your tools, never replacing them.
+      </>
+    ),
   },
   {
     key: 'about', label: 'About', Icon: Info,
@@ -119,8 +125,8 @@ export default function SystemSettings({ updater }) {
 
       <main className="max-w-5xl mx-auto px-8 py-8">
         <SettingsTabs tab={tab} onChange={setTab} />
-        {active.beats
-          ? <IntroCard id={active.key} title={active.introTitle || active.label} beats={active.beats} />
+        {active.body
+          ? <IntroPanel icon={active.Icon} title={active.introTitle || active.label} storageKey={`effro.introPanel.${active.key}`}>{active.body}</IntroPanel>
           : <p className="text-sm text-paper-500 dark:text-paper-500 mb-5 leading-relaxed">{active.intro}</p>}
 
         <div className="space-y-6 animate-rise motion-reduce:animate-none" key={tab}>
