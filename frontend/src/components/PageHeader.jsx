@@ -17,7 +17,7 @@
 export default function PageHeader({ icon: Icon, title, subtitle, accent = false, right = null }) {
   return (
     <div className="mb-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 pr-14">
         <div className="flex items-center gap-2.5 min-w-0">
           {Icon && (
             accent ? (
