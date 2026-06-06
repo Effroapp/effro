@@ -815,6 +815,10 @@ class SignalListOut(BaseModel):
     # Most recent successful pull across connected sources (Outlook + Jira),
     # so the page can show "synced a few minutes ago". Null if never synced.
     last_synced: Optional[datetime] = None
+    # True if at least one Signals source (Outlook, Google, iCloud, GitHub, Jira)
+    # is set up. Lets the page tell "nothing connected yet" (offer setup) apart
+    # from "all caught up" (connected, nothing pending) when the list is empty.
+    integrations_configured: bool = False
 
 
 class SignalAcceptIn(BaseModel):

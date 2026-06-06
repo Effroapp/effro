@@ -126,7 +126,32 @@ def list_signals(db: Session = Depends(get_db)):
         pending_count=pending,
         ai_configured=ai_configured,
         last_synced=last_synced,
+        integrations_configured=_any_source_configured(db),
     )
+
+
+def _any_source_configured(db: Session) -> bool:
+    """True if at least one Signals source is set up. Microsoft / Jira / Google
+    keep a row per connection; GitHub and iCloud store credentials in
+    app_settings (read via their client helpers). Used only to choose the empty
+    state copy, so any failure degrades to 'not configured'."""
+    try:
+        if db.query(models.MicrosoftIntegration).first():
+            return True
+        if db.query(models.JiraIntegration).first():
+            return True
+        if db.query(models.GoogleIntegration).first():
+            return True
+        import github_client
+        if (github_client.get_config(db) or {}).get("token"):
+            return True
+        import icloud_client
+        ic = icloud_client.get_config(db) or {}
+        if ic.get("apple_id") and ic.get("app_password"):
+            return True
+    except Exception:
+        pass
+    return False
 
 
 def _is_ai_configured(db: Session) -> bool:
