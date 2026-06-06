@@ -49,7 +49,7 @@ export default function IntegrationsPanel() {
     <div className="space-y-5">
       {/* All options - icon row */}
       <div>
-        <div className="font-mono uppercase tracking-widest text-[10px] text-paper-500 dark:text-paper-600 mb-2">All integrations</div>
+        <div className="font-mono uppercase tracking-widest text-2xs text-paper-500 dark:text-paper-600 mb-2">All integrations</div>
         <div className="flex flex-wrap gap-2">
           {INTEGRATIONS.map((i) => {
             const on = conn[i.key]?.connected
@@ -76,7 +76,7 @@ export default function IntegrationsPanel() {
       {/* Connected list */}
       <div className="rounded-xl border border-paper-300 dark:border-pitch-500 bg-white dark:bg-pitch-700 p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="font-mono uppercase tracking-widest text-[10px] text-paper-500 dark:text-paper-600">Connected</div>
+          <div className="font-mono uppercase tracking-widest text-2xs text-paper-500 dark:text-paper-600">Connected</div>
           <button
             onClick={() => setModalKey(null)}
             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-mint-700 hover:bg-mint-800 text-white transition-colors"
@@ -96,7 +96,7 @@ export default function IntegrationsPanel() {
                 <ProviderLogo provider={i.logo} size={18} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-pitch-800 dark:text-white truncate">{i.name}</p>
-                  <p className="text-[11px] text-paper-500 dark:text-paper-600 truncate">{conn[i.key]?.status || i.tagline}</p>
+                  <p className="text-2xs text-paper-500 dark:text-paper-600 truncate">{conn[i.key]?.status || i.tagline}</p>
                 </div>
                 <button
                   onClick={() => setModalKey(i.key)}
@@ -110,7 +110,7 @@ export default function IntegrationsPanel() {
         )}
       </div>
 
-      <p className="text-[11px] text-paper-500 dark:text-paper-600 text-center">
+      <p className="text-2xs text-paper-500 dark:text-paper-600 text-center">
         Missing one you use?{' '}
         <a
           href="https://github.com/Effroapp/effro/issues/new"

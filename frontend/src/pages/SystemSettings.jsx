@@ -272,7 +272,7 @@ function AISummaryCard({ config, onEdit }) {
           <p className="text-sm font-medium text-pitch-800 dark:text-white capitalize">
             {config.provider}
           </p>
-          <p className="text-[11px] font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
+          <p className="text-2xs font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
             {config.model || '(default model)'}
             {config.api_key_masked && (
               <> · <span className="text-paper-400 dark:text-paper-700">{config.api_key_masked}</span></>
@@ -517,7 +517,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
                       <span className="text-sm font-medium text-pitch-800 dark:text-white capitalize">
                         {key === 'gemini' ? 'Google Gemini' : key === 'custom' ? 'Custom / Enterprise' : key}
                       </span>
-                      <span className="text-[10px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-paper-200 dark:bg-pitch-600 text-paper-700 dark:text-paper-300">
+                      <span className="text-2xs font-mono uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-paper-200 dark:bg-pitch-600 text-paper-700 dark:text-paper-300">
                         {g.badge}
                       </span>
                     </div>
@@ -555,7 +555,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
 
       {/* What is this */}
       <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
-        <div className="text-[10px] font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
+        <div className="text-2xs font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
           {guide.icon} {selected === 'gemini' ? 'Google Gemini' : selected === 'custom' ? 'Custom / Enterprise' : selected.charAt(0).toUpperCase() + selected.slice(1)} · {guide.time}
         </div>
         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">{guide.what}</div>
@@ -564,13 +564,13 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
       {/* Steps */}
       {guide.steps && (
         <div>
-          <div className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
+          <div className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
             {guide.keyLabel ? 'To get your key' : 'To get started'}
           </div>
           <div className="space-y-2">
             {guide.steps.map((s, i) => (
               <div key={i} className="flex gap-3 items-start">
-                <div className="w-5 h-5 rounded-full bg-mint-700 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-5 h-5 rounded-full bg-mint-700 text-white text-2xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
                   {i + 1}
                 </div>
                 <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
@@ -587,7 +587,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
                   )}
                   {s.suffix && ` ${s.suffix}`}
                   {s.code && (
-                    <code className="ml-1 px-1.5 py-0.5 rounded bg-pitch-800 dark:bg-black text-mint-300 text-[11px] font-mono">
+                    <code className="ml-1 px-1.5 py-0.5 rounded bg-pitch-800 dark:bg-black text-mint-300 text-2xs font-mono">
                       {s.code}
                     </code>
                   )}
@@ -707,7 +707,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
       </div>
 
       {!testResult?.ok && (
-        <p className="text-center text-[10px] text-paper-500 dark:text-paper-600">
+        <p className="text-center text-2xs text-paper-500 dark:text-paper-600">
           Test the connection first to enable Save.
         </p>
       )}
@@ -737,7 +737,7 @@ function Field({ label, hint, value, onChange, placeholder, type = 'text', autoC
         "
       />
       {hint && (
-        <p className="mt-1 text-[10px] text-paper-500 dark:text-paper-600">{hint}</p>
+        <p className="mt-1 text-2xs text-paper-500 dark:text-paper-600">{hint}</p>
       )}
     </div>
   )
@@ -830,7 +830,7 @@ function UpdateSection({ updater }) {
             <p className="text-sm text-pitch-700 dark:text-paper-300">
               Currently on <strong className="font-medium">v{version || '-'}</strong>
             </p>
-            <p className="text-[11px] text-paper-500 dark:text-paper-600 mt-0.5">
+            <p className="text-2xs text-paper-500 dark:text-paper-600 mt-0.5">
               {updater?.status === 'checking'
                 ? 'Checking for updates…'
                 : updater?.status === 'none'
@@ -917,7 +917,7 @@ function StorageSection({ id }) {
     <>
       {/* All options - icon row */}
       <div className="mb-4">
-        <div className="font-mono uppercase tracking-widest text-[10px] text-paper-500 dark:text-paper-600 mb-2">All storage</div>
+        <div className="font-mono uppercase tracking-widest text-2xs text-paper-500 dark:text-paper-600 mb-2">All storage</div>
         <div className="flex flex-wrap gap-2">
           {STORAGE_OPTIONS.map((o) => {
             const active = storageConfig?.provider === o.key
@@ -968,7 +968,7 @@ function StorageSection({ id }) {
                 >
                   {dataDir || '…'}
                 </p>
-                <p className="text-[11px] text-paper-500 dark:text-paper-600 mt-0.5">
+                <p className="text-2xs text-paper-500 dark:text-paper-600 mt-0.5">
                   Database, settings, attachments
                 </p>
               </div>
@@ -1037,12 +1037,12 @@ function StorageSection({ id }) {
                 : 'No cloud sync'}
             </p>
             {storageConfig?.is_connected && storageConfig.last_backup_at && (
-              <p className="text-[11px] text-paper-500 dark:text-paper-600 mt-0.5">
+              <p className="text-2xs text-paper-500 dark:text-paper-600 mt-0.5">
                 Backed up {new Date(storageConfig.last_backup_at).toLocaleDateString()}
               </p>
             )}
             {!storageConfig?.is_connected && (
-              <p className="text-[11px] text-paper-500 dark:text-paper-600 mt-0.5">
+              <p className="text-2xs text-paper-500 dark:text-paper-600 mt-0.5">
                 Encrypted backup, attachment sync
               </p>
             )}
@@ -1060,7 +1060,7 @@ function StorageSection({ id }) {
           </button>
         </div>
 
-        <p className="mt-3 text-center text-[11px] text-paper-500 dark:text-paper-600">
+        <p className="mt-3 text-center text-2xs text-paper-500 dark:text-paper-600">
           Coming soon - Dropbox · OneDrive · SharePoint
         </p>
       </Card>

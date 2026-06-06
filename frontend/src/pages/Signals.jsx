@@ -104,7 +104,7 @@ export default function Signals() {
             )}
             {data?.last_synced && !isSyncing && (
               <span
-                className="hidden sm:flex items-center gap-1.5 text-[11px] font-mono text-paper-500 dark:text-pitch-200"
+                className="hidden sm:flex items-center gap-1.5 text-2xs font-mono text-paper-500 dark:text-pitch-200"
                 title={`Last synced ${format(parseUTC(data.last_synced), 'EEE d MMM, HH:mm')}`}
               >
                 <Clock size={11} className="flex-shrink-0" />
@@ -259,7 +259,7 @@ function SignalCard({
         {isAssigned && (
           <button
             onClick={onOpenAssigned}
-            className="flex-shrink-0 flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-mint-700 dark:text-mint-300 hover:underline"
+            className="flex-shrink-0 flex items-center gap-1 text-2xs font-mono uppercase tracking-wider text-mint-700 dark:text-mint-300 hover:underline"
           >
             <Check size={10} strokeWidth={3} /> filed <ExternalLink size={10} />
           </button>
@@ -304,7 +304,7 @@ function SourceBadge({ source, kind }) {
   else if (source === 'github') key = `github:${kind === 'pr' ? 'pr' : 'issue'}`
   const { label, color } = labels[key] || { label: source, color: 'text-paper-500 dark:text-paper-600 bg-paper-100 dark:bg-pitch-700 border-stone' }
   return (
-    <span className={`inline-flex items-center text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${color}`}>
+    <span className={`inline-flex items-center text-2xs font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${color}`}>
       {label}
     </span>
   )
@@ -312,7 +312,7 @@ function SourceBadge({ source, kind }) {
 
 function MetaRow({ signal }) {
   return (
-    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-[11px] text-paper-500 dark:text-paper-600">
+    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-2xs text-paper-500 dark:text-paper-600">
       {signal.starts_at && (
         <span className="inline-flex items-center gap-1">
           <Calendar size={11} />
@@ -408,13 +408,13 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
     <div className="mt-3 pt-3 border-t border-paper-200 dark:border-pitch-600">
       {/* Add-as type choice - what the accepted signal becomes on the thread. */}
       <div className="flex items-center gap-1.5 mb-2.5">
-        <span className="text-[10px] font-mono uppercase tracking-wider text-paper-500 dark:text-paper-600">Add as</span>
+        <span className="text-2xs font-mono uppercase tracking-wider text-paper-500 dark:text-paper-600">Add as</span>
         <div className="inline-flex rounded-md border border-paper-300 dark:border-pitch-500 overflow-hidden">
           {typeOpts.map((o) => (
             <button
               key={o}
               onClick={() => setCreateAs(o)}
-              className={`px-2 py-0.5 text-[11px] transition-colors ${
+              className={`px-2 py-0.5 text-2xs transition-colors ${
                 createAs === o
                   ? 'bg-mint-700 text-white'
                   : 'text-paper-600 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-600'
@@ -429,16 +429,16 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
       {/* Quick-accept row: AI's suggestion as a one-click button when present */}
       {signal.suggested_area_name && !isPickerOpen && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] text-paper-500 dark:text-paper-600">
+          <span className="text-2xs text-paper-500 dark:text-paper-600">
             File under:
           </span>
-          <span className="text-[11px] font-medium text-pitch-700 dark:text-paper-300">
+          <span className="text-2xs font-medium text-pitch-700 dark:text-paper-300">
             {signal.suggested_area_name}
             {signal.suggested_thread_title && <> · {signal.suggested_thread_title}</>}
           </span>
           <button
             onClick={onTogglePicker}
-            className="text-[10px] font-mono uppercase tracking-wider text-paper-500 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300 transition-colors"
+            className="text-2xs font-mono uppercase tracking-wider text-paper-500 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300 transition-colors"
           >
             change
           </button>
@@ -478,7 +478,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
       {/* No-strong-match: AI didn't suggest, user must pick */}
       {!signal.suggested_area_name && !isPickerOpen && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] text-amber-600 dark:text-amber-400">
+          <span className="text-2xs text-amber-600 dark:text-amber-400">
             No strong match - choose an area.
           </span>
           <button
@@ -511,7 +511,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
       {isPickerOpen && (
         <div className="space-y-3 mt-1">
           <div>
-            <label className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 block mb-1">
+            <label className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 block mb-1">
               Area
             </label>
             <select
@@ -540,7 +540,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
 
           {chosenAreaId && (
             <div>
-              <label className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 block mb-1">
+              <label className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 block mb-1">
                 Thread
               </label>
               <select

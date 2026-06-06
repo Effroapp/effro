@@ -115,7 +115,7 @@ export default function OverviewCard({
     if (!data.summary_updated_at) return null
     const when = formatDistanceToNow(parseUTC(data.summary_updated_at))
     return (
-      <div className="px-4 pt-2.5 flex items-center gap-1.5 text-[11px] font-mono text-paper-500 dark:text-pitch-200">
+      <div className="px-4 pt-2.5 flex items-center gap-1.5 text-2xs font-mono text-paper-500 dark:text-pitch-200">
         <Clock size={11} className="flex-shrink-0" />
         <span>
           {data.summary_auto_generated ? 'Auto-generated' : 'Updated'} {when} ago
@@ -264,7 +264,7 @@ export default function OverviewCard({
             <p className="text-base leading-relaxed whitespace-pre-wrap ov-generating">
               {data.summary || 'Generating a fresh overview from recent activity'}
             </p>
-            <p className="mt-2 text-[11px] font-mono text-paper-500 dark:text-pitch-200">
+            <p className="mt-2 text-2xs font-mono text-paper-500 dark:text-pitch-200">
               Generating…
             </p>
           </div>

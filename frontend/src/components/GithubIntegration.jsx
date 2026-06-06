@@ -66,7 +66,7 @@ export default function GithubIntegration() {
         <Check size={14} className="text-mint flex-shrink-0" strokeWidth={3} />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-pitch-800 dark:text-white truncate">{profile.login ? `@${profile.login}` : 'Connected'}</p>
-          <p className="text-[11px] font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
+          <p className="text-2xs font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
             GitHub
             {profile.last_synced && <> · last synced {new Date(profile.last_synced).toLocaleString()}</>}
           </p>
@@ -74,7 +74,7 @@ export default function GithubIntegration() {
       </div>
 
       {lastSyncSummary && !lastSyncSummary.skipped && (
-        <div className="text-[11px] text-paper-500 dark:text-paper-600 px-1">
+        <div className="text-2xs text-paper-500 dark:text-paper-600 px-1">
           Sync OK: +{lastSyncSummary.added || 0} new, {lastSyncSummary.updated || 0} updated.
         </div>
       )}
@@ -113,7 +113,7 @@ export default function GithubIntegration() {
         </div>
       )}
 
-      <p className="text-[11px] text-paper-500 dark:text-paper-600 leading-snug">
+      <p className="text-2xs text-paper-500 dark:text-paper-600 leading-snug">
         Pulls PRs <strong className="font-medium">awaiting your review</strong>, issues and PRs <strong className="font-medium">assigned to you</strong>,
         and things you are <strong className="font-medium">mentioned in</strong> into Signals to triage. Read-only.
       </p>
@@ -159,7 +159,7 @@ function ConfigForm({ existing, onCancel, onSaved }) {
           autoComplete="off"
           className="w-full px-3 py-2 rounded-lg text-sm font-mono bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500 text-pitch-800 dark:text-white placeholder:text-paper-400 dark:placeholder:text-paper-700 focus:outline-none focus:ring-2 focus:ring-mint-500"
         />
-        <p className="mt-1 text-[10px] text-paper-500 dark:text-paper-600">Classic token with the repo + read:user scopes. Stored encrypted.</p>
+        <p className="mt-1 text-2xs text-paper-500 dark:text-paper-600">Classic token with the repo + read:user scopes. Stored encrypted.</p>
       </div>
 
       {error && (

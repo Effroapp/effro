@@ -600,7 +600,7 @@ export default function ThreadView() {
             <span>/</span>
             {area && (
               <>
-                <Link to={`/area/${area.id}`} className="hover:text-paper-700 dark:hover:text-paper-200 transition-colors uppercase">
+                <Link to={`/area/${area.id}`} className="hover:text-paper-700 dark:hover:text-paper-200 transition-colors">
                   {area.name}
                 </Link>
                 <span>/</span>
@@ -742,7 +742,7 @@ export default function ThreadView() {
         {/* ── Left: Entry log ─────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="flex items-center gap-2 text-[13px] font-display font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
+            <h2 className="flex items-center gap-2 text-sm font-display font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
               <MessageSquare size={15} className="text-paper-500 dark:text-pitch-100" />
               Add an entry
             </h2>
@@ -864,7 +864,7 @@ export default function ThreadView() {
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <ListTodo size={15} className="text-paper-500 dark:text-pitch-100" />
-                <h3 className="text-[13px] font-display font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
+                <h3 className="text-sm font-display font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
                   Open Tasks
                 </h3>
                 <span className="font-mono text-xs text-paper-400 dark:text-pitch-200">
@@ -900,7 +900,7 @@ export default function ThreadView() {
           <div className="border-t border-paper-200 dark:border-pitch-600 mt-2 mb-5" />
           <div className="flex items-center gap-2 mb-4">
             <Activity size={15} className="text-paper-500 dark:text-pitch-100" />
-            <h2 className="text-[13px] font-display font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
+            <h2 className="text-sm font-display font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
               Timeline
             </h2>
             <span className="font-mono text-xs text-paper-400 dark:text-pitch-200">{thread.entries.length}</span>
@@ -1010,7 +1010,7 @@ export default function ThreadView() {
                 "
               >
                 <UploadCloud size={20} className="opacity-70" />
-                <span className="text-[10px] font-display uppercase tracking-widest">
+                <span className="text-2xs font-display uppercase tracking-widest">
                   Drop a file to upload
                 </span>
               </button>
@@ -1023,7 +1023,7 @@ export default function ThreadView() {
                   border-2 border-dashed border-mint-500
                 ">
                   <Upload size={20} className="text-mint-700" />
-                  <p className="font-display uppercase tracking-widest text-[10px] text-paper-700 dark:text-paper-200">
+                  <p className="font-display uppercase tracking-widest text-2xs text-paper-700 dark:text-paper-200">
                     Drop to upload
                   </p>
                 </div>
@@ -1726,7 +1726,7 @@ function MeetingBody({ entry, editing, onEditStart, onCancel, onSave }) {
   return (
     <div className="space-y-2">
       <div>
-        <label className="block text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
+        <label className="block text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
           Title
         </label>
         <input
@@ -1742,7 +1742,7 @@ function MeetingBody({ entry, editing, onEditStart, onCancel, onSave }) {
         />
       </div>
       <div>
-        <label className="block text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
+        <label className="block text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
           When
         </label>
         <input
@@ -1815,7 +1815,7 @@ function EntryNotes({ initial, onSave }) {
         onClick={() => setOpen((v) => !v)}
         className="
           inline-flex items-center gap-1.5 px-1.5 py-0.5 -ml-1.5 rounded
-          text-[10px] font-display uppercase tracking-widest
+          text-2xs font-display uppercase tracking-widest
           text-paper-500 dark:text-paper-600
           hover:text-pitch-700 dark:hover:text-paper-200
           hover:bg-paper-100 dark:hover:bg-pitch-800
@@ -1825,7 +1825,7 @@ function EntryNotes({ initial, onSave }) {
         {open ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
         Notes
         {!open && hasContent && (
-          <span className="ml-1 px-1 rounded bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-200 font-mono text-[9px]">
+          <span className="ml-1 px-1 rounded bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-200 font-mono text-2xs">
             {value.trim().length}
           </span>
         )}
@@ -1849,7 +1849,7 @@ function EntryNotes({ initial, onSave }) {
         />
       )}
       {saving && (
-        <p className="mt-0.5 text-[10px] font-mono text-paper-400 dark:text-paper-700">
+        <p className="mt-0.5 text-2xs font-mono text-paper-400 dark:text-paper-700">
           Saving…
         </p>
       )}

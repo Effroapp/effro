@@ -39,7 +39,7 @@ export default function PageHeader({ icon: Icon, title, subtitle, accent = false
               {title}
             </h1>
             {subtitle && (
-              <p className="font-lexend text-[13px] leading-snug mt-0.5
+              <p className="font-lexend text-sm leading-snug mt-0.5
                             text-paper-600 dark:text-pitch-100">
                 {subtitle}
               </p>

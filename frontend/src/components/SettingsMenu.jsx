@@ -162,7 +162,7 @@ export default function SettingsMenu({
               </div>
             </div>
             {uploadError && (
-              <p className="mt-1.5 text-[10px] text-terracotta font-mono">
+              <p className="mt-1.5 text-2xs text-terracotta font-mono">
                 {uploadError}
               </p>
             )}
@@ -221,7 +221,7 @@ export default function SettingsMenu({
 function Section({ label, children }) {
   return (
     <div>
-      <div className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1.5">
+      <div className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1.5">
         {label}
       </div>
       {children}
@@ -250,7 +250,7 @@ function FontSelect({ value, options, onChange }) {
       >
         <span className="flex items-baseline gap-1.5 min-w-0">
           <span style={{ fontFamily: current.stack }} className="text-sm text-pitch-800 dark:text-white truncate">{current.label}</span>
-          <span className="font-mono text-[10px] text-paper-500 dark:text-paper-600 flex-shrink-0">{current.hint}</span>
+          <span className="font-mono text-2xs text-paper-500 dark:text-paper-600 flex-shrink-0">{current.hint}</span>
         </span>
         <ChevronDown size={13} className={`flex-shrink-0 text-paper-500 dark:text-paper-600 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -270,7 +270,7 @@ function FontSelect({ value, options, onChange }) {
                 >
                   <Check size={12} className={`flex-shrink-0 ${active ? 'opacity-100 text-mint-600 dark:text-mint-400' : 'opacity-0'}`} />
                   <span style={{ fontFamily: opt.stack }} className="flex-1 text-sm text-pitch-700 dark:text-paper-200 truncate">{opt.label}</span>
-                  <span className="font-mono text-[10px] text-paper-500 dark:text-paper-600 flex-shrink-0">{opt.hint}</span>
+                  <span className="font-mono text-2xs text-paper-500 dark:text-paper-600 flex-shrink-0">{opt.hint}</span>
                 </button>
                 <Tooltip content={opt.desc} side="left">
                   <span

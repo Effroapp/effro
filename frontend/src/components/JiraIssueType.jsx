@@ -36,7 +36,7 @@ export default function JiraIssueType({ kind, showLabel = true, size = 15 }) {
         <Icon size={Math.round(size * 0.66)} color="#ffffff" strokeWidth={3} />
       </span>
       {showLabel && (
-        <span className="text-[11px] font-medium text-pitch-700 dark:text-paper-300">
+        <span className="text-2xs font-medium text-pitch-700 dark:text-paper-300">
           {t.label}
         </span>
       )}

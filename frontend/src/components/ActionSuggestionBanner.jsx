@@ -83,14 +83,14 @@ export default function ActionSuggestionBanner({ actions, threadId, onCreateTodo
                   {action.todo_title}
                 </p>
                 {!isCreated && action.phrase && (
-                  <p className="text-[11px] text-paper-500 dark:text-paper-600 mt-0.5 truncate">
+                  <p className="text-2xs text-paper-500 dark:text-paper-600 mt-0.5 truncate">
                     from: “{action.phrase}”
                   </p>
                 )}
               </div>
 
               {isCreated ? (
-                <span className="flex-shrink-0 text-[10px] font-mono text-mint-700 dark:text-mint-300">
+                <span className="flex-shrink-0 text-2xs font-mono text-mint-700 dark:text-mint-300">
                   Added ✓
                 </span>
               ) : (

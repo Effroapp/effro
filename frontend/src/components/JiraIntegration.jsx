@@ -165,7 +165,7 @@ export default function JiraIntegration() {
           <p className="text-sm font-medium text-pitch-800 dark:text-white truncate">
             {profile.display_name || profile.email || 'Connected'}
           </p>
-          <p className="text-[11px] font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
+          <p className="text-2xs font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
             {profile.email}
             {profile.cloud_name && <> · {profile.cloud_name}</>}
             {profile.last_synced && <> · synced {new Date(profile.last_synced).toLocaleString()}</>}
@@ -174,7 +174,7 @@ export default function JiraIntegration() {
       </div>
 
       {lastSync && !lastSync.skipped && (
-        <div className="text-[11px] text-paper-500 dark:text-paper-600 px-1">
+        <div className="text-2xs text-paper-500 dark:text-paper-600 px-1">
           Sync OK: +{lastSync.added || 0} new, {lastSync.updated || 0} updated
           {lastSync.ai_suggested > 0 && <>, {lastSync.ai_suggested} AI-suggested</>}.
         </div>
@@ -225,7 +225,7 @@ export default function JiraIntegration() {
       {/* Which issues land in Signals — personal preference */}
       <div className="pt-1">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600">
+          <span className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600">
             Bring into Signals
           </span>
           {savingScope && <Loader2 size={11} className="animate-spin text-paper-400 dark:text-paper-600" />}
@@ -254,7 +254,7 @@ export default function JiraIntegration() {
                   <span className={`block text-xs font-medium ${active ? 'text-pitch-800 dark:text-white' : 'text-pitch-700 dark:text-paper-300'}`}>
                     {opt.label}
                   </span>
-                  <span className="block text-[11px] text-paper-500 dark:text-paper-600 leading-snug">
+                  <span className="block text-2xs text-paper-500 dark:text-paper-600 leading-snug">
                     {opt.desc}
                   </span>
                 </span>
@@ -262,7 +262,7 @@ export default function JiraIntegration() {
             )
           })}
         </div>
-        <p className="mt-2 text-[11px] text-paper-500 dark:text-paper-600 leading-snug">
+        <p className="mt-2 text-2xs text-paper-500 dark:text-paper-600 leading-snug">
           Syncs every 30 minutes into Signals for triage. Read-only, so Effro never writes to Jira. Changing this re-syncs now; issues already in Signals stay until you dismiss them.
         </p>
       </div>
@@ -289,7 +289,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <SetupGuide guide={JIRA_GUIDE} open={showGuide} onClose={() => setShowGuide(false)} />
       <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
-        <div className="text-[10px] font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
+        <div className="text-2xs font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
           One-time Atlassian setup
         </div>
         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
@@ -381,7 +381,7 @@ function Field({ label, hint, value, onChange, placeholder, type = 'text', autoC
           focus:outline-none focus:ring-2 focus:ring-mint-500
         "
       />
-      {hint && <p className="mt-1 text-[10px] text-paper-500 dark:text-paper-600">{hint}</p>}
+      {hint && <p className="mt-1 text-2xs text-paper-500 dark:text-paper-600">{hint}</p>}
     </div>
   )
 }

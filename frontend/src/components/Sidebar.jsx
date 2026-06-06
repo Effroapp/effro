@@ -148,7 +148,7 @@ export default function Sidebar({
                   />
                 </span>
                 {/* Slogan - tight tracking + light opacity so it sits behind the brand. */}
-                <span className="mt-1 font-mono uppercase tracking-[0.12em] text-[9px] text-paper-400 dark:text-paper-700 truncate">
+                <span className="mt-1 font-mono uppercase tracking-[0.12em] text-2xs text-paper-400 dark:text-paper-700 truncate">
                   Stay across everything.
                 </span>
               </div>
@@ -277,7 +277,7 @@ export default function Sidebar({
               {area.icon ? (
                 <AreaIcon name={area.icon} size={13} className="flex-shrink-0" />
               ) : null}
-              <span className="flex-1 truncate font-medium text-xs font-display uppercase tracking-wide">
+              <span className="flex-1 truncate font-medium text-xs font-display">
                 {area.name}
               </span>
               {area.open_thread_count > 0 && (
@@ -426,7 +426,7 @@ function NavLink({ to, icon: Icon, label, active, collapsed, badge }) {
       <span className="font-display uppercase tracking-wide text-xs flex-1">{label}</span>
       {showBadge && (
         <span className="
-          ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded-full
+          ml-auto text-2xs font-mono px-1.5 py-0.5 rounded-full
           bg-mint-50 dark:bg-mint-900/30 text-mint-700 dark:text-mint-300
           min-w-[18px] text-center
         ">
@@ -491,7 +491,7 @@ function ShortcutHint({ label, keys }) {
         {keys.map((k) => (
           <kbd
             key={k}
-            className="px-1.5 py-0.5 rounded bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 font-mono text-paper-600 dark:text-paper-500 text-[10px]"
+            className="px-1.5 py-0.5 rounded bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 font-mono text-paper-600 dark:text-paper-500 text-2xs"
           >
             {k}
           </kbd>
@@ -532,7 +532,7 @@ function FooterShortcuts() {
         group-hover/keys:opacity-100 group-hover/keys:translate-y-0
         transition-all duration-150
       ">
-        <p className="font-display uppercase tracking-widest text-[9px] text-paper-400 dark:text-paper-600 mb-1.5">
+        <p className="font-display uppercase tracking-widest text-2xs text-paper-400 dark:text-paper-600 mb-1.5">
           Shortcuts
         </p>
         <ShortcutHint label="Capture" keys={['N']} />

@@ -190,7 +190,7 @@ export default function MicrosoftIntegration() {
           <p className="text-sm font-medium text-pitch-800 dark:text-white truncate">
             {profile.display_name || profile.email || 'Connected'}
           </p>
-          <p className="text-[11px] font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
+          <p className="text-2xs font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
             {profile.email}
             {profile.last_synced && <> · last synced {new Date(profile.last_synced).toLocaleString()}</>}
           </p>
@@ -198,7 +198,7 @@ export default function MicrosoftIntegration() {
       </div>
 
       {lastSyncSummary && !lastSyncSummary.skipped && (
-        <div className="text-[11px] text-paper-500 dark:text-paper-600 px-1">
+        <div className="text-2xs text-paper-500 dark:text-paper-600 px-1">
           Sync OK: +{lastSyncSummary.added || 0} new, {lastSyncSummary.updated || 0} updated
           {lastSyncSummary.ai_suggested > 0 && <>, {lastSyncSummary.ai_suggested} AI-suggested</>}
           {lastSyncSummary.dismissed > 0 && <>, {lastSyncSummary.dismissed} dropped</>}.
@@ -255,7 +255,7 @@ export default function MicrosoftIntegration() {
         </div>
       )}
 
-      <p className="text-[11px] text-paper-500 dark:text-paper-600 leading-snug">
+      <p className="text-2xs text-paper-500 dark:text-paper-600 leading-snug">
         Effro reads your Outlook calendar (titles, times, organisers, locations) every 30 minutes
         and stages new events in <strong className="font-medium">Signals</strong> for you to triage.
         Nothing is written back to Outlook. Mail, files, and Teams are never accessed.
@@ -289,7 +289,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
       <SetupGuide guide={AZURE_GUIDE} open={showGuide} onClose={() => setShowGuide(false)} />
       {/* What is this */}
       <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
-        <div className="text-[10px] font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
+        <div className="text-2xs font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
           One-time Azure setup
         </div>
         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
@@ -398,7 +398,7 @@ function Field({ label, hint, value, onChange, placeholder, type = 'text', autoC
         "
       />
       {hint && (
-        <p className="mt-1 text-[10px] text-paper-500 dark:text-paper-600">{hint}</p>
+        <p className="mt-1 text-2xs text-paper-500 dark:text-paper-600">{hint}</p>
       )}
     </div>
   )

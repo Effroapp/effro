@@ -47,7 +47,7 @@ export default function IntroPanel({ icon: Icon, title, storageKey, children }) 
           </p>
           <button
             onClick={dismiss}
-            className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-mint-700 dark:text-mint-300 hover:underline"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-mint-700 dark:text-mint-300 hover:underline"
           >
             Got it
           </button>

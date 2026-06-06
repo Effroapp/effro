@@ -398,7 +398,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-medium text-pitch-800 dark:text-white">{p.label}</span>
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${p.badgeColor}`}>
+                          <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded-full ${p.badgeColor}`}>
                             {p.badge}
                           </span>
                         </div>
@@ -423,11 +423,11 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-medium text-pitch-700 dark:text-paper-300">{p.label}</span>
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${p.badgeColor}`}>
+                          <span className={`text-2xs font-semibold px-1.5 py-0.5 rounded-full ${p.badgeColor}`}>
                             {p.badge}
                           </span>
                           <span className="
-                            flex items-center gap-0.5 text-[10px] font-semibold
+                            flex items-center gap-0.5 text-2xs font-semibold
                             px-1.5 py-0.5 rounded-full
                             bg-paper-100 dark:bg-pitch-600
                             text-paper-500 dark:text-paper-400
@@ -479,7 +479,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
 
             {/* "What is this?" - same idiom as the AI Engine setup card */}
             <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
-              <div className="text-[10px] font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
+              <div className="text-2xs font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
                 What is this?
               </div>
               <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
@@ -513,7 +513,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
             {picked === 'nextcloud' && (
               <>
                 <div>
-                  <div className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
+                  <div className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
                     To get your app password
                   </div>
                   <div className="space-y-2">
@@ -523,7 +523,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
                       { text: 'Copy the password - it only shows once, then paste it below' },
                     ].map((s, i) => (
                       <div key={i} className="flex gap-3 items-start">
-                        <div className="w-5 h-5 rounded-full bg-mint-700 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <div className="w-5 h-5 rounded-full bg-mint-700 text-white text-2xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
                           {i + 1}
                         </div>
                         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
@@ -562,7 +562,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
                   "
                 />
                 {f.hint && (
-                  <div className="mt-1 text-[10px] text-paper-500 dark:text-paper-600 leading-snug">
+                  <div className="mt-1 text-2xs text-paper-500 dark:text-paper-600 leading-snug">
                     {f.hint}
                   </div>
                 )}
@@ -573,7 +573,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
             <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-paper-100 dark:bg-pitch-800 border border-paper-200 dark:border-pitch-500">
               <div>
                 <div className="text-xs font-medium text-pitch-700 dark:text-paper-200">Daily encrypted backup</div>
-                <div className="text-[10px] text-paper-500 dark:text-paper-600 mt-0.5">Runs at 02:00 - keeps last 7 backups</div>
+                <div className="text-2xs text-paper-500 dark:text-paper-600 mt-0.5">Runs at 02:00 - keeps last 7 backups</div>
               </div>
               <button
                 onClick={() => setBackupEnabled(v => !v)}
@@ -639,7 +639,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
             </button>
 
             {!canSave && (
-              <div className="text-center text-[10px] text-paper-500 dark:text-paper-600">
+              <div className="text-center text-2xs text-paper-500 dark:text-paper-600">
                 Test the connection first to enable Save
               </div>
             )}
@@ -670,12 +670,12 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
             </div>
 
             <div>
-              <div className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
+              <div className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
                 Database backups
               </div>
               <div className="text-xs text-paper-500 dark:text-paper-600 leading-relaxed mb-3">
                 Daily encrypted snapshots stored in{' '}
-                <code className="text-[11px] bg-paper-100 dark:bg-pitch-800 px-1 py-0.5 rounded font-mono">
+                <code className="text-2xs bg-paper-100 dark:bg-pitch-800 px-1 py-0.5 rounded font-mono">
                   {currentConfig?.provider === 'nextcloud'
                     ? `${currentConfig?.remote_folder || 'Effro'}/backups/`
                     : `${currentConfig?.remote_folder || 'Effro Backups'}/`}
@@ -703,12 +703,12 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
                         {new Date(entry.occurred_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       {entry.size_bytes && (
-                        <span className="text-[10px] opacity-60">
+                        <span className="text-2xs opacity-60">
                           {(entry.size_bytes / 1024).toFixed(0)} KB
                         </span>
                       )}
                       {entry.error_message && (
-                        <span className="text-[10px] truncate max-w-[120px]" title={entry.error_message}>
+                        <span className="text-2xs truncate max-w-[120px]" title={entry.error_message}>
                           {entry.error_message}
                         </span>
                       )}
@@ -771,7 +771,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
               >
                 <Unplug size={12} /> Disconnect
               </button>
-              <div className="text-[10px] text-paper-500 dark:text-paper-600 text-center leading-snug">
+              <div className="text-2xs text-paper-500 dark:text-paper-600 text-center leading-snug">
                 Disconnecting stops future syncs. Files already uploaded are not deleted.
               </div>
             </div>

@@ -111,7 +111,7 @@ export default function SubtaskList({
           size={13}
           className={`text-paper-400 dark:text-paper-600 flex-shrink-0 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`}
         />
-        <span className="font-display uppercase tracking-widest text-[10px] text-paper-500 dark:text-paper-600 flex-shrink-0">
+        <span className="font-display uppercase tracking-widest text-2xs text-paper-500 dark:text-paper-600 flex-shrink-0">
           Subtasks
         </span>
         {/* Progress bar - fills the middle so it's a glanceable status whether
@@ -122,7 +122,7 @@ export default function SubtaskList({
             style={{ width: `${progressPct}%` }}
           />
         </div>
-        <span className={`text-[10px] font-mono tabular-nums flex-shrink-0 ${
+        <span className={`text-2xs font-mono tabular-nums flex-shrink-0 ${
           allDone ? 'text-mint-700 dark:text-mint-300' : 'text-paper-500 dark:text-paper-600'
         }`}>
           {completedCount}/{totalCount}
@@ -157,7 +157,7 @@ export default function SubtaskList({
                     {subtask.content}
                   </p>
                   {subtask.time_estimate_minutes && !isDone && (
-                    <span className="text-[10px] font-mono text-paper-500 dark:text-paper-600 mt-0.5 block">
+                    <span className="text-2xs font-mono text-paper-500 dark:text-paper-600 mt-0.5 block">
                       {formatEstimate(subtask.time_estimate_minutes)}
                     </span>
                   )}

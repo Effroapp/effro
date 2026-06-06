@@ -153,7 +153,7 @@ export default function GoogleIntegration() {
           <p className="text-sm font-medium text-pitch-800 dark:text-white truncate">
             {profile.display_name || profile.email || 'Connected'}
           </p>
-          <p className="text-[11px] font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
+          <p className="text-2xs font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
             {profile.email}
             {profile.last_synced && <> · last synced {new Date(profile.last_synced).toLocaleString()}</>}
           </p>
@@ -161,7 +161,7 @@ export default function GoogleIntegration() {
       </div>
 
       {lastSyncSummary && (
-        <div className="text-[11px] text-paper-500 dark:text-paper-600 px-1">
+        <div className="text-2xs text-paper-500 dark:text-paper-600 px-1">
           {lastSyncSummary.skipped
             ? (lastSyncSummary.reason === 'not_connected' ? 'Not connected.' : 'Nothing to sync.')
             : <>Sync OK: +{lastSyncSummary.added || 0} new, {lastSyncSummary.updated || 0} updated.</>}
@@ -199,7 +199,7 @@ export default function GoogleIntegration() {
         </div>
       )}
 
-      <p className="text-[11px] text-paper-500 dark:text-paper-600 leading-snug">
+      <p className="text-2xs text-paper-500 dark:text-paper-600 leading-snug">
         This one connection pulls your <strong className="font-medium">Calendar events</strong> and{' '}
         <strong className="font-medium">starred Gmail</strong> into Signals to triage, and also backs the encrypted
         Google Drive backups (Settings → Storage). Read-only access, plus files it creates itself.
@@ -231,7 +231,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <SetupGuide guide={GOOGLE_GUIDE} open={showGuide} onClose={() => setShowGuide(false)} />
       <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
-        <div className="text-[10px] font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
+        <div className="text-2xs font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
           One-time Google setup
         </div>
         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
@@ -308,7 +308,7 @@ function Field({ label, hint, value, onChange, placeholder, type = 'text', autoC
         autoComplete={autoComplete}
         className="w-full px-3 py-2 rounded-lg text-sm font-mono bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500 text-pitch-800 dark:text-white placeholder:text-paper-400 dark:placeholder:text-paper-700 focus:outline-none focus:ring-2 focus:ring-mint-500"
       />
-      {hint && <p className="mt-1 text-[10px] text-paper-500 dark:text-paper-600">{hint}</p>}
+      {hint && <p className="mt-1 text-2xs text-paper-500 dark:text-paper-600">{hint}</p>}
     </div>
   )
 }

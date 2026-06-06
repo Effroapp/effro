@@ -134,7 +134,7 @@ export default function TaskDecompositionDrawer({
           </p>
 
           <div className="mt-3 px-3 py-2 rounded-md bg-paper-100 dark:bg-pitch-700 border border-paper-200 dark:border-pitch-500">
-            <p className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
+            <p className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
               Breaking down
             </p>
             <p className="text-sm text-pitch-700 dark:text-paper-200 leading-snug line-clamp-2">
@@ -218,7 +218,7 @@ function SubtaskEditRow({ item, index, onUpdateTitle, onRemove, isLast }) {
         ? 'bg-paper-100 dark:bg-pitch-700 border-mint/40'
         : 'bg-white dark:bg-pitch-800 border-paper-200 dark:border-pitch-700 hover:border-paper-300 dark:hover:border-pitch-500'
     }`}>
-      <span className="w-5 h-5 rounded-full bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 flex items-center justify-center text-[10px] font-mono text-paper-600 dark:text-paper-500 flex-shrink-0 mt-0.5">
+      <span className="w-5 h-5 rounded-full bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 flex items-center justify-center text-2xs font-mono text-paper-600 dark:text-paper-500 flex-shrink-0 mt-0.5">
         {index + 1}
       </span>
 
@@ -243,7 +243,7 @@ function SubtaskEditRow({ item, index, onUpdateTitle, onRemove, isLast }) {
         )}
 
         {item.time_estimate_minutes && !editing && (
-          <span className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded text-[10px] font-mono bg-paper-100 dark:bg-pitch-700 text-paper-500 dark:text-paper-600 border border-paper-200 dark:border-pitch-500">
+          <span className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded text-2xs font-mono bg-paper-100 dark:bg-pitch-700 text-paper-500 dark:text-paper-600 border border-paper-200 dark:border-pitch-500">
             <Clock size={10} />
             ~{formatEstimate(item.time_estimate_minutes)}
           </span>

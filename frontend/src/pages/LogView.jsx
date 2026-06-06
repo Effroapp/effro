@@ -47,7 +47,7 @@ function LogRow({ record }) {
       <span className="font-mono text-paper-400 dark:text-paper-700 flex-shrink-0 w-28">
         {format(new Date(record.occurred_at), 'dd MMM HH:mm')}
       </span>
-      <span className="font-display font-semibold uppercase tracking-wide text-pitch-700 dark:text-paper-200 flex-shrink-0">
+      <span className="font-display font-semibold text-pitch-700 dark:text-paper-200 flex-shrink-0">
         {record.area_name}
       </span>
       {record.thread_title && (

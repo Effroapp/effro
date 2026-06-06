@@ -161,7 +161,7 @@ export default function QuickSwitcher({ isOpen, onClose }) {
                         {item.label}
                       </span>
                       {item.sublabel && (
-                        <span className="font-display uppercase tracking-wide text-xs text-paper-500 dark:text-paper-600 truncate max-w-[40%]">
+                        <span className="font-display text-xs text-paper-500 dark:text-paper-600 truncate max-w-[40%]">
                           {item.sublabel}
                         </span>
                       )}

@@ -75,6 +75,13 @@ export default {
         // Keep "display" for backwards compatibility - now points to Geist
         display: ['Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
+      fontSize: {
+        // Smallest step - 11px, rem-based so the text-size control (useTextSize)
+        // scales it like everything else. 11px is the floor: use sparingly, and
+        // never below it (WCAG 1.4.4 Resize Text / plain readability). Larger
+        // steps use Tailwind's built-in rem scale (xs 12px, sm 14px, base 16px).
+        '2xs': ['0.6875rem', '1rem'],
+      },
       letterSpacing: {
         tightest: '-0.045em',
         tighter: '-0.035em',
