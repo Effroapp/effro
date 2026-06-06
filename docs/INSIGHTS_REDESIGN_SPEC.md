@@ -1,6 +1,8 @@
 # Insights Redesign - Requirements Specification
 
-**Status legend:** ✅ Built & verified · 🧪 Prototype (mock data) · 📋 Planned (not started)
+**Status:** Shipped - all three lenses are live on `/insights`, backed by real
+aggregates. Any remaining open items are tracked in §9.
+**Status legend:** ✅ Built & verified · 📋 Planned (not started)
 **Prepared by:** Claude (Anthropic) · **Scope:** the reimagined Insights page
 **Companion to:** root `REQUIREMENTS.md` (read that first for the base product).
 
@@ -37,24 +39,26 @@ scores, no comparison to an "ideal", no nagging. The page states facts about wha
 |---|---|---|
 | **Reflect → Today** ("wind-down") | End-of-day recap; permission to stop | ✅ Built & verified |
 | Heartbeat / working-window infra | Honest "when did you start/stop" | ✅ Built & verified |
-| **Reflect → This week** | Step-back: closed loops, rhythm, work/life balance, celebrations | 🧪 Prototype |
-| **Ahead** | Timeline spine, load forecast, free-space pairing | 🧪 Prototype |
-| **Balance** | Attention map, drift radar, "not on you" reframe | 🧪 Prototype |
-| Live page replacement (`/insights`) | Promote prototype over the old page | 📋 Planned |
+| **Reflect → This week** | Step-back: closed loops, rhythm, work/life balance, celebrations | ✅ Built & verified |
+| **Ahead** | Timeline spine, load forecast, free-space pairing | ✅ Built & verified |
+| **Balance** | Attention map, drift radar, "not on you" reframe | ✅ Built & verified |
+| Live page replacement (`/insights`) | Redesign promoted over the old page | ✅ Built & verified |
 
-The redesign currently lives on the throwaway route **`/insights-proto`**
-(`frontend/src/pages/InsightsPrototype.jsx`). The old `/insights` page is untouched.
+The redesign has shipped: all lenses are live on **`/insights`**
+(`frontend/src/pages/Insights.jsx`), each backed by real aggregates from
+`routers/insights.py` (`/insights/today|week|ahead|balance`). The throwaway
+`/insights-proto` route and its `InsightsPrototype.jsx` have been retired.
 
 ---
 
 ## 3. Information architecture
 
 - **FR-IA1** Insights presents **three lenses** - *Reflect*, *Ahead*, *Balance* - as
-  tabs, with exactly one visible at a time (low cognitive load). 🧪
+  tabs, with exactly one visible at a time (low cognitive load). ✅
 - **FR-IA2** A single **narrative line** sits above the tabs as "what to notice", so
-  the user never has to decide where to look first. 🧪
+  the user never has to decide where to look first. ✅
 - **FR-IA3** The **Reflect** lens has a secondary **Today / This week** scope toggle.
-  *Today* is the wind-down ritual; *This week* is the step-back. ✅ (toggle) / 🧪 (week)
+  *Today* is the wind-down ritual; *This week* is the step-back. ✅
 - **FR-IA4** Tab and scope are predictable, stable destinations (no surprise
   reordering); switching is instant.
 
@@ -226,13 +230,15 @@ Created via `Base.metadata.create_all` and an additive `CREATE TABLE IF NOT EXIS
 
 ---
 
-## 6. Reflect (week), Ahead, Balance - prototype requirements 🧪
+## 6. Reflect (week), Ahead, Balance - requirements ✅ (shipped)
 
-These are designed and visually prototyped (mock data); the requirements below are the
-intended behaviour to build against next. Each will follow the §4.4 grounding pipeline
-and §4.5 non-goals.
+These have shipped and are live on `/insights`, each backed by real aggregates in
+`routers/insights.py` (verified end to end: `/insights/week|ahead|balance` run real
+queries against `entries` / `areas` / `threads`, with no mock data). The requirements
+below describe the built behaviour; each follows the §4.4 grounding pipeline and §4.5
+non-goals.
 
-### 6.1 Reflect → This week 🧪
+### 6.1 Reflect → This week ✅
 - **FR-R1** "Loops closed" headline + breakdown for the last 7 local days (same sources
   as §4.2, week window).
 - **FR-R2** **Worth noticing** - earned celebrations only: a blocker cleared, a thread
@@ -244,7 +250,7 @@ and §4.5 non-goals.
 - **FR-R4** **Your rhythm** - 14-day activity (entries/day), weekends de-emphasised.
 - **FR-R5** **Closed this week** - the concrete finished items.
 
-### 6.2 Ahead 🧪
+### 6.2 Ahead ✅
 - **FR-A1** **Load forecast** - count of meetings + due todos for next week, framed as
   "so it doesn't ambush you" (no pressure).
 - **FR-A2** **Timeline spine** - next ~10 local days with meetings and due todos placed
@@ -252,7 +258,7 @@ and §4.5 non-goals.
 - **FR-A3** **A good window** - pair free calendar time with a quiet area, as an
   optional suggestion ("if you have the energy"), never a directive.
 
-### 6.3 Balance 🧪
+### 6.3 Balance ✅
 - **FR-B1** **Attention map** - share of activity across areas + per-area sparklines.
 - **FR-B2** **Drift radar** - areas quiet ≥ N days, surfaced calmly ("when you have the
   energy"), never nagged.
@@ -286,8 +292,6 @@ and §4.5 non-goals.
 
 ## 9. Open items / future
 
-- Promote `/insights-proto` to the live `/insights` route (replace the old page). 📋
-- Wire Reflect-week, Ahead, Balance to real aggregates (§6). 📋
 - Record Jira done-transitions in the sync so "resolved" can be attributed honestly
   (today it is silently dismissed; see NG-2). 📋
 - Optional: a "feel-good" taste on the Dashboard greeting linking into Insights. 📋
