@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 import models
 
-log = logging.getLogger("trace.dropbox")
+log = logging.getLogger("effro.dropbox")
 
 AUTH_URL = "https://www.dropbox.com/oauth2/authorize"
 TOKEN_URL = "https://api.dropboxapi.com/oauth2/token"
@@ -59,9 +59,9 @@ def save_config(db: Session, *, app_key: str, app_secret: str) -> None:
 
 def get_redirect_uri() -> str:
     import os
-    build = os.environ.get("TRACE_BUILD", "web").lower()
+    build = os.environ.get("EFFRO_BUILD", "web").lower()
     if build == "desktop":
-        return "trace://auth/callback"
+        return "effro://auth/callback"
     port = os.environ.get("BACKEND_PORT", "8000")
     return f"http://localhost:{port}/api/dropbox/auth/callback"
 

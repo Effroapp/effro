@@ -32,7 +32,7 @@ import schemas
 import microsoft_graph as graph
 from database import get_db
 
-log = logging.getLogger("trace.routers.microsoft")
+log = logging.getLogger("effro.routers.microsoft")
 router = APIRouter(prefix="/microsoft", tags=["microsoft"])
 
 
@@ -143,7 +143,7 @@ async def auth_exchange(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
 ):
-    """Desktop flow: the Tauri deep-link handler caught trace://auth/callback?...
+    """Desktop flow: the Tauri deep-link handler caught effro://auth/callback?...
     and POSTs {code, state} here for the token exchange.
 
     Scaffolded for v0.6.x - the desktop wiring (deep-link plugin + custom scheme)

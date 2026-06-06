@@ -24,7 +24,7 @@ import httpx
 
 from storage_backend import StorageBackend
 
-log = logging.getLogger("trace.storage.s3")
+log = logging.getLogger("effro.storage.s3")
 
 _EMPTY_HASH = hashlib.sha256(b"").hexdigest()
 

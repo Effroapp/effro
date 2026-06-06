@@ -21,7 +21,7 @@ import models
 from database import SessionLocal
 from audit import log_audit
 
-log = logging.getLogger("trace.scheduler")
+log = logging.getLogger("effro.scheduler")
 
 _scheduler: BackgroundScheduler | None = None
 

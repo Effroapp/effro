@@ -22,8 +22,8 @@ npm run build      # = python scripts/build-backend.py && tauri build
 Output:
 
 ```
-src-tauri/target/release/bundle/nsis/Trace_1.0.0_x64-setup.exe   # 27 MB NSIS installer
-src-tauri/target/release/trace.exe                                # bare exe (no installer)
+src-tauri/target/release/bundle/nsis/Effro_1.0.0_x64-setup.exe   # 27 MB NSIS installer
+src-tauri/target/release/effro.exe                                # bare exe (no installer)
 ```
 
 The NSIS installer runs without admin elevation and installs to
@@ -80,23 +80,23 @@ Actions hosted runners.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Trace_1.0.0_x64-setup.exe                                   │
+│ Effro_1.0.0_x64-setup.exe                                   │
 │  installs to                                                │
 │  %LOCALAPPDATA%\Programs\Effro\                             │
-│    ├── trace.exe                  (Tauri Rust shell)        │
+│    ├── effro.exe                  (Tauri Rust shell)        │
 │    ├── resources/                                           │
 │    │   └── binaries/                                        │
-│    │       └── trace-backend-x86_64-pc-windows-msvc/        │
-│    │           ├── trace-backend.exe   (PyInstaller stub)   │
+│    │       └── effro-backend-x86_64-pc-windows-msvc/        │
+│    │           ├── effro-backend.exe   (PyInstaller stub)   │
 │    │           └── _internal/          (Python + deps)      │
 │    └── WebView2Loader.dll, etc.                             │
 └─────────────────────────────────────────────────────────────┘
 
 At runtime:
-  trace.exe (Rust)
+  effro.exe (Rust)
     ├── finds a free TCP port
-    ├── resolves resource_dir() → binaries/trace-backend-…/trace-backend.exe
-    ├── spawns it with --port N --data-dir %APPDATA%\com.trace.app
+    ├── resolves resource_dir() → binaries/effro-backend-…/effro-backend.exe
+    ├── spawns it with --port N --data-dir %APPDATA%\com.effro.app
     ├── polls http://127.0.0.1:N/api/health for up to 30s
     ├── navigates the WebView2 window to that URL once 200 OK
     ├── on close → hide to tray (backend keeps running)
@@ -130,9 +130,9 @@ What it does:
    `anthropic`, `apscheduler`) are importable in the current Python. Bails
    loudly if not - saves you from shipping an empty PyInstaller bundle.
 2. `npm run build` inside `frontend/` → static React app in `frontend/dist/`.
-3. `pyinstaller backend/trace-backend.spec --noconfirm --clean` →
-   `dist/trace-backend/` (exe + `_internal/` folder, ~45 MB total).
-4. Copies that folder to `src-tauri/binaries/trace-backend-{rust-triple}/`
+3. `pyinstaller backend/effro-backend.spec --noconfirm --clean` →
+   `dist/effro-backend/` (exe + `_internal/` folder, ~45 MB total).
+4. Copies that folder to `src-tauri/binaries/effro-backend-{rust-triple}/`
    where `{rust-triple}` is read from `rustc -vV`.
 
 ### 2. `tauri build`
@@ -140,8 +140,8 @@ What it does:
 What it does:
 
 1. Re-runs `npm run build` inside `frontend/` (Tauri's `beforeBuildCommand`).
-2. `cargo build --release` for `src-tauri/` → `trace.exe`.
-3. Bundles `trace.exe` + frontend assets + the `src-tauri/binaries/…` folder
+2. `cargo build --release` for `src-tauri/` → `effro.exe`.
+3. Bundles `effro.exe` + frontend assets + the `src-tauri/binaries/…` folder
    + WebView2 bootstrapper into an NSIS installer and an MSI.
 
 The first invocation downloads WiX (for MSI) and NSIS into
@@ -174,9 +174,9 @@ $signtool = "${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.0.26100.0\x64\signt
 # Sign the bare exe AND each installer:
 & $signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
     /f mycert.pfx /p $env:CERT_PASSWORD `
-    "src-tauri\target\release\trace.exe" `
-    "src-tauri\target\release\bundle\nsis\Trace_1.0.0_x64-setup.exe" `
-    "src-tauri\target\release\bundle\msi\Trace_1.0.0_x64_en-US.msi"
+    "src-tauri\target\release\effro.exe" `
+    "src-tauri\target\release\bundle\nsis\Effro_1.0.0_x64-setup.exe" `
+    "src-tauri\target\release\bundle\msi\Effro_1.0.0_x64_en-US.msi"
 ```
 
 **Tauri-native signing** (signs automatically as part of `tauri build`):
@@ -306,7 +306,7 @@ first item above.
 
 ### "ERROR: script `backend\backend\run.py` not found"
 
-You're on an old version of `backend/trace-backend.spec`. Pull latest - the
+You're on an old version of `backend/effro-backend.spec`. Pull latest - the
 spec was anchored to `SPECPATH` in commit `0f6f168` so it works regardless of
 CWD.
 
@@ -315,7 +315,7 @@ CWD.
 Cold cargo cache. Subsequent builds reuse `src-tauri/target/` and complete
 in ~1 min for backend changes only, ~5 min for Rust shell changes.
 
-### `trace-backend.exe` is left running after the app closes
+### `effro-backend.exe` is left running after the app closes
 
 On Windows, if the Rust shell crashes hard before its cleanup hook runs, the
 sidecar can be orphaned. Kill it via Task Manager. This shouldn't happen in
@@ -329,10 +329,10 @@ The desktop app stores its SQLite database, attachments, and avatars under:
 
 | OS | Path |
 |----|------|
-| Windows | `%APPDATA%\com.trace.app\` |
-| macOS | `~/Library/Application Support/com.trace.app/` |
-| Linux | `~/.local/share/com.trace.app/` |
+| Windows | `%APPDATA%\com.effro.app\` |
+| macOS | `~/Library/Application Support/com.effro.app/` |
+| Linux | `~/.local/share/com.effro.app/` |
 
 This is **separate from the Docker volume** - the desktop and Docker versions
 do not share state. (If you want to migrate from one to the other, copy
-`trace.db` and the `attachments/` and `avatars/` folders across.)
+`effro.db` and the `attachments/` and `avatars/` folders across.)

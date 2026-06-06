@@ -1,4 +1,4 @@
-' Trace — Launcher
+' Effro Launcher
 ' Double-click to start the app and open it in your browser.
 ' Place this file in the same folder as docker-compose.yml
 

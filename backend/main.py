@@ -30,7 +30,7 @@ else:
 os.makedirs(_DATA_DIR, exist_ok=True)
 
 # Propagate DB_PATH BEFORE the database module is imported.
-_db_path = os.environ.get("DB_PATH", os.path.join(_DATA_DIR, "trace.db"))
+_db_path = os.environ.get("DB_PATH", os.path.join(_DATA_DIR, "effro.db"))
 os.environ["DB_PATH"] = _db_path
 
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", os.path.join(_DATA_DIR, "uploads"))
@@ -231,7 +231,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         # Don't let a scheduler bug take the whole API down
         import logging
-        logging.getLogger("trace").warning("Scheduler failed to start: %s", e)
+        logging.getLogger("effro").warning("Scheduler failed to start: %s", e)
     yield
     try:
         import scheduler

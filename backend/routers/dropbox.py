@@ -25,7 +25,7 @@ import schemas
 import dropbox_client as dbx
 from database import get_db
 
-log = logging.getLogger("trace.routers.dropbox")
+log = logging.getLogger("effro.routers.dropbox")
 router = APIRouter(prefix="/dropbox", tags=["dropbox"])
 
 

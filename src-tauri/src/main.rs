@@ -105,8 +105,8 @@ fn wait_for_backend(port: u16) -> Result<(), String> {
 }
 
 /// OS-appropriate default per-user data dir. On Windows this is
-/// `%APPDATA%\com.trace.app\` (driven by the identifier in tauri.conf.json).
-/// Falls back to a `Trace` folder in the platform's local-data dir if Tauri's
+/// `%APPDATA%\com.effro.app\` (driven by the identifier in tauri.conf.json).
+/// Falls back to an `Effro` folder in the platform's local-data dir if Tauri's
 /// path resolver fails - which it shouldn't, but defensive code is cheap.
 fn default_data_dir(app: &AppHandle) -> std::path::PathBuf {
     app.path()
@@ -114,7 +114,7 @@ fn default_data_dir(app: &AppHandle) -> std::path::PathBuf {
         .unwrap_or_else(|_| {
             dirs::data_local_dir()
                 .unwrap_or_else(|| std::path::PathBuf::from("."))
-                .join("Trace")
+                .join("Effro")
         })
 }
 
@@ -155,7 +155,7 @@ async fn pick_data_dir(app: AppHandle) -> Result<Option<String>, String> {
     Ok(result.map(|p| p.to_string()))
 }
 
-/// Copies the user's data (trace.db + uploads/) from the current location to
+/// Copies the user's data (effro.db + uploads/) from the current location to
 /// `new_path`, verifies the copy, and writes the new path to the config store.
 /// The old location is **never** deleted - copy-not-move is intentional.
 ///
@@ -176,8 +176,8 @@ async fn migrate_and_set_data_dir(app: AppHandle, new_path: String) -> Result<()
 
     // Copy the SQLite DB. Skip if the destination already has one - we'd
     // rather refuse than silently clobber data the user might still want.
-    let old_db = old_dir.join("trace.db");
-    let new_db = new_dir.join("trace.db");
+    let old_db = old_dir.join("effro.db");
+    let new_db = new_dir.join("effro.db");
     if old_db.exists() && !new_db.exists() {
         std::fs::copy(&old_db, &new_db)
             .map_err(|e| format!("Failed to copy database: {}", e))?;
@@ -279,7 +279,7 @@ fn get_update_endpoint(app: AppHandle) -> String {
 ///
 /// Always `None` now: the Effroapp/effro repo is PUBLIC, so release assets
 /// download anonymously. Sending the old fine-grained PAT (scoped to the
-/// long-gone private lukeogh/Trace repo) made GitHub answer 401 even for
+/// long-gone private releases repo) made GitHub answer 401 even for
 /// public files — the root cause of auto-update being broken through v0.9.x.
 /// The frontend no longer sends any Authorization header; this command is
 /// kept (returning None) only so older callers degrade safely.

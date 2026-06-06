@@ -34,7 +34,7 @@ import schemas
 import google_client as gc
 from database import get_db
 
-log = logging.getLogger("trace.routers.google")
+log = logging.getLogger("effro.routers.google")
 router = APIRouter(prefix="/google", tags=["google"])
 
 

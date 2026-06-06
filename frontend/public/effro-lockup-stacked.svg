@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" fill="none" role="img" aria-label="Effro">
+  <!-- Mark, centred — curved fork, mint top branch (junction at 92,70) -->
+  <g stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 114 48 Q 103 63.7, 92 70" stroke="#10B981"/>
+    <path d="M 114 92 Q 103 76.3, 92 70" stroke="#14130F"/>
+    <path d="M 70 70 L 92 70" stroke="#14130F"/>
+  </g>
+  <!-- Wordmark "Effro", centred -->
+  <text x="100" y="170" text-anchor="middle"
+        font-family="Geist, system-ui, -apple-system, sans-serif"
+        font-weight="500" font-size="40" letter-spacing="-1.8" fill="#14130F">Effro</text>
+  <!-- Mint dot, positioned just after the wordmark (right edge ~143 at x=100
+       centre, "Effro" ~87px wide). -->
+  <circle cx="150" cy="164" r="4.5" fill="#10B981"/>
+</svg>

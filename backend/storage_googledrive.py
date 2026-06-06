@@ -23,7 +23,7 @@ import httpx
 
 from storage_backend import StorageBackend
 
-log = logging.getLogger("trace.storage.googledrive")
+log = logging.getLogger("effro.storage.googledrive")
 
 FILES_URL = "https://www.googleapis.com/drive/v3/files"
 UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files"

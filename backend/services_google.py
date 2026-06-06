@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 import models
 import google_client as gc
 
-log = logging.getLogger("trace.services.google")
+log = logging.getLogger("effro.services.google")
 
 
 def _parse_event_dt(d: Optional[dict]):

@@ -30,7 +30,7 @@ import models
 import schemas
 from database import get_db
 
-log = logging.getLogger("trace.routers.signals")
+log = logging.getLogger("effro.routers.signals")
 router = APIRouter(prefix="/signals", tags=["signals"])
 
 # app_settings key for the dashboard nudge mode (off / gentle / with-peek).

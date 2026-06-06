@@ -1,11 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Effro mark — the curved fork. Top branch carries the mint accent;
+       stem + lower branch adapt to light/dark. Matches Logo.jsx exactly. -->
   <style>
-    .mark { stroke: #14130F; }
+    .ink { stroke: #14130F; }
     @media (prefers-color-scheme: dark) {
-      .mark { stroke: #F7F4ED; }
+      .ink { stroke: #F7F4ED; }
     }
   </style>
-  <path class="mark" d="M 22 50 L 50 50 L 78 26 M 50 50 L 78 74"
-        stroke-width="14" fill="none"
-        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Top branch — MINT -->
+  <path d="M 78 22 Q 64 42, 50 50" stroke="#10B981" stroke-width="14"
+        fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Bottom branch — ink / paper -->
+  <path class="ink" d="M 78 78 Q 64 58, 50 50" stroke-width="14"
+        fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Stem — ink / paper -->
+  <path class="ink" d="M 22 50 L 50 50" stroke-width="14"
+        fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

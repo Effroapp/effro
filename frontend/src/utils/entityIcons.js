@@ -6,7 +6,7 @@ import { PenLine, CheckSquare, Scale, Calendar, MessageSquare, Eye, Activity, Pa
  * and the Universal Suggest pipeline so the same idea always reads the
  * same way.
  *
- * Tint classes assume Trace's accent palette + the muted status colours
+ * Tint classes assume Effro's accent palette + the muted status colours
  * declared in tailwind.config.js.
  */
 export const ENTITY = {

@@ -11,7 +11,7 @@ export const DUE_DATE_OPTIONS = [
   { label: 'Pick date',  resolve: () => null },
 ]
 
-// ─── Area statuses (Trace v2 palette - muted, ADHD-friendly) ─────────────────
+// ─── Area statuses (Effro v2 palette - muted, ADHD-friendly) ─────────────────
 //
 // Hex values match the design tokens defined in tokens.css. Tailwind classes
 // reference the new colour namespaces in tailwind.config.js. Both must stay

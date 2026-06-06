@@ -12,7 +12,7 @@ import tempfile
 
 from storage_backend import StorageBackend
 
-log = logging.getLogger("trace.storage.webdav")
+log = logging.getLogger("effro.storage.webdav")
 
 
 class WebDAVBackend(StorageBackend):

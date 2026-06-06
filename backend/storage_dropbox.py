@@ -18,7 +18,7 @@ import httpx
 
 from storage_backend import StorageBackend
 
-log = logging.getLogger("trace.storage.dropbox")
+log = logging.getLogger("effro.storage.dropbox")
 
 UPLOAD_URL = "https://content.dropboxapi.com/2/files/upload"
 DOWNLOAD_URL = "https://content.dropboxapi.com/2/files/download"

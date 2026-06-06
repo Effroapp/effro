@@ -22,7 +22,7 @@ import schemas
 import icloud_client as ic
 from database import get_db
 
-log = logging.getLogger("trace.routers.icloud")
+log = logging.getLogger("effro.routers.icloud")
 router = APIRouter(prefix="/icloud", tags=["icloud"])
 
 
