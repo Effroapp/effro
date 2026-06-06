@@ -160,8 +160,8 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
         position: asModal ? 'relative' : 'fixed',
         width: CARD_W,
         zIndex: 1002,
-        background: 'var(--pitch-2, #181714)',
-        border: '1px solid var(--stone-dark, #38352F)',
+        background: 'var(--pitch-2, var(--pitch-2))',
+        border: '1px solid var(--stone-dark, var(--stone-dark))',
         borderRadius: 16,
         boxShadow: '0 24px 64px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06)',
         overflow: 'hidden',
@@ -170,11 +170,11 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
       }}
     >
       {/* Mint progress bar */}
-      <div style={{ height: 3, background: 'var(--stone-dark, #38352F)' }}>
+      <div style={{ height: 3, background: 'var(--stone-dark, var(--stone-dark))' }}>
         <div style={{
           height: '100%',
           width: `${progress}%`,
-          background: 'var(--mint, #10B981)',
+          background: 'var(--mint, var(--mint))',
           transition: 'width .4s cubic-bezier(.65,0,.35,1)',
           borderRadius: 3,
         }} />
@@ -186,7 +186,7 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
           <span style={{
             fontFamily: "'Geist Mono', monospace",
             fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase',
-            color: 'var(--mint, #10B981)',
+            color: 'var(--mint, var(--mint))',
           }}>
             {index + 1} of {total}
           </span>
@@ -194,7 +194,7 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
             onClick={onSkip}
             style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 2,
-              color: 'var(--paper-md, #6B6862)', lineHeight: 1,
+              color: 'var(--paper-md, var(--paper-muted-d))', lineHeight: 1,
               transition: 'color .15s',
             }}
             title="Skip tour"
@@ -210,7 +210,7 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
           fontWeight: 600,
           letterSpacing: '-.02em',
           lineHeight: 1.3,
-          color: 'var(--paper-d, #EDEAE3)',
+          color: 'var(--paper-d, var(--paper-d))',
           marginBottom: 10,
         }}>
           {step.title}
@@ -222,7 +222,7 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
             fontFamily: "'Lexend', 'Geist', sans-serif",
             fontSize: 13, fontWeight: 300,
             lineHeight: 1.65,
-            color: 'var(--paper-sd, #A8A49E)',
+            color: 'var(--paper-sd, var(--paper-soft-d))',
             marginBottom: 8,
           }}>
             {para}
@@ -238,7 +238,7 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
               marginTop: 6, marginBottom: 2,
               fontFamily: "'Geist Mono', monospace",
               fontSize: 12, letterSpacing: '.04em',
-              color: 'var(--mint, #10B981)',
+              color: 'var(--mint, var(--mint))',
               textDecoration: 'none',
             }}
           >
@@ -254,9 +254,9 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
               onClick={onBack}
               style={{
                 background: 'none',
-                border: '1px solid var(--stone-dark, #38352F)',
+                border: '1px solid var(--stone-dark, var(--stone-dark))',
                 borderRadius: 7, padding: '7px 12px',
-                color: 'var(--paper-sd, #A8A49E)',
+                color: 'var(--paper-sd, var(--paper-soft-d))',
                 cursor: 'pointer', fontSize: 13,
                 display: 'flex', alignItems: 'center', gap: 5,
                 fontFamily: "'Geist', sans-serif",
@@ -271,10 +271,10 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
             onClick={onNext}
             style={{
               flex: 1,
-              background: isLast ? 'var(--mint-button, #047857)' : 'var(--pitch-3, #232220)',
-              border: `1px solid ${isLast ? 'transparent' : 'var(--stone-dark, #38352F)'}`,
+              background: isLast ? 'var(--mint-button, var(--mint-button))' : 'var(--pitch-3, var(--pitch-3))',
+              border: `1px solid ${isLast ? 'transparent' : 'var(--stone-dark, var(--stone-dark))'}`,
               borderRadius: 7, padding: '8px 14px',
-              color: isLast ? '#fff' : 'var(--paper-d, #EDEAE3)',
+              color: isLast ? '#fff' : 'var(--paper-d, var(--paper-d))',
               cursor: 'pointer', fontSize: 13, fontWeight: isLast ? 600 : 400,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               fontFamily: "'Geist', sans-serif",
@@ -295,7 +295,7 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontFamily: "'Geist Mono', monospace",
                 fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase',
-                color: 'var(--paper-md, #6B6862)',
+                color: 'var(--paper-md, var(--paper-muted-d))',
                 transition: 'color .15s',
               }}
             >

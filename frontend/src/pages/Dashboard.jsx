@@ -301,7 +301,7 @@ function AreaCard({ area }) {
         className="h-1"
         style={{
           backgroundColor: config.dot,
-          boxShadow: `0 1px 8px ${config.dot}60`,
+          boxShadow: `0 1px 8px color-mix(in srgb, ${config.dot} 38%, transparent)`,
         }}
       />
 

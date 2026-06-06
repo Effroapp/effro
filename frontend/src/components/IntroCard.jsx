@@ -11,9 +11,9 @@ import { Info, Sparkles, ShieldCheck, X, ChevronDown } from 'lucide-react'
  *   beats: [{ label, text }, ...]  (in what / how / why order)
  */
 const BEAT_META = [
-  { Icon: Info,        color: '#6B8AB8' },  // what it is  (sky)
-  { Icon: Sparkles,    color: '#7A9579' },  // how it helps (mint/sage)
-  { Icon: ShieldCheck, color: '#8A7BB8' },  // why we do it (lavender)
+  { Icon: Info,        color: 'var(--sky-muted)' },  // what it is  (sky)
+  { Icon: Sparkles,    color: 'var(--sage)' },  // how it helps (mint/sage)
+  { Icon: ShieldCheck, color: 'var(--lavender)' },  // why we do it (lavender)
 ]
 
 export default function IntroCard({ id, title, beats }) {
@@ -54,7 +54,7 @@ export default function IntroCard({ id, title, beats }) {
             <div key={i} className="flex items-start gap-3">
               <span
                 className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: `${m.color}1A` }}
+                style={{ backgroundColor: `color-mix(in srgb, ${m.color} 10%, transparent)` }}
               >
                 <m.Icon size={14} style={{ color: m.color }} />
               </span>

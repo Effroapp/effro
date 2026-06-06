@@ -30,23 +30,23 @@ import { InfoTip } from '../components/Tooltip'
 const ENTRY_META = {
   // Productivity (things added/logged today)
   update:          { Icon: Pencil,        color: '#7B8794' },
-  todo_added:      { Icon: ListPlus,      color: '#6B8AB8' },
-  decision:        { Icon: ScaleIcon,     color: '#C99A5C' },
-  meeting:         { Icon: Calendar,      color: '#8A7BB8' },
-  blockage_logged: { Icon: AlertTriangle, color: '#C99A5C' },
-  thread_started:  { Icon: FolderPlus,    color: '#7A9579' },
+  todo_added:      { Icon: ListPlus,      color: 'var(--sky-muted)' },
+  decision:        { Icon: ScaleIcon,     color: 'var(--amber-muted)' },
+  meeting:         { Icon: Calendar,      color: 'var(--lavender)' },
+  blockage_logged: { Icon: AlertTriangle, color: 'var(--amber-muted)' },
+  thread_started:  { Icon: FolderPlus,    color: 'var(--sage)' },
   // Completions (things closed)
-  todo:     { Icon: CheckSquare, color: '#6B8AB8' },
-  blockage: { Icon: Ban,         color: '#B86A5C' },
-  resolved: { Icon: CircleCheck, color: '#7A9579' },
-  jira:     { Icon: Ticket,      color: '#6B8AB8' },
+  todo:     { Icon: CheckSquare, color: 'var(--sky-muted)' },
+  blockage: { Icon: Ban,         color: 'var(--terracotta)' },
+  resolved: { Icon: CircleCheck, color: 'var(--sage)' },
+  jira:     { Icon: Ticket,      color: 'var(--sky-muted)' },
 }
 
 const CELEB_META = {
-  unblocked: { Icon: Unlock,      color: '#7A9579' },
-  resolved:  { Icon: CircleCheck, color: '#7A9579' },
-  comeback:  { Icon: Undo2,       color: '#6B8AB8' },
-  decisions: { Icon: ScaleIcon,   color: '#C99A5C' },
+  unblocked: { Icon: Unlock,      color: 'var(--sage)' },
+  resolved:  { Icon: CircleCheck, color: 'var(--sage)' },
+  comeback:  { Icon: Undo2,       color: 'var(--sky-muted)' },
+  decisions: { Icon: ScaleIcon,   color: 'var(--amber-muted)' },
 }
 
 const TABS = [
@@ -363,7 +363,7 @@ function Hero({ count, unit = 'done today', caption, chips = [], items = [], onO
             {chips.map((b) => {
               const m = ENTRY_META[b.type] || ENTRY_META.todo
               return (
-                <span key={b.type} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[13px]" style={{ backgroundColor: `${m.color}1A`, color: m.color }}>
+                <span key={b.type} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[13px]" style={{ backgroundColor: `color-mix(in srgb, ${m.color} 10%, transparent)`, color: m.color }}>
                   <m.Icon size={13} />
                   <b className="font-semibold">{b.count}</b>
                   <span className="opacity-80">{b.label}</span>
@@ -523,7 +523,7 @@ function WorkingWindows({ days }) {
               <span className={`w-12 font-mono text-[11px] flex-shrink-0 ${d.label === 'Today' ? 'text-mint-600 dark:text-mint-400 font-bold' : 'text-paper-500 dark:text-paper-600'}`}>{d.label}</span>
               <div className="relative flex-1 h-3 rounded-full bg-paper-200 dark:bg-pitch-800/60">
                 {has && (
-                  <div className="absolute top-0 h-3 rounded-full" style={{ left: `${left}%`, width: `${Math.max(width, 1)}%`, backgroundColor: d.over ? '#C9A85C' : '#7A9579', opacity: d.label === 'Today' ? 0.6 : 1 }} />
+                  <div className="absolute top-0 h-3 rounded-full" style={{ left: `${left}%`, width: `${Math.max(width, 1)}%`, backgroundColor: d.over ? 'var(--mustard)' : 'var(--sage)', opacity: d.label === 'Today' ? 0.6 : 1 }} />
                 )}
               </div>
               <span className="w-28 flex-shrink-0 text-right font-mono text-[11px] text-paper-500 dark:text-paper-500">
@@ -566,7 +566,7 @@ function RhythmChart({ rhythm }) {
         return (
           <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
             <div className="w-full flex items-end justify-center" style={{ height: '92px' }}>
-              <div className="w-full rounded-sm" style={{ height: `${h}px`, backgroundColor: r.is_today ? '#10B981' : r.weekend ? '#A8A49E55' : '#7A9579AA' }} title={`${r.count} entries`} />
+              <div className="w-full rounded-sm" style={{ height: `${h}px`, backgroundColor: r.is_today ? 'var(--mint)' : r.weekend ? 'color-mix(in srgb, var(--paper-soft-d) 33%, transparent)' : 'color-mix(in srgb, var(--sage) 67%, transparent)' }} title={`${r.count} entries`} />
             </div>
             <span className={`font-mono text-[9px] ${r.is_today ? 'text-mint-600 dark:text-mint-400 font-bold' : 'text-paper-400 dark:text-paper-700'}`}>{r.label}</span>
           </div>
@@ -619,7 +619,7 @@ function AheadLens({ data }) {
             onClick={() => navigate(`/thread/${data.next_meeting.thread_id}`)}
             className="w-full text-left rounded-xl bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 p-5 flex items-center gap-4 hover:border-paper-400 dark:hover:border-pitch-400 transition-colors"
           >
-            <span className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#8A7BB81A' }}>
+            <span className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--lavender) 10%, transparent)' }}>
               <Calendar size={20} className="text-lavender" />
             </span>
             <div className="min-w-0 flex-1">
@@ -681,12 +681,12 @@ function TimelineStrip({ days }) {
           <span className={`font-mono text-[11px] mb-2 ${d.is_today ? 'text-pitch-700 dark:text-paper-200' : 'text-paper-500 dark:text-paper-600'}`}>{d.day_num}</span>
           <div className={`w-full min-h-[88px] rounded-md p-1 flex flex-col gap-1 overflow-hidden ${d.is_today ? 'bg-mint/5 ring-1 ring-mint/30' : d.weekend ? 'bg-paper-200/40 dark:bg-pitch-800/40' : 'bg-paper-100/60 dark:bg-pitch-800/30'}`}>
             {d.items.map((u, j) => u.kind === 'meeting' ? (
-              <div key={j} className="max-w-full rounded px-1 py-0.5 text-[9px] leading-tight font-medium truncate" style={{ backgroundColor: '#8A7BB826', color: '#8A7BB8' }} title={`${u.time_local || ''} ${u.content}`.trim()}>
+              <div key={j} className="max-w-full rounded px-1 py-0.5 text-[9px] leading-tight font-medium truncate" style={{ backgroundColor: 'color-mix(in srgb, var(--lavender) 15%, transparent)', color: 'var(--lavender)' }} title={`${u.time_local || ''} ${u.content}`.trim()}>
                 {u.time_local} {u.content}
               </div>
             ) : (
               <div key={j} className="flex items-center gap-1 px-0.5 min-w-0 w-full" title={u.content}>
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#6B8AB8' }} />
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--sky-muted)' }} />
                 <span className="text-[9px] leading-tight text-paper-600 dark:text-paper-400 truncate min-w-0">{u.content}</span>
               </div>
             ))}
