@@ -60,7 +60,7 @@ def _refresh_area(db, area: models.Area, provider) -> bool:
         "Output exactly 2 sentences. No preamble, no formatting, no bullet points.\n"
         "Sentence 1: the current state - what's happening right now, what's in motion.\n"
         "Sentence 2: what's next or blocking - risks, pending decisions, what to watch.\n"
-        "Tone: direct, factual, suitable for a status board. Avoid filler like 'currently' or 'we are'.\n"
+        "Tone: direct, factual, suitable for a status board. Avoid filler like 'currently' or 'we are', and do not open with \"Overall\", \"It's worth noting\", \"Additionally\" or \"In summary\".\n"
         "Use commas or hyphens for punctuation, never em dashes."
     )
     user_msg = (
@@ -115,7 +115,7 @@ def _refresh_thread(db, thread: models.Thread, provider) -> bool:
         "You write a concise status summary for a single thread of work.\n"
         "Output exactly 2 sentences. No preamble, no formatting, no bullet points.\n"
         "Sentence 1: the current state. Sentence 2: what's next or blocking.\n"
-        "Tone: direct, factual. Use commas or hyphens, never em dashes."
+        "Tone: direct, factual. Avoid filler openers like \"Overall\", \"It's worth noting\", \"Additionally\" or \"In summary\". Use commas or hyphens, never em dashes."
     )
     user_msg = (
         f"Thread: {thread.title}\nStatus: {thread.status}\n"

@@ -631,6 +631,7 @@ def _narrative(db, f):
         "below) in tone only.\n"
         "- Never mention undone work or tomorrow.\n"
         "- 2 to 3 short, warm sentences, second person.\n"
+        "- Do not open with filler like \"Overall\", \"It's worth noting\", or \"In summary\"; begin with the warmth.\n"
         "- End by gently giving permission to stop for the day.\n"
         "- No em dashes, no bullet points, no preamble, no headings."
     )

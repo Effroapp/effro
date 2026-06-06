@@ -408,6 +408,9 @@ class AIConfigOut(BaseModel):
     base_url: Optional[str]
     api_key_masked: Optional[str]
     is_configured: bool
+    # True when the active engine is a small/free/local preset; lets the UI set
+    # honest expectations (e.g. the Smart Generate note).
+    small_model: bool = False
 
 
 class AITestResult(BaseModel):

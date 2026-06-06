@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { BrainCircuit, Check, X, RotateCcw, Upload, FileText, Mail, Calendar, ChevronRight, MessageSquare, CheckCheck, Plus, Edit3 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { BrainCircuit, Check, X, RotateCcw, Upload, FileText, Mail, Calendar, ChevronRight, MessageSquare, CheckCheck, Plus, Edit3, Info } from 'lucide-react'
 import { areasApi, generateApi, entriesApi, ingestApi } from '../api/client'
 import PageHeader from '../components/PageHeader'
 import IntroPanel, { Key } from '../components/IntroPanel'
@@ -522,7 +523,7 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
 export default function ProcessView() {
   // AI gate - checked first so the rest of the page doesn't even mount its
   // ingest/extract machinery when the engine isn't set up.
-  const { configured: aiConfigured, loading: aiLoading } = useAIConfigured()
+  const { configured: aiConfigured, loading: aiLoading, smallModel: aiSmallModel } = useAIConfigured()
 
   // Initialise from localStorage so navigation away doesn't lose work
   const [selectedAreaId, setSelectedAreaId] = useState(() => loadSaved()?.selectedAreaId ?? null)
@@ -894,6 +895,17 @@ export default function ProcessView() {
             <Step n="03" label="Review & approve" hint="Edit, refine, or reject each item" />
           </div>
         </div>
+
+        {aiSmallModel && (
+          <div className="flex items-start gap-2.5 rounded-lg border border-paper-300 dark:border-pitch-500 bg-paper-200/50 dark:bg-pitch-700/40 px-3.5 py-2.5 text-xs text-paper-600 dark:text-paper-300">
+            <Info size={14} className="mt-0.5 flex-shrink-0 text-paper-500 dark:text-paper-500" />
+            <span>
+              You're using a smaller model, which can miss items or dates here. For the
+              most reliable extraction, connect a capable engine like Claude in{' '}
+              <Link to="/settings" className="text-mint-700 dark:text-mint-300 hover:underline">Settings → AI Engine</Link>.
+            </span>
+          </div>
+        )}
 
         {/* Input Panel */}
         <div

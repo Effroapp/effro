@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from database import get_db
-from ai_provider import get_provider
+from ai_provider import get_provider, is_small_model
 
 router = APIRouter(tags=["generate"])
 
@@ -88,6 +88,21 @@ _MAX_ENTRIES_PER_THREAD = 4
 _ENTRY_SNIPPET_CHARS = 100
 _DESC_SNIPPET_CHARS = 160
 
+# A single worked example, appended to the extraction prompt ONLY for small/free/
+# local models (see ai_provider.is_small_model). It lifts JSON shape, thread
+# grouping and ISO-date use on weak adapters; capable models (Claude) don't need
+# it, so their calls stay lean. The model is told it is format-only.
+_FEW_SHOT_EXAMPLE = """
+
+EXAMPLE - format only, do NOT copy this content; extract from the real input above:
+Input: "Kicked off the firmware rollout with Chris. Need to send him the test plan by next Friday. We agreed to ship the beta before the GA build. Sync booked for Tue 10am."
+Output:
+[
+  {"type": "meeting", "content": "Firmware rollout sync with Chris", "rationale": "A scheduled meeting was mentioned.", "suggested_thread": "Firmware rollout", "due_date": null, "meeting_at": "2026-06-09T10:00"},
+  {"type": "todo", "content": "Send Chris the test plan", "rationale": "An explicit action with a deadline.", "suggested_thread": "Firmware rollout", "due_date": "2026-06-12", "meeting_at": null},
+  {"type": "decision", "content": "Ship the beta before the GA build", "rationale": "A decision was agreed.", "suggested_thread": "Firmware rollout", "due_date": null, "meeting_at": null}
+]"""
+
 
 def _snippet(text: str, limit: int) -> str:
     text = " ".join((text or "").split())
@@ -154,6 +169,10 @@ def generate_process(payload: schemas.ProcessRequest, db: Session = Depends(get_
 
     max_n = payload.max_items or 8
     max_n = max(1, min(8, max_n))  # keep each pass to a sane wave size
+    # The backend runs as a local sidecar, so the server's local date is the
+    # user's local date - enough to resolve "next Friday" without threading tz
+    # through the request.
+    today_str = _date.today().strftime("%A, %Y-%m-%d")
 
     base_system = f"""You extract structured work items from unstructured text for Effro., a personal log for tracking work across multiple parallel areas of responsibility.
 
@@ -163,13 +182,15 @@ HOW TO WORK:
 3. Then extract the work items and place each under the thread it genuinely belongs to, based on meaning - not on a single shared keyword.
 Derive threads from the content of this text. Do not invent threads, and do not bend items toward a thread they are not really about.
 
+TODAY'S DATE is {today_str} (the user's local date). Use it to resolve any relative dates ("tomorrow", "next Friday", "end of the month") into absolute ISO values.
+
 Respond with a JSON array only. No preamble, no explanation, no markdown code fences.
 Each item must have exactly these fields:
   type:             "todo" | "entry" | "decision" | "meeting"
   content:          string (clear and actionable; for meetings, the meeting subject/title)
   rationale:        string (one sentence explaining why you extracted this)
   suggested_thread: string (a short thread title this item belongs in; ALWAYS provide one, never null)
-  due_date:         string | null (a STRICT ISO date YYYY-MM-DD only; never a relative phrase like "next week" or "Weeks 1-2"; use null if no exact date)
+  due_date:         string | null (a STRICT ISO date YYYY-MM-DD. Resolve relative references like "tomorrow", "next Friday" or "in 2 weeks" to an absolute ISO date using TODAY'S DATE above; use null only if there is genuinely no date)
   meeting_at:       string | null (STRICT ISO datetime YYYY-MM-DDTHH:MM, meetings only, else null)
 Maximum {max_n} items. Prioritise actionable items over contextual ones.
 Group related items under the same suggested_thread, and prefer a few well-scoped threads over many tiny ones."""
@@ -230,6 +251,7 @@ Then continue extracting any other actionable items (todos / decisions / context
         + (ics_addendum if (payload.source_kind == "ics") else "")
         + threads_addendum
         + exclude_addendum
+        + (_FEW_SHOT_EXAMPLE if is_small_model(db) else "")
     )
 
     try:
@@ -263,9 +285,18 @@ Then continue extracting any other actionable items (todos / decisions / context
 def generate_refine(payload: schemas.RefineRequest, db: Session = Depends(get_db)):
     provider = get_provider(db)
 
-    system = """You refine a single work item based on rejection feedback.
-Return a JSON object only with fields: type, content, rationale, suggested_thread, due_date.
-No preamble, no markdown."""
+    today_str = _date.today().strftime("%A, %Y-%m-%d")
+    system = f"""You revise a single extracted work item using the user's rejection feedback. "Better" means: directly address what the rejection asked for, keep it ONE clear and actionable item, and fix what was wrong (wording, type, thread, or date) without inventing detail the original does not support.
+
+Return a JSON object only (no preamble, no markdown) with exactly these fields, same rules as extraction:
+  type:             "todo" | "entry" | "decision" | "meeting"
+  content:          string (clear and actionable; for meetings, the subject)
+  rationale:        string (one sentence on what you changed and why)
+  suggested_thread: string (a short thread title; never null)
+  due_date:         string | null (STRICT ISO date YYYY-MM-DD; resolve relative dates using TODAY below; null if none)
+  meeting_at:       string | null (STRICT ISO datetime YYYY-MM-DDTHH:MM, meetings only, else null)
+
+TODAY'S DATE is {today_str} (the user's local date)."""
 
     try:
         text = provider.complete(
@@ -281,7 +312,20 @@ No preamble, no markdown."""
 
     try:
         refined = json.loads(text)
+        # Some models wrap the object in {"items": [...]} or return a 1-item array.
+        if isinstance(refined, dict) and isinstance(refined.get("items"), list) and refined["items"]:
+            refined = refined["items"][0]
+        elif isinstance(refined, list) and refined:
+            refined = refined[0]
+        if not isinstance(refined, dict):
+            raise ValueError("expected a JSON object")
+        # Same defensive normalisation as extraction, so a refined item carries a
+        # valid due_date AND meeting_at. (The old refine dropped meeting_at, which
+        # silently lost a meeting's time whenever the item was refined.)
+        refined = _normalise_item(refined)
         return schemas.RefineResponse(item=refined)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Failed to parse AI response: {str(e)}")
 
@@ -294,6 +338,7 @@ def generate_roundup(payload: schemas.RoundupRequest, db: Session = Depends(get_
 Write in a professional, direct tone suitable for sharing or keeping as a personal record.
 Be concise. Use plain prose with no markdown formatting. Use dashes for list items if needed.
 Use commas or hyphens for punctuation, never em dashes.
+Do not open with filler like "Overall", "It's worth noting", "Additionally", or "In summary"; lead with the substance.
 
 Structure:
 1. One short executive paragraph (3-4 sentences) summarising the week across all areas.
