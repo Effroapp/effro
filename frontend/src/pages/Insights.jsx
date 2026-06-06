@@ -69,10 +69,9 @@ function fmtDur(h) {
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
-// One calm explainer per lens - a light descriptor line just under the tab
-// selector that swaps as the tab changes (the single mint welcome box above
-// stays the only box). What it is, then a gentle note on why it earns its
-// place. British, unhurried, never a scorecard.
+// One calm explainer per lens - shown in the same mint box as the Insights
+// welcome, one per lens, swapping as the tab changes. What it is, then a gentle
+// note on why it earns its place. British, unhurried, never a scorecard.
 const LENS_INTRO = {
   reflect: (
     <>
@@ -157,18 +156,24 @@ export default function Insights() {
 
         <Tabs tab={tab} onChange={setTab} />
 
-        {/* Per-lens description - sits just under the tab selector and swaps as
-            the tab changes. The single mint welcome box above stays the only box. */}
-        <div className="flex items-start justify-between gap-4 mb-6">
-          <p className="text-sm leading-relaxed text-paper-600 dark:text-paper-300 max-w-2xl">
-            {LENS_INTRO[tab]}
-          </p>
-          {tab === 'reflect' && (
-            <div className="flex-shrink-0 pt-0.5">
-              <ScopeToggle scope={scope} onChange={setScope} />
-            </div>
-          )}
-        </div>
+        {/* Per-lens explainer - the same mint box as the Insights welcome, one
+            per lens, swapping as the tab changes. key forces a remount so each
+            lens re-reads its own dismissed state. */}
+        <IntroPanel
+          key={`lens-intro-${tab}`}
+          icon={TABS.find((t) => t.key === tab).Icon}
+          title={TABS.find((t) => t.key === tab).label}
+          storageKey={`effro.lensIntro.${tab}`}
+        >
+          {LENS_INTRO[tab]}
+        </IntroPanel>
+
+        {/* Reflect scope toggle - its own row, under the box. */}
+        {tab === 'reflect' && (
+          <div className="flex justify-end mb-5 -mt-2">
+            <ScopeToggle scope={scope} onChange={setScope} />
+          </div>
+        )}
 
         <div key={tab} className="animate-rise motion-reduce:animate-none">
           {tab === 'reflect' && (

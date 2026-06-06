@@ -7,7 +7,6 @@ import {
 import { getAreaStatus } from '../utils/status'
 import { MOD_KEY } from '../utils/platform'
 import { AreaIcon } from './IconPicker'
-import { useAppVersion } from '../hooks/useAppVersion'
 import { listSignals } from '../api/signals'
 import Logo from './Logo'
 
@@ -26,7 +25,6 @@ export default function Sidebar({
   const location = useLocation()
   const settingsActive = location.pathname === '/settings'
   const logActive = location.pathname === '/log'
-  const version = useAppVersion()
 
   // ─── Signals pending count (sidebar badge) ─────────────────────────────────
   // Poll every 60s so the badge updates without a refresh after the
@@ -315,27 +313,18 @@ export default function Sidebar({
         )}
       </nav>
 
-      {/* Footer */}
+      {/* Footer - icon-only Audit Log + System + keyboard shortcuts. Names and
+          shortcuts show on hover; stacked when collapsed, side-by-side when
+          expanded. Version lives in Settings -> System, so it's not repeated here. */}
       <div className={`
-        ${collapsed ? 'px-2 py-3' : 'px-4 py-3'}
+        ${collapsed ? 'px-2 py-2' : 'px-4 py-2'}
         border-t border-paper-300 dark:border-pitch-700
-        ${collapsed ? 'space-y-2' : 'space-y-2.5'}
       `}>
-        {/* Utility row - icon-only Audit Log + System + keyboard shortcuts.
-            Names/shortcuts shown on hover. Stacked when collapsed, side-by-side
-            when expanded. The shortcuts moved from two always-on rows into a
-            single hover popover here, reclaiming the bottom of the panel. */}
         <div className={`flex ${collapsed ? 'flex-col items-center gap-2' : 'items-center gap-1'}`}>
           <FooterIconLink to="/log" icon={History} label="Audit Log" active={logActive} />
           <FooterIconLink to="/settings" icon={Settings} label="System" active={settingsActive} badge={systemSettingsBadge} />
           <FooterShortcuts />
         </div>
-
-        {!collapsed && version && (
-          <div className="text-xs font-mono text-paper-400 dark:text-pitch-500">
-            v{version}
-          </div>
-        )}
       </div>
 
       {/* Collapse / expand toggle.
