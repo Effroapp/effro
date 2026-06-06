@@ -90,7 +90,7 @@ export default function SystemSettings({ updater }) {
   }, [])
 
   return (
-    <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800 bg-grid-light dark:bg-grid-dark">
+    <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800">
       <header className="
         sticky top-0 z-10 px-8 py-5
         bg-paper-100/90 dark:bg-pitch-800/90 backdrop-blur-md
