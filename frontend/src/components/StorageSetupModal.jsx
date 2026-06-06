@@ -10,6 +10,7 @@ import {
 import { getGoogleProfile } from '../api/google'
 import { getDropboxConfig, getDropboxProfile, saveDropboxConfig, loginUrl as dropboxLoginUrl } from '../api/dropbox'
 import SetupGuide, { DROPBOX_GUIDE } from './SetupGuide'
+import ProviderLogo from './ProviderLogos'
 
 /**
  * Storage setup / management modal.
@@ -392,7 +393,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0 ${p.iconBg}`}>
-                        {p.icon}
+                        <ProviderLogo provider={p.key} size={20} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -417,7 +418,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
                   ">
                     <div className="flex items-center gap-3">
                       <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0 ${p.iconBg}`}>
-                        {p.icon}
+                        <ProviderLogo provider={p.key} size={20} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">

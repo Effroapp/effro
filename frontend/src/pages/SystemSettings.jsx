@@ -25,6 +25,8 @@ import GoogleIntegration from '../components/GoogleIntegration'
 import IcloudIntegration from '../components/IcloudIntegration'
 import GithubIntegration from '../components/GithubIntegration'
 import IntroCard from '../components/IntroCard'
+import IntegrationsPanel from '../components/IntegrationsPanel'
+import ProviderLogo from '../components/ProviderLogos'
 import { useAppVersion } from '../hooks/useAppVersion'
 import { notifyAIConfigChanged } from '../hooks/useAIConfigured'
 
@@ -80,10 +82,11 @@ export default function SystemSettings({ updater }) {
   const [tab, setTab] = useState('ai')
   const active = SETTINGS_TABS.find((t) => t.key === tab) || SETTINGS_TABS[0]
 
-  // Land on the right tab after an OAuth round-trip (Dropbox returns here).
+  // Land on the right tab after an OAuth round-trip back to /settings.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('dropbox_connected') || params.get('dropbox_error')) setTab('storage')
+    const s = window.location.search
+    if (/dropbox_(connected|error)/.test(s)) setTab('storage')
+    else if (/(google|ms|jira)_(connected|error)/.test(s)) setTab('integrations')
   }, [])
 
   return (
@@ -123,16 +126,7 @@ export default function SystemSettings({ updater }) {
         <div className="space-y-6 animate-rise motion-reduce:animate-none" key={tab}>
           {tab === 'ai' && <AISection />}
           {tab === 'storage' && <StorageSection />}
-          {tab === 'integrations' && (
-            <>
-              <MicrosoftSection />
-              <JiraSection />
-              <GoogleSection />
-              <IcloudSection />
-              <GithubSection />
-              <MoreIntegrations />
-            </>
-          )}
+          {tab === 'integrations' && <IntegrationsPanel />}
           {tab === 'about' && (
             <>
               {isTauri() && <UpdateSection updater={updater} />}
@@ -906,8 +900,44 @@ function StorageSection({ id }) {
     }
   })()
 
+  const openStorage = (provider) => { setModalInitialProvider(provider || null); setShowStorageModal(true) }
+  const STORAGE_OPTIONS = [
+    { key: 'nextcloud', name: 'Nextcloud' }, { key: 'google_drive', name: 'Google Drive' },
+    { key: 'dropbox', name: 'Dropbox' }, { key: 's3', name: 'S3' }, { key: 'webdav', name: 'WebDAV' },
+    { key: 'onedrive', name: 'OneDrive', soon: true }, { key: 'sharepoint', name: 'SharePoint', soon: true },
+  ]
+
   return (
     <>
+      {/* All options - icon row */}
+      <div className="mb-4">
+        <div className="font-mono uppercase tracking-widest text-[10px] text-paper-500 dark:text-paper-600 mb-2">All storage</div>
+        <div className="flex flex-wrap gap-2">
+          {STORAGE_OPTIONS.map((o) => {
+            const active = storageConfig?.provider === o.key
+            return (
+              <button
+                key={o.key}
+                onClick={() => !o.soon && openStorage(o.key)}
+                disabled={o.soon}
+                title={o.soon ? `${o.name} (coming with Microsoft 365)` : o.name}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
+                  o.soon
+                    ? 'border-dashed border-paper-200 dark:border-pitch-600 opacity-50 cursor-not-allowed'
+                    : active
+                      ? 'border-mint/50 bg-mint/5'
+                      : 'border-paper-300 dark:border-pitch-500 bg-paper-100 dark:bg-pitch-800 hover:border-mint dark:hover:border-mint hover:-translate-y-0.5'
+                }`}
+              >
+                <ProviderLogo provider={o.key} size={18} />
+                <span className="text-sm text-pitch-700 dark:text-paper-200">{o.name}</span>
+                {active && <CheckCircle2 size={12} className="text-mint-600 dark:text-mint-400" />}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       <Card id={id}>
         <CardHeader
           icon={Database}
