@@ -4,7 +4,7 @@ services:
   app:
     build: .
     # Container name kept as `department-log` for backward compatibility
-    # with existing `docker logs`/`docker exec` scripts. Image is `trace`
+    # with existing `docker logs`/`docker exec` scripts. Image is `effro`
     # at the brand level.
     container_name: department-log
     ports:

@@ -17,7 +17,7 @@ import tempfile
 
 from storage_backend import StorageBackend
 
-log = logging.getLogger("trace.storage.nextcloud")
+log = logging.getLogger("effro.storage.nextcloud")
 
 
 class NextcloudBackend(StorageBackend):

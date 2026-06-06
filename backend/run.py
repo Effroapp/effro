@@ -2,7 +2,7 @@
 Entry point for the PyInstaller bundle and direct local runs.
 Usage: python run.py [--port PORT] [--data-dir PATH]
 
-In the Tauri sidecar context this is what `trace-backend.exe` runs.
+In the Tauri sidecar context this is what `effro-backend.exe` runs.
 For Docker the existing `uvicorn main:app …` CMD is unchanged - this
 file is only used by the desktop packaging path.
 """

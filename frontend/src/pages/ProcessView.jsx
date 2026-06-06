@@ -8,7 +8,7 @@ import { useAIConfigured } from '../hooks/useAIConfigured'
 import { ENTITY, entityFor } from '../utils/entityIcons'
 
 const STATUS_MESSAGES = ['Reading…', 'Identifying tasks…', 'Structuring items…', 'Preparing review…']
-const STORAGE_KEY = 'trace-process'
+const STORAGE_KEY = 'effro-process'
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 

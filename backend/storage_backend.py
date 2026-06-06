@@ -23,7 +23,7 @@ import os
 from abc import ABC, abstractmethod
 from sqlalchemy.orm import Session
 
-log = logging.getLogger("trace.storage")
+log = logging.getLogger("effro.storage")
 
 # Where attachments land on disk. Resolved from env so the Tauri shell can
 # point it at the user-configurable data directory at startup.
@@ -213,7 +213,7 @@ def get_storage_config_for_api(db: Session) -> dict:
     return {
         "provider": config.get("provider", "local"),
         "is_connected": config.get("provider", "local") != "local",
-        "remote_folder": config.get("remote_folder", "Trace"),
+        "remote_folder": config.get("remote_folder", "Effro"),
         "backup_enabled": config.get("backup_enabled", True),
         "server_url": config.get("server_url"),
         "username": config.get("username"),

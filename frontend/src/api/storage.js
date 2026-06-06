@@ -1,5 +1,5 @@
 /**
- * Storage API helpers - talks to the Trace backend's /storage/* routes.
+ * Storage API helpers - talks to the Effro backend's /storage/* routes.
  *
  * Mirrors the pattern in api/settings.js: throws on non-2xx with the
  * server's `detail` message so callers can surface the error verbatim.

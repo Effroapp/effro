@@ -27,7 +27,7 @@ import models
 from database import get_db
 from ai_provider import get_provider
 
-log = logging.getLogger("trace.ai_features")
+log = logging.getLogger("effro.ai_features")
 router = APIRouter(tags=["ai-features"])
 
 

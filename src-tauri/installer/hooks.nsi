@@ -8,8 +8,8 @@
 ;
 ; Without this hook, the chain of pain is:
 ;   1. User triggers update (or runs installer manually)
-;   2. Tauri's updater kills trace.exe (Rust shell)
-;   3. trace-backend.exe (PyInstaller bundle) survives as an orphan
+;   2. Tauri's updater kills effro.exe (Rust shell)
+;   3. effro-backend.exe (PyInstaller bundle) survives as an orphan
 ;   4. Orphan holds MSVCP140.dll open
 ;   5. NSIS extract fails: "Can't write MSVCP140.dll"
 ;
@@ -22,9 +22,9 @@
   DetailPrint "Stopping any running Effro. processes before extract..."
   ; /F = force, /T = kill tree (children too), /IM = by image name.
   ; Suppress output so the installer log stays readable.
-  nsExec::Exec 'taskkill /F /T /IM trace-backend.exe'
+  nsExec::Exec 'taskkill /F /T /IM effro-backend.exe'
   Pop $0
-  nsExec::Exec 'taskkill /F /T /IM trace.exe'
+  nsExec::Exec 'taskkill /F /T /IM effro.exe'
   Pop $0
   ; Brief pause — gives Windows time to release file handles after the
   ; process exits. 500ms is conservative; usually it's instant.

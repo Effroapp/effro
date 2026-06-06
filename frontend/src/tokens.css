@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────────────────────
-   Trace · Design Tokens
+   Effro · Design Tokens
    The single source of truth for colour, spacing, type, motion.
    Imported by index.css; surfaced to Tailwind via tailwind.config.js.
    ───────────────────────────────────────────────────────────────────────────── */
@@ -25,7 +25,7 @@
 
   /* ── Brand colour · mint ────────────────────────────────────────────────
      One brand colour doing all the work. mint-500 is the signature shade,
-     used for the dot in "Trace.", the splash, and focus rings. mint-700
+     used for the dot in "Effro.", the splash, and focus rings. mint-700
      is the accessible darker shade used for primary action buttons (passes
      WCAG AA contrast with white text). Same hue, different shades, same
      family - the result reads as one brand, not two. */

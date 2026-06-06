@@ -4,7 +4,7 @@
 
 A self-hosted activity log for anyone juggling multiple parallel responsibilities. Organise your world into **areas** (one per spinning plate), break each area into **threads** of focused work, and keep a chronological record of todos, decisions, meetings, blockers, and notes inside every thread. AI surfaces help where they materially save time - parse messy input into structured items, regenerate area summaries automatically, draft a weekly status digest in one click. Self-hosted, single Docker container, your data on a disk you own.
 
-*Effro* is Welsh for "awake, alert" — what the app is meant to keep you. Previously named Trace; the rebrand landed in v0.7.0 and is purely visual. All internal paths, identifiers, and data layouts remain stable for upgrade continuity.
+*Effro* is Welsh for "awake, alert" - what the app is meant to keep you.
 
 ---
 
@@ -20,7 +20,7 @@ A self-hosted activity log for anyone juggling multiple parallel responsibilitie
 
 ```bash
 # Clone your repo (or navigate to the project directory)
-cd trace
+cd effro
 
 # Build and start the container
 docker compose up --build -d
@@ -48,7 +48,7 @@ docker compose up --build -d
 ## Project Structure
 
 ```
-trace/
+effro/
 │
 ├── backend/                  Python FastAPI application
 │   ├── main.py               App entry point - initialises DB, mounts routers, serves frontend
@@ -65,7 +65,7 @@ trace/
 ├── frontend/                 React + Vite application
 │   ├── index.html            HTML entry point (loads Google Fonts)
 │   ├── vite.config.js        Vite config with /api proxy for dev mode
-│   ├── tailwind.config.js    Trace tokens - paper/pitch/accent palettes, Geist + Lexend fonts
+│   ├── tailwind.config.js    Effro tokens - paper/pitch/accent palettes, Geist + Lexend fonts
 │   ├── postcss.config.js     PostCSS for Tailwind
 │   └── src/
 │       ├── main.jsx          React root mount

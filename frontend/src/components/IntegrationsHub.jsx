@@ -9,7 +9,7 @@ import { useAIConfigured } from '../hooks/useAIConfigured'
  * Integrations Hub - the icon-tile directory at the top of Settings.
  *
  * Two goals:
- *   1. Give the user a single place to see WHAT they can connect Trace to,
+ *   1. Give the user a single place to see WHAT they can connect Effro to,
  *      not a stack of unrelated cards scattered through Settings.
  *   2. Make every tile a clickable shortcut to the relevant setup flow -
  *      live integrations smooth-scroll-and-pulse the existing detail card

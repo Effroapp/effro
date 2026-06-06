@@ -334,7 +334,7 @@ export default function AreaView() {
             {/* Loading overlay during Update */}
             {suggestingSummary && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
-                <TraceMarkSpinner />
+                <EffroMarkSpinner />
                 <ProgressIndeterminate />
                 <span className="font-display uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
                   Updating from recent activity…
@@ -623,7 +623,7 @@ function AreaSkeleton() {
 
 // ─── Loading visuals for the Overview Update flow ─────────────────────────────
 
-function TraceMarkSpinner() {
+function EffroMarkSpinner() {
   return (
     <svg
       width="48"

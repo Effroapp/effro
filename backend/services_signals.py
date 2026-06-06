@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 import models
 import microsoft_graph as graph
 
-log = logging.getLogger("trace.signals")
+log = logging.getLogger("effro.signals")
 
 # Items untouched longer than this auto-expire (per spec §4.1).
 PENDING_STALENESS_DAYS = 14

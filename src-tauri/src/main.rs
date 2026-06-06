@@ -26,19 +26,18 @@ const BETA_UPDATE_ENDPOINT: &str =
 const UPDATE_CHANNEL_KEY: &str = "update_channel";
 
 /// GitHub Personal Access Token baked in at build time (via build.rs). Read-
-/// only, scoped to the single private `lukeogh/Trace` repo (will be renamed
-/// to `lukeogh/Effro` — GitHub redirects keep this URL working). Used by the
+/// only, scoped to the private `Effroapp/effro` releases repo. Used by the
 /// frontend as a Bearer header on updater requests so we can fetch the
 /// manifest + bundle from the private releases endpoint.
 ///
 /// `None` in local dev builds without the env var set - the updater simply
 /// won't function, which is acceptable in dev (you ship updates from CI).
-const UPDATER_TOKEN: Option<&str> = option_env!("TRACE_UPDATER_TOKEN");
+const UPDATER_TOKEN: Option<&str> = option_env!("EFFRO_UPDATER_TOKEN");
 
 /// PyInstaller onedir folder name for our backend bundle. Must match what
 /// `scripts/build-backend.py` stages under `src-tauri/binaries/` and what
 /// `tauri.conf.json` declares as a bundled resource.
-const BACKEND_DIR_NAME: &str = "trace-backend-x86_64-pc-windows-msvc";
+const BACKEND_DIR_NAME: &str = "effro-backend-x86_64-pc-windows-msvc";
 
 /// Filename of the persisted config inside the Tauri app-data dir (NOT the
 /// user-configurable data dir - Tauri's plugin-store always writes here).
@@ -115,8 +114,8 @@ fn wait_for_backend(port: u16) -> Result<(), String> {
 }
 
 /// OS-appropriate default per-user data dir. On Windows this is
-/// `%APPDATA%\com.trace.app\` (driven by the identifier in tauri.conf.json).
-/// Falls back to a `Trace` folder in the platform's local-data dir if Tauri's
+/// `%APPDATA%\com.effro.app\` (driven by the identifier in tauri.conf.json).
+/// Falls back to an `Effro` folder in the platform's local-data dir if Tauri's
 /// path resolver fails - which it shouldn't, but defensive code is cheap.
 fn default_data_dir(app: &AppHandle) -> std::path::PathBuf {
     app.path()
@@ -124,7 +123,7 @@ fn default_data_dir(app: &AppHandle) -> std::path::PathBuf {
         .unwrap_or_else(|_| {
             dirs::data_local_dir()
                 .unwrap_or_else(|| std::path::PathBuf::from("."))
-                .join("Trace")
+                .join("Effro")
         })
 }
 
@@ -165,7 +164,7 @@ async fn pick_data_dir(app: AppHandle) -> Result<Option<String>, String> {
     Ok(result.map(|p| p.to_string()))
 }
 
-/// Copies the user's data (trace.db + uploads/) from the current location to
+/// Copies the user's data (effro.db + uploads/) from the current location to
 /// `new_path`, verifies the copy, and writes the new path to the config store.
 /// The old location is **never** deleted - copy-not-move is intentional.
 ///
@@ -186,8 +185,8 @@ async fn migrate_and_set_data_dir(app: AppHandle, new_path: String) -> Result<()
 
     // Copy the SQLite DB. Skip if the destination already has one - we'd
     // rather refuse than silently clobber data the user might still want.
-    let old_db = old_dir.join("trace.db");
-    let new_db = new_dir.join("trace.db");
+    let old_db = old_dir.join("effro.db");
+    let new_db = new_dir.join("effro.db");
     if old_db.exists() && !new_db.exists() {
         std::fs::copy(&old_db, &new_db)
             .map_err(|e| format!("Failed to copy database: {}", e))?;
@@ -330,7 +329,7 @@ fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::io::
 
 /// Kills the sidecar - both via Tauri's CommandChild and a follow-up
 /// `taskkill /T /F /PID …` to handle the entire process tree on Windows.
-/// `child.kill()` alone has proven unreliable: we've seen `trace-backend.exe`
+/// `child.kill()` alone has proven unreliable: we've seen `effro-backend.exe`
 /// survive after `app.exit(0)`, which is the orphan-quit bug from task #67.
 ///
 /// Safe to call multiple times - both `kill()` and `taskkill` return
@@ -356,10 +355,10 @@ fn nuke_sidecar(child: Option<CommandChild>) {
 }
 
 /// Belt-and-braces cleanup that runs on every launch BEFORE spawning the
-/// sidecar - kills any leftover `trace-backend.exe` from a previous launch
+/// sidecar - kills any leftover `effro-backend.exe` from a previous launch
 /// that crashed, was force-quit via Task Manager, or otherwise escaped the
 /// normal nuke_sidecar() teardown. Safe because we're a single-user
-/// desktop app: there's only ever one `trace-backend.exe` that should be
+/// desktop app: there's only ever one `effro-backend.exe` that should be
 /// running, and if there IS one now, it's an orphan we don't want to
 /// leave holding file locks (which prevents installer / updater file
 /// replacement and is task #67's recurring symptom).
@@ -367,13 +366,13 @@ fn kill_orphan_backends() {
     #[cfg(target_os = "windows")]
     {
         let _ = std::process::Command::new("taskkill")
-            .args(["/F", "/IM", "trace-backend.exe"])
+            .args(["/F", "/IM", "effro-backend.exe"])
             .output();
     }
     #[cfg(not(target_os = "windows"))]
     {
         let _ = std::process::Command::new("pkill")
-            .args(["-9", "-f", "trace-backend"])
+            .args(["-9", "-f", "effro-backend"])
             .output();
     }
 }
@@ -458,11 +457,11 @@ fn main() {
             let backend_exe = resource_dir
                 .join("binaries")
                 .join(BACKEND_DIR_NAME)
-                .join("trace-backend.exe");
+                .join("effro-backend.exe");
 
             if !backend_exe.exists() {
                 let msg = format!(
-                    "trace-backend.exe not found at {} - did `python scripts/build-backend.py` \
+                    "effro-backend.exe not found at {} - did `python scripts/build-backend.py` \
                      run before `tauri build`?",
                     backend_exe.display()
                 );
@@ -487,7 +486,7 @@ fn main() {
                 .env("BACKEND_PORT", port.to_string())
                 .spawn()
                 .map_err(|e| {
-                    eprintln!("Failed to spawn trace-backend: {}", e);
+                    eprintln!("Failed to spawn effro-backend: {}", e);
                     e
                 })?;
 
@@ -518,7 +517,7 @@ fn main() {
         .on_window_event(move |window, event| {
             // Closing the window = full quit. Kill the sidecar synchronously
             // here BEFORE we let Tauri tear down, so the user doesn't get
-            // a lingering `trace-backend.exe` in the background after they
+            // a lingering `effro-backend.exe` in the background after they
             // hit X. The RunEvent::Exit hook below also runs nuke_sidecar()
             // as a fallback in case the close path takes a different route
             // (tauri shutdown, OS signal, etc.) - see task #67 docs.

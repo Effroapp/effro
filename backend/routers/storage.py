@@ -28,7 +28,7 @@ from storage_backend import (
 )
 
 router = APIRouter(tags=["storage"])
-log = logging.getLogger("trace.storage.router")
+log = logging.getLogger("effro.storage.router")
 
 
 @router.get("/storage/config", response_model=schemas.StorageConfigOut)

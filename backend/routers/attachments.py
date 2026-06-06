@@ -112,7 +112,7 @@ def _upload_to_remote(attachment_id: int, local_path: str, stored_name: str) -> 
             db.commit()
     except Exception as e:
         import logging
-        logging.getLogger("trace.storage").warning(
+        logging.getLogger("effro.storage").warning(
             "Remote upload failed for attachment %d: %s", attachment_id, e
         )
         try:

@@ -2,14 +2,14 @@
 """
 PyInstaller spec for the Effro. backend.
 Run from the repo root:
-    pyinstaller backend/trace-backend.spec
-Output lands in dist/trace-backend/ (onedir mode — fast launch, no per-launch
+    pyinstaller backend/effro-backend.spec
+Output lands in dist/effro-backend/ (onedir mode — fast launch, no per-launch
 temp extraction, no AV false-positives from --onefile bootloader behaviour).
 
-Note: the spec filename and the output dir still say "trace-backend" because
-the Tauri shell resolves the sidecar binary by that exact name. The next
-clean-migration release will rename the binary; until then the filename is
-load-bearing for the in-place upgrade path and must stay.
+The spec filename and output dir are "effro-backend" - the Tauri shell
+resolves the sidecar binary by that exact name (matched by BACKEND_DIR_NAME
+in src-tauri/src/main.rs and the bundled-resource path in tauri.conf.json),
+so all three must stay in lockstep.
 """
 
 import os
@@ -157,7 +157,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,   # onedir mode — keep deps separate
-    name='trace-backend',
+    name='effro-backend',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -181,5 +181,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='trace-backend',
+    name='effro-backend',
 )

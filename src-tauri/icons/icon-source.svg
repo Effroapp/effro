@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" fill="none">
+  <!-- Effro app icon — master source for the raster icon set.
+       Curved fork on the dark "pitch" squircle. Top branch mint, stem +
+       lower branch paper. Geometry matches Logo.jsx (branches hit 22/78).
+       Rasterised by scripts/generate-icons.mjs and `tauri icon`. -->
+
+  <!-- Pitch squircle background, bleeds to the edge (safe for maskable icons) -->
+  <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224" fill="#0F0E0C"/>
+
+  <!-- Mark authored in 0-100 space, scaled 10.6x and centred on (512,512):
+       translate(-18,-18) maps (50,50) -> (512,512). Fork spans ~58% of the
+       tile, comfortably inside the maskable safe zone. -->
+  <g transform="translate(-18 -18) scale(10.6)"
+     stroke-width="9.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Top branch — MINT -->
+    <path d="M 78 22 Q 64 42, 50 50" stroke="#10B981"/>
+    <!-- Bottom branch — paper -->
+    <path d="M 78 78 Q 64 58, 50 50" stroke="#F7F4ED"/>
+    <!-- Stem — paper -->
+    <path d="M 22 50 L 50 50" stroke="#F7F4ED"/>
+  </g>
+</svg>

@@ -23,7 +23,7 @@ import models
 import schemas
 from database import get_db
 
-log = logging.getLogger("trace.subtasks")
+log = logging.getLogger("effro.subtasks")
 router = APIRouter(tags=["subtasks"])
 
 

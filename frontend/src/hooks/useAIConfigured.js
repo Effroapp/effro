@@ -10,14 +10,14 @@
  * user doesn't get to invest effort before discovering AI isn't set up.
  *
  * Cross-page sync: when the wizard on /settings finishes saving, it
- * dispatches a `trace:ai-config-changed` window event. Every open instance
+ * dispatches a `effro:ai-config-changed` window event. Every open instance
  * of this hook listens for it and re-fetches, so the gate flips off
  * instantly without a page reload.
  */
 import { useEffect, useState, useCallback } from 'react'
 import { getAIConfig } from '../api/settings'
 
-export const AI_CONFIG_CHANGED_EVENT = 'trace:ai-config-changed'
+export const AI_CONFIG_CHANGED_EVENT = 'effro:ai-config-changed'
 
 /** Notify all listeners that the AI config has changed. Call this from
  *  anywhere that mutates `/settings/ai` (currently just the wizard). */

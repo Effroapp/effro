@@ -2,10 +2,10 @@
 Encrypted database backup for Effro.
 
 The flow (run nightly by scheduler.py, or manually via POST /storage/backup/run):
-  1. sqlite3 backup() API → consistent snapshot of trace.db (safe on a live DB
+  1. sqlite3 backup() API → consistent snapshot of effro.db (safe on a live DB
      with WAL active; never use shutil.copy here).
   2. Fernet-encrypt the bytes with the per-install key from app_settings.
-  3. Upload to {remote_folder}/backups/trace-backup-YYYY-MM-DD.db.enc.
+  3. Upload to {remote_folder}/backups/effro-backup-YYYY-MM-DD.db.enc.
   4. Log the outcome in storage_sync_logs so the UI's Manage view can show it.
   5. Prune older backups, keeping the most recent RETENTION_COUNT.
 
@@ -20,12 +20,12 @@ import sqlite3
 import tempfile
 from datetime import datetime, timezone
 
-log = logging.getLogger("trace.backup")
+log = logging.getLogger("effro.backup")
 
 # Keep a week's worth on the remote. Plenty for personal use; old backups
 # get pruned automatically every run.
 RETENTION_COUNT = 7
-BACKUP_PREFIX = "trace-backup-"
+BACKUP_PREFIX = "effro-backup-"
 
 
 def run_backup(db_session) -> dict:

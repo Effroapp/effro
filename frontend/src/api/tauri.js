@@ -33,7 +33,7 @@ export async function pickDataDir() {
 }
 
 /**
- * Copies trace.db + uploads/ from the current data dir to `newPath` and
+ * Copies effro.db + uploads/ from the current data dir to `newPath` and
  * saves the new path to the config store. The old data is **not** deleted -
  * intentional safety net. Caller must `relaunch()` afterwards because the
  * running sidecar still points at the old location.

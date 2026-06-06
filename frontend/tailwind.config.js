@@ -49,7 +49,7 @@ export default {
         terracotta:  '#B86A5C',  // blocked
         lavender:    '#8A7BB8',  // parked
         // ── Brand signature · mint ─────────────────────────────────────────
-        // Used sparingly: the dot in "Trace.", the splash animation, and
+        // Used sparingly: the dot in "Effro.", the splash animation, and
         // "selected/active" state indicators. Never as a hover or focus colour.
         mint: {
           DEFAULT: '#10B981',
@@ -93,8 +93,8 @@ export default {
         '2xl': '24px',
       },
       transitionTimingFunction: {
-        trace: 'cubic-bezier(0.65, 0, 0.35, 1)',
-        'trace-out': 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+        effro: 'cubic-bezier(0.65, 0, 0.35, 1)',
+        'effro-out': 'cubic-bezier(0.2, 0.8, 0.2, 1)',
       },
       transitionDuration: {
         snap: '120ms',

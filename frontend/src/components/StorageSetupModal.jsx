@@ -17,7 +17,7 @@ import {
  *   manage  - for already-connected installs: backup history, Back up now,
  *             Switch provider, Disconnect
  *
- * Colour palette matches the rest of Trace - mint signature, no accent/indigo.
+ * Colour palette matches the rest of Effro - mint signature, no accent/indigo.
  * Per-provider chips keep their natural branding (sky for Nextcloud, etc.) -
  * those are functional category badges, not brand elements.
  */
