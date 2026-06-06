@@ -208,6 +208,23 @@ def run_google_signal_sync():
         db.close()
 
 
+def run_github_signal_sync():
+    """Cron entry point - 30-min GitHub pull (review requests / assigned /
+    mentions) into signal_items. Skips silently if no token is saved."""
+    from database import SessionLocal
+    from services_github import run_github_sync
+    db = SessionLocal()
+    try:
+        result = run_github_sync(db)
+        if not result.get("skipped"):
+            log.info("GitHub signal sync: +%d new, %d updated",
+                     result.get("added", 0), result.get("updated", 0))
+    except Exception as e:
+        log.warning("GitHub signal sync failed: %s", e)
+    finally:
+        db.close()
+
+
 def run_icloud_signal_sync():
     """Cron entry point - 30-min iCloud Calendar + flagged Mail pull into
     signal_items. Skips silently if no iCloud credentials are saved."""
@@ -425,6 +442,14 @@ def start():
         run_icloud_signal_sync,
         CronTrigger(minute="*/30", timezone="Europe/Brussels"),
         id="icloud-signal-sync",
+        replace_existing=True,
+        misfire_grace_time=1800,
+    )
+    # GitHub review requests / assigned / mentions -> signal_items. Every 30 min.
+    _scheduler.add_job(
+        run_github_signal_sync,
+        CronTrigger(minute="*/30", timezone="Europe/Brussels"),
+        id="github-signal-sync",
         replace_existing=True,
         misfire_grace_time=1800,
     )

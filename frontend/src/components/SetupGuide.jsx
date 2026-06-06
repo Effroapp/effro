@@ -368,6 +368,43 @@ export const GOOGLE_GUIDE = {
   ],
 }
 
+const GithubLogo = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="text-pitch-800 dark:text-paper-100">
+    <path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.23-1.28-5.23-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14 0 1.55-.01 2.8-.01 3.18 0 .31.21.67.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z"/>
+  </svg>
+)
+
+export const GITHUB_GUIDE = {
+  title: 'Connect GitHub',
+  logo: <GithubLogo />,
+  accent: 'mint',
+  estMinutes: 2,
+  intro:
+    'Effro connects to GitHub with a personal access token (no OAuth app to register). It pulls PRs awaiting your review, issues and PRs assigned to you, and things you are mentioned in, into Signals. Read-only.',
+  steps: [
+    {
+      title: 'Open GitHub token settings',
+      body: <p>Sign in, then go to <b>Settings</b> → <b>Developer settings</b> → <b>Personal access tokens</b> → <b>Tokens (classic)</b>.</p>,
+      link: { label: 'Open GitHub token settings', href: 'https://github.com/settings/tokens/new' },
+    },
+    {
+      title: 'Generate a token',
+      body: (
+        <>
+          <p>Click <b>Generate new token (classic)</b>, name it <b>Effro</b>, and pick an expiry.</p>
+          <p>Tick the <b>repo</b> scope (so private repos are included) and <b>read:user</b>. Then <b>Generate token</b>.</p>
+        </>
+      ),
+    },
+    {
+      title: 'Paste into Effro',
+      body: (
+        <p>Copy the token (shown once, starts with <b>ghp_</b>) and paste it below, then click <b>Connect</b>. Your review requests, assignments and mentions will start arriving in Signals.</p>
+      ),
+    },
+  ],
+}
+
 export const ICLOUD_GUIDE = {
   title: 'Connect iCloud (Calendar & Mail)',
   logo: <AppleLogo />,

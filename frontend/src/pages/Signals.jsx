@@ -284,8 +284,12 @@ function SourceBadge({ source, kind }) {
     'google:email': { label: 'Gmail', color: 'text-[#ea4335] bg-[#ea4335]/10 border-[#ea4335]/20' },
     'icloud:meeting': { label: 'iCloud Calendar', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
     'icloud:email': { label: 'Apple Mail', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
+    'github:pr': { label: 'GitHub PR', color: 'text-[#8957e5] bg-[#8957e5]/10 border-[#8957e5]/20' },
+    'github:issue': { label: 'GitHub Issue', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
   }
-  const key = (source === 'google' || source === 'icloud') ? `${source}:${kind === 'email' ? 'email' : 'meeting'}` : source
+  let key = source
+  if (source === 'google' || source === 'icloud') key = `${source}:${kind === 'email' ? 'email' : 'meeting'}`
+  else if (source === 'github') key = `github:${kind === 'pr' ? 'pr' : 'issue'}`
   const { label, color } = labels[key] || { label: source, color: 'text-paper-500 dark:text-paper-600 bg-paper-100 dark:bg-pitch-700 border-stone' }
   return (
     <span className={`inline-flex items-center text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${color}`}>
@@ -324,6 +328,7 @@ function MetaRow({ signal }) {
           <ExternalLink size={11} />
           Open in {
             signal.source === 'jira' ? 'Jira'
+              : signal.source === 'github' ? 'GitHub'
               : signal.source === 'google' ? (signal.kind === 'email' ? 'Gmail' : 'Calendar')
               : 'Outlook'
           }

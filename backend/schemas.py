@@ -762,6 +762,23 @@ class IcloudProfileOut(BaseModel):
     last_synced: Optional[str] = None
 
 
+class GithubConfigIn(BaseModel):
+    """GitHub personal access token (GitHub has no simple OAuth for BYO)."""
+    token: str
+
+
+class GithubConfigOut(BaseModel):
+    token_masked: Optional[str] = None
+    login: Optional[str] = None
+    is_configured: bool = False
+
+
+class GithubProfileOut(BaseModel):
+    connected: bool
+    login: Optional[str] = None
+    last_synced: Optional[str] = None
+
+
 class SignalItemOut(BaseModel):
     """A pending/assigned Signal row, enriched with the AI suggestion's labels."""
     id: int

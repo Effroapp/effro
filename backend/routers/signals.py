@@ -71,11 +71,11 @@ def list_signals(db: Session = Depends(get_db)):
     def _external_url(r):
         if r.source == "jira" and jira_host and r.external_id:
             return f"https://{jira_host}/browse/{r.external_id}"
-        if r.source in ("microsoft", "google") and r.raw_json:
+        if r.source in ("microsoft", "google", "github") and r.raw_json:
             try:
                 d = json.loads(r.raw_json)
-                # MS events: webLink. Google calendar: htmlLink. Gmail: webLink.
-                return d.get("webLink") or d.get("htmlLink") or None
+                # MS events: webLink. Google calendar: htmlLink. Gmail/GitHub: ...
+                return d.get("webLink") or d.get("htmlLink") or d.get("html_url") or None
             except (ValueError, AttributeError):
                 return None
         return None

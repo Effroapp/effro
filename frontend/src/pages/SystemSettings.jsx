@@ -23,6 +23,7 @@ import MicrosoftIntegration from '../components/MicrosoftIntegration'
 import JiraIntegration from '../components/JiraIntegration'
 import GoogleIntegration from '../components/GoogleIntegration'
 import IcloudIntegration from '../components/IcloudIntegration'
+import GithubIntegration from '../components/GithubIntegration'
 import { useAppVersion } from '../hooks/useAppVersion'
 import { notifyAIConfigChanged } from '../hooks/useAIConfigured'
 
@@ -105,6 +106,7 @@ export default function SystemSettings({ updater }) {
               <JiraSection />
               <GoogleSection />
               <IcloudSection />
+              <GithubSection />
               <MoreIntegrations />
             </>
           )}
@@ -148,8 +150,7 @@ function SettingsTabs({ tab, onChange }) {
 function MoreIntegrations() {
   return (
     <div className="rounded-xl border border-dashed border-paper-300 dark:border-pitch-600 p-4 text-xs text-paper-500 dark:text-paper-600 leading-relaxed">
-      <span className="font-medium text-paper-600 dark:text-paper-400">Coming later:</span>{' '}
-      GitHub.{' '}
+      Missing one you use?{' '}
       <a
         href="https://github.com/Effroapp/effro/issues/new"
         onClick={(e) => { e.preventDefault(); openExternal('https://github.com/Effroapp/effro/issues/new') }}
@@ -1126,6 +1127,29 @@ function AppleLogo({ size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="flex-shrink-0 mt-1 text-pitch-800 dark:text-paper-100">
       <path d="M16.36 12.78c.02 2.46 2.16 3.28 2.18 3.29-.02.06-.34 1.17-1.13 2.31-.68.99-1.39 1.97-2.5 1.99-1.1.02-1.45-.65-2.7-.65s-1.64.63-2.68.67c-1.08.04-1.9-1.07-2.58-2.05-1.4-2.02-2.47-5.71-1.03-8.2.71-1.24 1.99-2.02 3.37-2.04 1.06-.02 2.06.71 2.7.71.65 0 1.86-.88 3.14-.75.53.02 2.03.21 2.99 1.62-.08.05-1.79 1.04-1.77 3.1ZM14.3 5.39c.57-.69.95-1.65.85-2.6-.82.03-1.81.55-2.4 1.23-.53.61-1 1.58-.87 2.51.91.07 1.85-.46 2.42-1.14Z"/>
+    </svg>
+  )
+}
+
+// ─── GitHub ─────────────────────────────────────────────────────────────────
+
+function GithubSection({ id }) {
+  return (
+    <Card id={id}>
+      <CardHeader
+        icon={GithubLogo}
+        title="GitHub"
+        subtitle="Review requests, assigned issues/PRs, and mentions via Signals. Read-only."
+      />
+      <GithubIntegration />
+    </Card>
+  )
+}
+
+function GithubLogo({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="flex-shrink-0 mt-1 text-pitch-800 dark:text-paper-100">
+      <path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.23-1.28-5.23-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14 0 1.55-.01 2.8-.01 3.18 0 .31.21.67.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z"/>
     </svg>
   )
 }
