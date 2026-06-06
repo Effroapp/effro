@@ -126,7 +126,7 @@ export default function SplashScreen({ visible = true, tagline = 'Stay across ev
           opacity: visible ? 1 : 0,
           pointerEvents: visible ? 'auto' : 'none',
           transition: 'opacity 400ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-          fontFamily: "'Geist', system-ui, -apple-system, sans-serif",
+          fontFamily: "'Geist Sans', system-ui, -apple-system, sans-serif",
           WebkitFontSmoothing: 'antialiased',
         }}
       >

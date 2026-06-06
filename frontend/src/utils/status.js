@@ -20,7 +20,7 @@ export const DUE_DATE_OPTIONS = [
 export const AREA_STATUSES = {
   stable: {
     label: 'Stable',
-    dot: '#7A9579',         // sage
+    dot: 'var(--sage)',         // sage
     textClass: 'text-sage dark:text-sage',
     bgClass: 'bg-sage/10 dark:bg-sage/15',
     borderClass: 'border-sage/30 dark:border-sage/40',
@@ -28,7 +28,7 @@ export const AREA_STATUSES = {
   },
   active: {
     label: 'Active',
-    dot: '#6B8AB8',         // sky-muted
+    dot: 'var(--sky-muted)',         // sky-muted
     textClass: 'text-sky-muted dark:text-sky-muted',
     bgClass: 'bg-sky-muted/10 dark:bg-sky-muted/15',
     borderClass: 'border-sky-muted/30 dark:border-sky-muted/40',
@@ -36,7 +36,7 @@ export const AREA_STATUSES = {
   },
   review: {
     label: 'On Hold',
-    dot: '#C99A5C',         // amber-muted
+    dot: 'var(--amber-muted)',         // amber-muted
     textClass: 'text-amber-muted dark:text-amber-muted',
     bgClass: 'bg-amber-muted/10 dark:bg-amber-muted/15',
     borderClass: 'border-amber-muted/30 dark:border-amber-muted/40',
@@ -44,7 +44,7 @@ export const AREA_STATUSES = {
   },
   blocked: {
     label: 'Blocked',
-    dot: '#B86A5C',         // terracotta
+    dot: 'var(--terracotta)',         // terracotta
     textClass: 'text-terracotta dark:text-terracotta',
     bgClass: 'bg-terracotta/10 dark:bg-terracotta/15',
     borderClass: 'border-terracotta/30 dark:border-terracotta/40',
@@ -57,35 +57,35 @@ export const AREA_STATUSES = {
 export const THREAD_STATUSES = {
   open: {
     label: 'Open',
-    dot: '#6B8AB8',         // sky-muted
+    dot: 'var(--sky-muted)',         // sky-muted
     textClass: 'text-sky-muted dark:text-sky-muted',
     bgClass: 'bg-sky-muted/10 dark:bg-sky-muted/15',
     borderClass: 'border-sky-muted/30 dark:border-sky-muted/40',
   },
   'in-progress': {
     label: 'In Progress',
-    dot: '#C9A85C',         // mustard
+    dot: 'var(--mustard)',         // mustard
     textClass: 'text-mustard dark:text-mustard',
     bgClass: 'bg-mustard/10 dark:bg-mustard/15',
     borderClass: 'border-mustard/30 dark:border-mustard/40',
   },
   resolved: {
     label: 'Resolved',
-    dot: '#7A9579',         // sage
+    dot: 'var(--sage)',         // sage
     textClass: 'text-sage dark:text-sage',
     bgClass: 'bg-sage/10 dark:bg-sage/15',
     borderClass: 'border-sage/30 dark:border-sage/40',
   },
   parked: {
     label: 'Parked',
-    dot: '#8A7BB8',         // lavender
+    dot: 'var(--lavender)',         // lavender
     textClass: 'text-lavender dark:text-lavender',
     bgClass: 'bg-lavender/10 dark:bg-lavender/15',
     borderClass: 'border-lavender/30 dark:border-lavender/40',
   },
   blocked: {
     label: 'Blocked',
-    dot: '#B86A5C',         // terracotta
+    dot: 'var(--terracotta)',         // terracotta
     textClass: 'text-terracotta dark:text-terracotta',
     bgClass: 'bg-terracotta/10 dark:bg-terracotta/15',
     borderClass: 'border-terracotta/30 dark:border-terracotta/40',

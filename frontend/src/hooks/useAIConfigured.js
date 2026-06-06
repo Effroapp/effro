@@ -28,13 +28,22 @@ export function notifyAIConfigChanged() {
 
 export function useAIConfigured() {
   const [configured, setConfigured] = useState(null)
+  // True when the active engine is a small/free/local preset (Groq, Gemini,
+  // Ollama). Lets AI surfaces set honest expectations - see Smart Generate.
+  const [smallModel, setSmallModel] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const fetchStatus = useCallback(() => {
     setLoading(true)
     getAIConfig()
-      .then((cfg) => setConfigured(!!cfg?.is_configured))
-      .catch(() => setConfigured(false))    // treat fetch error as unconfigured
+      .then((cfg) => {
+        setConfigured(!!cfg?.is_configured)
+        setSmallModel(!!cfg?.small_model)
+      })
+      .catch(() => {                          // treat fetch error as unconfigured
+        setConfigured(false)
+        setSmallModel(false)
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -44,5 +53,5 @@ export function useAIConfigured() {
     return () => window.removeEventListener(AI_CONFIG_CHANGED_EVENT, fetchStatus)
   }, [fetchStatus])
 
-  return { configured, loading }
+  return { configured, loading, smallModel }
 }

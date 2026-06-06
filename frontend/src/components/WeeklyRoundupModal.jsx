@@ -105,7 +105,7 @@ export default function WeeklyRoundupModal({ isOpen, onClose }) {
                     onClick={onClose}
                     className="text-xs text-pitch-500 dark:text-paper-300 hover:text-paper-700 dark:hover:text-paper-200 transition-colors"
                   >
-                    <span className="font-display uppercase tracking-wide">{a.name}</span>
+                    <span className="font-display">{a.name}</span>
                     <span className="ml-1.5 font-mono text-paper-500 dark:text-paper-600">{a.days_inactive}d</span>
                   </RouterLink>
                 ))}

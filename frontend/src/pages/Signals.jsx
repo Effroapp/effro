@@ -2,11 +2,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Radar, Check, X, Pencil, Loader2, AlertCircle, Calendar,
-  MapPin, User, ChevronRight, RefreshCw, ExternalLink, Sparkles, Clock,
+  MapPin, User, ChevronRight, RefreshCw, ExternalLink, Clock,
+  CheckCircle2, ChevronDown, Plug, Inbox,
 } from 'lucide-react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import PageHeader from '../components/PageHeader'
+import IntroPanel, { Key } from '../components/IntroPanel'
 import JiraIssueType from '../components/JiraIssueType'
+import ProviderLogo from '../components/ProviderLogos'
 import { listSignals, acceptSignal, reassignSignal, dismissSignal } from '../api/signals'
 import { syncNow } from '../api/microsoft'
 import { jiraSyncNow } from '../api/jira'
@@ -27,6 +30,18 @@ import { BionicText } from '../utils/bionic.jsx'
  * Empty state is intentionally a quiet "signals clear" reward, not a nag
  * (per spec §9).
  */
+// Per-app metadata for the source filter + grouping: an official logo (via
+// ProviderLogo) and a short app label. Source-level, so each maps to one icon
+// (Google = Gmail + Calendar; iCloud = Apple Mail + Calendar).
+const SOURCE_META = {
+  microsoft: { label: 'Outlook', logo: 'microsoft' },
+  google:    { label: 'Google',  logo: 'google' },
+  icloud:    { label: 'iCloud',  logo: 'icloud' },
+  github:    { label: 'GitHub',  logo: 'github' },
+  jira:      { label: 'Jira',    logo: 'jira' },
+}
+const SOURCE_ORDER = ['microsoft', 'google', 'icloud', 'github', 'jira']
+
 export default function Signals() {
   const navigate = useNavigate()
   const [data, setData] = useState(null)  // { items, pending_count, ai_configured }
@@ -36,6 +51,8 @@ export default function Signals() {
   const [syncNote, setSyncNote] = useState(null)  // neutral post-sync readout (e.g. "Jira: 3 found")
   const [isSyncing, setIsSyncing] = useState(false)
   const [activePicker, setActivePicker] = useState(null)  // signal id whose picker is open
+  const [activeSource, setActiveSource] = useState(null)  // null = All; else a source key
+  const [showFiled, setShowFiled] = useState(false)       // reveal already-filed items
 
   const refresh = useCallback(async () => {
     try {
@@ -87,8 +104,46 @@ export default function Signals() {
     }
   }
 
+  // ── Derived views ──────────────────────────────────────────────────────────
+  const items = data?.items || []
+  const pendingItems = items.filter((s) => s.status === 'pending')
+  const filedItems = items.filter((s) => s.status === 'assigned')
+  const pendingBySource = (src) => pendingItems.filter((s) => s.source === src)
+  // Stable app order, with any unexpected source appended so nothing is hidden.
+  const pendingSources = SOURCE_ORDER.filter((src) => pendingItems.some((s) => s.source === src))
+  pendingItems.forEach((s) => { if (!pendingSources.includes(s.source)) pendingSources.push(s.source) })
+  const visiblePending = activeSource ? pendingBySource(activeSource) : pendingItems
+  const visibleFiled = activeSource ? filedItems.filter((s) => s.source === activeSource) : filedItems
+
+  // One place to build a card, reused across the grouped, filtered and filed views.
+  const renderCard = (signal) => (
+    <SignalCard
+      key={signal.id}
+      signal={signal}
+      areas={areas}
+      isPickerOpen={activePicker === signal.id}
+      onTogglePicker={() => setActivePicker((cur) => (cur === signal.id ? null : signal.id))}
+      onAccept={async (payload) => {
+        try { await acceptSignal(signal.id, payload); setActivePicker(null); await refresh() }
+        catch (e) { setError(e.message) }
+      }}
+      onReassign={async (payload) => {
+        try { await reassignSignal(signal.id, payload); await refresh() }
+        catch (e) { setError(e.message) }
+      }}
+      onDismiss={async () => {
+        try { await dismissSignal(signal.id); setActivePicker(null); await refresh() }
+        catch (e) { setError(e.message) }
+      }}
+      onOpenAssigned={() => {
+        if (signal.assigned_entry_id) navigate(`/thread/${signal.suggested_thread_id}?entry=${signal.assigned_entry_id}`)
+      }}
+    />
+  )
+
   return (
-    <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
+    <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
+      <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
       {/* Header */}
       <PageHeader
         icon={Radar}
@@ -103,7 +158,7 @@ export default function Signals() {
             )}
             {data?.last_synced && !isSyncing && (
               <span
-                className="hidden sm:flex items-center gap-1.5 text-[11px] font-mono text-paper-500 dark:text-pitch-200"
+                className="hidden sm:flex items-center gap-1.5 text-2xs font-mono text-paper-500 dark:text-pitch-200"
                 title={`Last synced ${format(parseUTC(data.last_synced), 'EEE d MMM, HH:mm')}`}
               >
                 <Clock size={11} className="flex-shrink-0" />
@@ -128,6 +183,17 @@ export default function Signals() {
         }
       />
 
+      {/* First-run explainer - shown once, then dismissed for good. */}
+      <IntroPanel icon={Radar} title="Welcome to Signals" storageKey="effro.signalsIntroSeen">
+        Signals is a gentle holding area for the things your connected tools
+        surface, the <Key>meetings</Key>, <Key>emails</Key>, <Key>issues</Key>{' '}
+        and <Key>pull requests</Key> waiting on one small decision from you.
+        Accept an item onto a thread, reassign it, or quietly let it go. We keep
+        it because the important bits deserve one calm place rather than a dozen
+        scattered tabs, and because nothing should slip by while you are head
+        down in deeper work.
+      </IntroPanel>
+
       {error && (
         <div className="mb-4 rounded-lg border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">
           {error}
@@ -148,71 +214,159 @@ export default function Signals() {
         </div>
       )}
 
-      {data && data.items.length === 0 && (
-        <EmptyState aiConfigured={data.ai_configured} />
+      {/* Empty list: nothing connected yet vs all caught up. */}
+      {data && items.length === 0 && (
+        data.integrations_configured
+          ? <CaughtUp />
+          : <NothingConnected onConnect={() => navigate('/settings')} />
       )}
 
-      {data && data.items.length > 0 && (
-        <div className="space-y-3">
-          {data.items.map((signal) => (
-            <SignalCard
-              key={signal.id}
-              signal={signal}
-              areas={areas}
-              isPickerOpen={activePicker === signal.id}
-              onTogglePicker={() => setActivePicker((cur) => cur === signal.id ? null : signal.id)}
-              onAccept={async (payload) => {
-                try {
-                  await acceptSignal(signal.id, payload)
-                  setActivePicker(null)
-                  await refresh()
-                } catch (e) { setError(e.message) }
-              }}
-              onReassign={async (payload) => {
-                try {
-                  await reassignSignal(signal.id, payload)
-                  await refresh()
-                } catch (e) { setError(e.message) }
-              }}
-              onDismiss={async () => {
-                try {
-                  await dismissSignal(signal.id)
-                  setActivePicker(null)
-                  await refresh()
-                } catch (e) { setError(e.message) }
-              }}
-              onOpenAssigned={() => {
-                if (signal.assigned_entry_id) {
-                  navigate(`/thread/${signal.suggested_thread_id}?entry=${signal.assigned_entry_id}`)
-                }
-              }}
-            />
-          ))}
-        </div>
+      {/* Connected and a clear queue: caught up, with filed available on demand. */}
+      {data && items.length > 0 && pendingItems.length === 0 && (
+        <>
+          <CaughtUp />
+          <FiledReveal items={filedItems} show={showFiled} onToggle={() => setShowFiled((v) => !v)} renderCard={renderCard} />
+        </>
       )}
+
+      {/* The working view: app filter + grouped 'to file' + filed reveal. */}
+      {data && pendingItems.length > 0 && (
+        <>
+          <div className="flex flex-wrap items-center gap-2 mb-5">
+            <FilterChip
+              active={activeSource === null}
+              onClick={() => setActiveSource(null)}
+              icon={Inbox}
+              label="All"
+              count={pendingItems.length}
+            />
+            {pendingSources.map((src) => (
+              <FilterChip
+                key={src}
+                active={activeSource === src}
+                onClick={() => setActiveSource((cur) => (cur === src ? null : src))}
+                logo={SOURCE_META[src]?.logo}
+                label={SOURCE_META[src]?.label || src}
+                count={pendingBySource(src).length}
+              />
+            ))}
+          </div>
+
+          {activeSource === null ? (
+            <div className="space-y-6">
+              {pendingSources.map((src) => (
+                <div key={src}>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    {SOURCE_META[src]?.logo
+                      ? <ProviderLogo provider={SOURCE_META[src].logo} size={15} />
+                      : <Radar size={14} className="text-paper-500 dark:text-paper-600" />}
+                    <h2 className="font-display text-sm font-semibold text-pitch-800 dark:text-white">
+                      {SOURCE_META[src]?.label || src}
+                    </h2>
+                    <span className="font-mono text-2xs text-paper-500 dark:text-paper-600">
+                      {pendingBySource(src).length}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {pendingBySource(src).map(renderCard)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {visiblePending.map(renderCard)}
+            </div>
+          )}
+
+          <FiledReveal items={visibleFiled} show={showFiled} onToggle={() => setShowFiled((v) => !v)} renderCard={renderCard} />
+        </>
+      )}
+      </div>
     </div>
   )
 }
 
-// ─── Empty state ─────────────────────────────────────────────────────────────
+// ─── Empty + caught-up states ────────────────────────────────────────────────
 
-function EmptyState({ aiConfigured }) {
+function CaughtUp() {
   return (
-    <div className="rounded-xl border border-dashed border-paper-300 dark:border-pitch-600 p-10 text-center">
-      <div className="inline-flex w-14 h-14 items-center justify-center rounded-full bg-paper-100 dark:bg-pitch-800 mb-4">
-        <Radar size={26} className="text-paper-500 dark:text-paper-600" />
+    <div className="rounded-xl border border-dashed border-paper-300 dark:border-pitch-600 p-10 text-center animate-rise motion-reduce:animate-none">
+      <div className="inline-flex w-14 h-14 items-center justify-center rounded-full bg-mint-50 dark:bg-mint-900/20 mb-4">
+        <CheckCircle2 size={26} className="text-mint-600 dark:text-mint-400" />
       </div>
       <h2 className="font-display font-medium text-lg text-pitch-800 dark:text-white mb-1">
-        Signals clear
+        You're all caught up
       </h2>
       <p className="text-sm text-paper-500 dark:text-paper-600 max-w-md mx-auto leading-snug">
-        Nothing waiting. New Outlook meetings will appear here as they come in.
+        Nothing waiting to file. New items from your connected tools will appear here as they arrive.
       </p>
-      {!aiConfigured && (
-        <p className="mt-4 text-xs text-paper-500 dark:text-paper-600 max-w-md mx-auto leading-snug">
-          <Sparkles size={11} className="inline mr-1 text-amber-500" />
-          AI Engine is not configured, so signals will arrive without suggested areas - you'll choose one yourself.
-        </p>
+    </div>
+  )
+}
+
+function NothingConnected({ onConnect }) {
+  return (
+    <div className="rounded-xl border border-dashed border-paper-300 dark:border-pitch-600 p-10 text-center animate-rise motion-reduce:animate-none">
+      <div className="inline-flex w-14 h-14 items-center justify-center rounded-full bg-paper-100 dark:bg-pitch-800 mb-4">
+        <Plug size={24} className="text-paper-500 dark:text-paper-600" />
+      </div>
+      <h2 className="font-display font-medium text-lg text-pitch-800 dark:text-white mb-1">
+        Nothing set up yet
+      </h2>
+      <p className="text-sm text-paper-500 dark:text-paper-600 max-w-md mx-auto leading-snug mb-5">
+        Connect the tools you already use, Outlook, Google, iCloud, GitHub or Jira, and the meetings,
+        emails, issues and pull requests that need a decision will flow into Effro here.
+      </p>
+      <button
+        onClick={onConnect}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-mint-700 hover:bg-mint-800 text-white text-sm font-medium transition-colors"
+      >
+        <Plug size={14} /> Connect your tools
+      </button>
+    </div>
+  )
+}
+
+// ─── Source filter chip ──────────────────────────────────────────────────────
+
+function FilterChip({ active, onClick, logo, icon: Icon, label, count }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1.5 rounded-full border text-xs transition-colors
+        ${active
+          ? 'border-mint-600 bg-mint-50 dark:bg-mint-900/20 text-mint-800 dark:text-mint-200'
+          : 'border-paper-300 dark:border-pitch-500 text-paper-600 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700'}
+      `}
+    >
+      {logo ? <ProviderLogo provider={logo} size={14} /> : Icon ? <Icon size={13} /> : null}
+      <span className="font-medium">{label}</span>
+      <span className={`font-mono ${active ? 'text-mint-700 dark:text-mint-300' : 'text-paper-500 dark:text-paper-600'}`}>
+        {count}
+      </span>
+    </button>
+  )
+}
+
+// ─── Filed (already-accepted) reveal ─────────────────────────────────────────
+
+function FiledReveal({ items, show, onToggle, renderCard }) {
+  if (!items || items.length === 0) return null
+  return (
+    <div className="mt-6">
+      <button
+        onClick={onToggle}
+        className="flex items-center gap-1.5 text-xs text-paper-500 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300 transition-colors"
+      >
+        <ChevronDown size={13} className={`transition-transform ${show ? '' : '-rotate-90'}`} />
+        {show ? 'Hide filed' : `Show ${items.length} filed`}
+      </button>
+      {show && (
+        <div className="space-y-3 mt-3">
+          {items.map(renderCard)}
+        </div>
       )}
     </div>
   )
@@ -247,7 +401,7 @@ function SignalCard({
         {isAssigned && (
           <button
             onClick={onOpenAssigned}
-            className="flex-shrink-0 flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-mint-700 dark:text-mint-300 hover:underline"
+            className="flex-shrink-0 flex items-center gap-1 text-2xs font-mono uppercase tracking-wider text-mint-700 dark:text-mint-300 hover:underline"
           >
             <Check size={10} strokeWidth={3} /> filed <ExternalLink size={10} />
           </button>
@@ -292,7 +446,7 @@ function SourceBadge({ source, kind }) {
   else if (source === 'github') key = `github:${kind === 'pr' ? 'pr' : 'issue'}`
   const { label, color } = labels[key] || { label: source, color: 'text-paper-500 dark:text-paper-600 bg-paper-100 dark:bg-pitch-700 border-stone' }
   return (
-    <span className={`inline-flex items-center text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${color}`}>
+    <span className={`inline-flex items-center text-2xs font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${color}`}>
       {label}
     </span>
   )
@@ -300,7 +454,7 @@ function SourceBadge({ source, kind }) {
 
 function MetaRow({ signal }) {
   return (
-    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-[11px] text-paper-500 dark:text-paper-600">
+    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-2xs text-paper-500 dark:text-paper-600">
       {signal.starts_at && (
         <span className="inline-flex items-center gap-1">
           <Calendar size={11} />
@@ -396,13 +550,13 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
     <div className="mt-3 pt-3 border-t border-paper-200 dark:border-pitch-600">
       {/* Add-as type choice - what the accepted signal becomes on the thread. */}
       <div className="flex items-center gap-1.5 mb-2.5">
-        <span className="text-[10px] font-mono uppercase tracking-wider text-paper-500 dark:text-paper-600">Add as</span>
+        <span className="text-2xs font-mono uppercase tracking-wider text-paper-500 dark:text-paper-600">Add as</span>
         <div className="inline-flex rounded-md border border-paper-300 dark:border-pitch-500 overflow-hidden">
           {typeOpts.map((o) => (
             <button
               key={o}
               onClick={() => setCreateAs(o)}
-              className={`px-2 py-0.5 text-[11px] transition-colors ${
+              className={`px-2 py-0.5 text-2xs transition-colors ${
                 createAs === o
                   ? 'bg-mint-700 text-white'
                   : 'text-paper-600 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-600'
@@ -417,16 +571,16 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
       {/* Quick-accept row: AI's suggestion as a one-click button when present */}
       {signal.suggested_area_name && !isPickerOpen && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] text-paper-500 dark:text-paper-600">
+          <span className="text-2xs text-paper-500 dark:text-paper-600">
             File under:
           </span>
-          <span className="text-[11px] font-medium text-pitch-700 dark:text-paper-300">
+          <span className="text-2xs font-medium text-pitch-700 dark:text-paper-300">
             {signal.suggested_area_name}
             {signal.suggested_thread_title && <> · {signal.suggested_thread_title}</>}
           </span>
           <button
             onClick={onTogglePicker}
-            className="text-[10px] font-mono uppercase tracking-wider text-paper-500 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300 transition-colors"
+            className="text-2xs font-mono uppercase tracking-wider text-paper-500 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300 transition-colors"
           >
             change
           </button>
@@ -466,7 +620,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
       {/* No-strong-match: AI didn't suggest, user must pick */}
       {!signal.suggested_area_name && !isPickerOpen && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] text-amber-600 dark:text-amber-400">
+          <span className="text-2xs text-amber-600 dark:text-amber-400">
             No strong match - choose an area.
           </span>
           <button
@@ -499,7 +653,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
       {isPickerOpen && (
         <div className="space-y-3 mt-1">
           <div>
-            <label className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 block mb-1">
+            <label className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 block mb-1">
               Area
             </label>
             <select
@@ -528,7 +682,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
 
           {chosenAreaId && (
             <div>
-              <label className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 block mb-1">
+              <label className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 block mb-1">
                 Thread
               </label>
               <select

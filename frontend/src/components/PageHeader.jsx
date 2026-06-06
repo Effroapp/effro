@@ -17,7 +17,7 @@
 export default function PageHeader({ icon: Icon, title, subtitle, accent = false, right = null }) {
   return (
     <div className="mb-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 pr-14">
         <div className="flex items-center gap-2.5 min-w-0">
           {Icon && (
             accent ? (
@@ -39,7 +39,7 @@ export default function PageHeader({ icon: Icon, title, subtitle, accent = false
               {title}
             </h1>
             {subtitle && (
-              <p className="font-lexend text-[13px] leading-snug mt-0.5
+              <p className="font-lexend text-sm leading-snug mt-0.5
                             text-paper-600 dark:text-pitch-100">
                 {subtitle}
               </p>

@@ -111,7 +111,7 @@ export default function Logo({
         {mark}
         <span
           style={{
-            fontFamily: "'Geist', system-ui, -apple-system, sans-serif",
+            fontFamily: "'Geist Sans', system-ui, -apple-system, sans-serif",
             fontWeight: 500,
             fontSize: `${wordFontSize}px`,
             letterSpacing: '-0.045em',

@@ -202,7 +202,7 @@ export default function Dashboard() {
             page background (no box, no tint), a small leaf mark, and quiet
             controls that surface on hover. Minimal real-estate. */}
         {nudge?.text && !nudgeDismissed && (
-          <div className="group flex items-start gap-2 mb-5 text-[13px] leading-snug text-paper-500 dark:text-pitch-100">
+          <div className="group flex items-start gap-2 mb-5 text-sm leading-snug text-paper-500 dark:text-pitch-100">
             <Leaf size={13} className="flex-shrink-0 mt-[3px] text-mint-600/70 dark:text-mint-400/60" />
             <p className="flex-1 italic">{nudge.text}</p>
             <div className="flex items-center gap-0.5 flex-shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
@@ -301,7 +301,7 @@ function AreaCard({ area }) {
         className="h-1"
         style={{
           backgroundColor: config.dot,
-          boxShadow: `0 1px 8px ${config.dot}60`,
+          boxShadow: `0 1px 8px color-mix(in srgb, ${config.dot} 38%, transparent)`,
         }}
       />
 
@@ -314,7 +314,7 @@ function AreaCard({ area }) {
                 <AreaIcon name={area.icon} size={18} />
               </span>
             )}
-            <h2 className="font-display font-bold text-base uppercase tracking-wider text-pitch-800 dark:text-white truncate">
+            <h2 className="font-display font-bold text-base text-pitch-800 dark:text-white truncate">
               {area.name}
             </h2>
           </div>
@@ -485,7 +485,7 @@ function ComingUpStrip() {
             if (items.length === 0) return null
             return (
               <div key={key} className="px-4 py-2.5">
-                <p className={`font-mono uppercase tracking-widest text-[10px] mb-1.5 ${colorClass}`}>
+                <p className={`font-mono uppercase tracking-widest text-2xs mb-1.5 ${colorClass}`}>
                   {label}
                 </p>
                 <div className="space-y-0.5">
@@ -499,7 +499,7 @@ function ComingUpStrip() {
                         transition-colors
                       "
                     >
-                      <span className="font-display uppercase tracking-wide text-[11px] text-pitch-700 dark:text-paper-200 flex-shrink-0">
+                      <span className="font-display uppercase tracking-wide text-2xs text-pitch-700 dark:text-paper-200 flex-shrink-0">
                         {t.area_name}
                       </span>
                       <span className="text-paper-400 dark:text-paper-700 text-xs flex-shrink-0">/</span>

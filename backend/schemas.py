@@ -408,6 +408,9 @@ class AIConfigOut(BaseModel):
     base_url: Optional[str]
     api_key_masked: Optional[str]
     is_configured: bool
+    # True when the active engine is a small/free/local preset; lets the UI set
+    # honest expectations (e.g. the Smart Generate note).
+    small_model: bool = False
 
 
 class AITestResult(BaseModel):
@@ -812,6 +815,10 @@ class SignalListOut(BaseModel):
     # Most recent successful pull across connected sources (Outlook + Jira),
     # so the page can show "synced a few minutes ago". Null if never synced.
     last_synced: Optional[datetime] = None
+    # True if at least one Signals source (Outlook, Google, iCloud, GitHub, Jira)
+    # is set up. Lets the page tell "nothing connected yet" (offer setup) apart
+    # from "all caught up" (connected, nothing pending) when the list is empty.
+    integrations_configured: bool = False
 
 
 class SignalAcceptIn(BaseModel):

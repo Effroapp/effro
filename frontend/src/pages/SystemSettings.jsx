@@ -24,7 +24,7 @@ import JiraIntegration from '../components/JiraIntegration'
 import GoogleIntegration from '../components/GoogleIntegration'
 import IcloudIntegration from '../components/IcloudIntegration'
 import GithubIntegration from '../components/GithubIntegration'
-import IntroCard from '../components/IntroCard'
+import IntroPanel, { Key } from '../components/IntroPanel'
 import IntegrationsPanel from '../components/IntegrationsPanel'
 import ProviderLogo from '../components/ProviderLogos'
 import { useAppVersion } from '../hooks/useAppVersion'
@@ -49,28 +49,34 @@ import { notifyAIConfigChanged } from '../hooks/useAIConfigured'
 // on screen. Tabs mirror the Insights page for a consistent feel.
 const SETTINGS_TABS = [
   {
-    key: 'ai', label: 'AI', Icon: Cpu, introTitle: 'the AI Engine',
-    beats: [
-      { label: 'What it is', text: 'The brain behind smart capture, summaries and gentle suggestions, using your own key.' },
-      { label: 'How it helps', text: 'You pick the provider, the model, the cost, and where your prompts go.' },
-      { label: 'Why we do it', text: 'Maximum control, nothing forced on you. Your key and data never route through us.' },
-    ],
+    key: 'ai', label: 'AI', Icon: Cpu, introTitle: 'The AI engine',
+    body: (
+      <>
+        The brain behind smart capture, summaries and gentle suggestions, running on your{' '}
+        <Key>own API key</Key>. You choose the <Key>provider</Key>, the <Key>model</Key>, the cost,
+        and where your prompts go. Nothing is forced on you, and your key and data never route through us.
+      </>
+    ),
   },
   {
     key: 'storage', label: 'Storage', Icon: Database, introTitle: 'Storage',
-    beats: [
-      { label: 'What it is', text: 'Where your data is stored day to day, and where it is backed up.' },
-      { label: 'How it helps', text: 'Safe, in a place you choose, with encrypted backups you can restore anywhere.' },
-      { label: 'Why we do it', text: 'Your data is yours. Effro never reads your files or your backups.' },
-    ],
+    body: (
+      <>
+        Where your data lives day to day, and where it is backed up. Keep it{' '}
+        <Key>somewhere you choose</Key>, with <Key>encrypted backups</Key> you can restore anywhere.
+        Your data is yours: Effro never reads your files or your backups.
+      </>
+    ),
   },
   {
     key: 'integrations', label: 'Integrations', Icon: Plug, introTitle: 'Integrations',
-    beats: [
-      { label: 'What it is', text: 'The apps you already work in: calendar, email, Jira, GitHub and more.' },
-      { label: 'How it helps', text: 'Their meetings, flagged emails and assigned issues flow in as work items, filed by area.' },
-      { label: 'Why we do it', text: 'Your tools are often not your choice, or ones you love. We sit alongside them, not replace them.' },
-    ],
+    body: (
+      <>
+        The apps you already work in: <Key>calendar, email, Jira, GitHub</Key> and more. Their meetings,
+        flagged emails and assigned issues flow in as <Key>work items</Key>, filed by area.
+        We sit alongside your tools, never replacing them.
+      </>
+    ),
   },
   {
     key: 'about', label: 'About', Icon: Info,
@@ -119,8 +125,8 @@ export default function SystemSettings({ updater }) {
 
       <main className="max-w-5xl mx-auto px-8 py-8">
         <SettingsTabs tab={tab} onChange={setTab} />
-        {active.beats
-          ? <IntroCard id={active.key} title={active.introTitle || active.label} beats={active.beats} />
+        {active.body
+          ? <IntroPanel icon={active.Icon} title={active.introTitle || active.label} storageKey={`effro.introPanel.${active.key}`}>{active.body}</IntroPanel>
           : <p className="text-sm text-paper-500 dark:text-paper-500 mb-5 leading-relaxed">{active.intro}</p>}
 
         <div className="space-y-6 animate-rise motion-reduce:animate-none" key={tab}>
@@ -266,7 +272,7 @@ function AISummaryCard({ config, onEdit }) {
           <p className="text-sm font-medium text-pitch-800 dark:text-white capitalize">
             {config.provider}
           </p>
-          <p className="text-[11px] font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
+          <p className="text-2xs font-mono text-paper-500 dark:text-paper-600 mt-0.5 truncate">
             {config.model || '(default model)'}
             {config.api_key_masked && (
               <> · <span className="text-paper-400 dark:text-paper-700">{config.api_key_masked}</span></>
@@ -511,7 +517,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
                       <span className="text-sm font-medium text-pitch-800 dark:text-white capitalize">
                         {key === 'gemini' ? 'Google Gemini' : key === 'custom' ? 'Custom / Enterprise' : key}
                       </span>
-                      <span className="text-[10px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-paper-200 dark:bg-pitch-600 text-paper-700 dark:text-paper-300">
+                      <span className="text-2xs font-mono uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-paper-200 dark:bg-pitch-600 text-paper-700 dark:text-paper-300">
                         {g.badge}
                       </span>
                     </div>
@@ -549,7 +555,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
 
       {/* What is this */}
       <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
-        <div className="text-[10px] font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
+        <div className="text-2xs font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
           {guide.icon} {selected === 'gemini' ? 'Google Gemini' : selected === 'custom' ? 'Custom / Enterprise' : selected.charAt(0).toUpperCase() + selected.slice(1)} · {guide.time}
         </div>
         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">{guide.what}</div>
@@ -558,13 +564,13 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
       {/* Steps */}
       {guide.steps && (
         <div>
-          <div className="text-[10px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
+          <div className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
             {guide.keyLabel ? 'To get your key' : 'To get started'}
           </div>
           <div className="space-y-2">
             {guide.steps.map((s, i) => (
               <div key={i} className="flex gap-3 items-start">
-                <div className="w-5 h-5 rounded-full bg-mint-700 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-5 h-5 rounded-full bg-mint-700 text-white text-2xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
                   {i + 1}
                 </div>
                 <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
@@ -581,7 +587,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
                   )}
                   {s.suffix && ` ${s.suffix}`}
                   {s.code && (
-                    <code className="ml-1 px-1.5 py-0.5 rounded bg-pitch-800 dark:bg-black text-mint-300 text-[11px] font-mono">
+                    <code className="ml-1 px-1.5 py-0.5 rounded bg-pitch-800 dark:bg-black text-mint-300 text-2xs font-mono">
                       {s.code}
                     </code>
                   )}
@@ -701,7 +707,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
       </div>
 
       {!testResult?.ok && (
-        <p className="text-center text-[10px] text-paper-500 dark:text-paper-600">
+        <p className="text-center text-2xs text-paper-500 dark:text-paper-600">
           Test the connection first to enable Save.
         </p>
       )}
@@ -731,7 +737,7 @@ function Field({ label, hint, value, onChange, placeholder, type = 'text', autoC
         "
       />
       {hint && (
-        <p className="mt-1 text-[10px] text-paper-500 dark:text-paper-600">{hint}</p>
+        <p className="mt-1 text-2xs text-paper-500 dark:text-paper-600">{hint}</p>
       )}
     </div>
   )
@@ -824,7 +830,7 @@ function UpdateSection({ updater }) {
             <p className="text-sm text-pitch-700 dark:text-paper-300">
               Currently on <strong className="font-medium">v{version || '-'}</strong>
             </p>
-            <p className="text-[11px] text-paper-500 dark:text-paper-600 mt-0.5">
+            <p className="text-2xs text-paper-500 dark:text-paper-600 mt-0.5">
               {updater?.status === 'checking'
                 ? 'Checking for updates…'
                 : updater?.status === 'none'
@@ -911,7 +917,7 @@ function StorageSection({ id }) {
     <>
       {/* All options - icon row */}
       <div className="mb-4">
-        <div className="font-mono uppercase tracking-widest text-[10px] text-paper-500 dark:text-paper-600 mb-2">All storage</div>
+        <div className="font-mono uppercase tracking-widest text-2xs text-paper-500 dark:text-paper-600 mb-2">All storage</div>
         <div className="flex flex-wrap gap-2">
           {STORAGE_OPTIONS.map((o) => {
             const active = storageConfig?.provider === o.key
@@ -962,7 +968,7 @@ function StorageSection({ id }) {
                 >
                   {dataDir || '…'}
                 </p>
-                <p className="text-[11px] text-paper-500 dark:text-paper-600 mt-0.5">
+                <p className="text-2xs text-paper-500 dark:text-paper-600 mt-0.5">
                   Database, settings, attachments
                 </p>
               </div>
@@ -1031,12 +1037,12 @@ function StorageSection({ id }) {
                 : 'No cloud sync'}
             </p>
             {storageConfig?.is_connected && storageConfig.last_backup_at && (
-              <p className="text-[11px] text-paper-500 dark:text-paper-600 mt-0.5">
+              <p className="text-2xs text-paper-500 dark:text-paper-600 mt-0.5">
                 Backed up {new Date(storageConfig.last_backup_at).toLocaleDateString()}
               </p>
             )}
             {!storageConfig?.is_connected && (
-              <p className="text-[11px] text-paper-500 dark:text-paper-600 mt-0.5">
+              <p className="text-2xs text-paper-500 dark:text-paper-600 mt-0.5">
                 Encrypted backup, attachment sync
               </p>
             )}
@@ -1054,7 +1060,7 @@ function StorageSection({ id }) {
           </button>
         </div>
 
-        <p className="mt-3 text-center text-[11px] text-paper-500 dark:text-paper-600">
+        <p className="mt-3 text-center text-2xs text-paper-500 dark:text-paper-600">
           Coming soon - Dropbox · OneDrive · SharePoint
         </p>
       </Card>

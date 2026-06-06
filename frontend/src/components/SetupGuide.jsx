@@ -35,7 +35,7 @@ export default function SetupGuide({ guide, open, onClose }) {
           {guide.logo && <span className="flex-shrink-0 mt-0.5">{guide.logo}</span>}
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold text-pitch-800 dark:text-white leading-tight">{guide.title}</h2>
-            <p className="flex items-center gap-1.5 text-[11px] font-mono text-paper-500 dark:text-paper-600 mt-1">
+            <p className="flex items-center gap-1.5 text-2xs font-mono text-paper-500 dark:text-paper-600 mt-1">
               <Clock size={11} /> About {guide.estMinutes} minutes, one time only
             </p>
           </div>
@@ -60,7 +60,7 @@ export default function SetupGuide({ guide, open, onClose }) {
               />
             ))}
           </div>
-          <p className="mt-2 text-[11px] font-mono uppercase tracking-widest text-paper-500 dark:text-paper-600">
+          <p className="mt-2 text-2xs font-mono uppercase tracking-widest text-paper-500 dark:text-paper-600">
             Step {i + 1} of {steps.length}
           </p>
         </div>
@@ -138,13 +138,13 @@ function CopyRow({ label, value }) {
   return (
     <div className="rounded-lg border border-paper-300 dark:border-pitch-500 bg-paper-100 dark:bg-pitch-800 overflow-hidden">
       {label && (
-        <div className="px-3 pt-2 text-[10px] font-mono uppercase tracking-widest text-paper-500 dark:text-paper-600">{label}</div>
+        <div className="px-3 pt-2 text-2xs font-mono uppercase tracking-widest text-paper-500 dark:text-paper-600">{label}</div>
       )}
       <div className="flex items-center gap-2 px-3 py-2">
         <code className="flex-1 min-w-0 text-xs font-mono text-pitch-800 dark:text-paper-200 break-all">{value}</code>
         <button
           onClick={copy}
-          className={`flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium transition-colors ${
+          className={`flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded text-2xs font-medium transition-colors ${
             done ? 'text-mint-700 dark:text-mint-300' : 'text-paper-500 dark:text-paper-400 hover:text-pitch-700 dark:hover:text-paper-200'
           }`}
         >

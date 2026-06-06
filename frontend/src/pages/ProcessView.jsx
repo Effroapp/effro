@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { BrainCircuit, Check, X, RotateCcw, Upload, FileText, Mail, Calendar, ChevronRight, MessageSquare, CheckCheck, Plus, Edit3 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { BrainCircuit, Check, X, RotateCcw, Upload, FileText, Mail, Calendar, ChevronRight, MessageSquare, CheckCheck, Plus, Edit3, Info } from 'lucide-react'
 import { areasApi, generateApi, entriesApi, ingestApi } from '../api/client'
 import PageHeader from '../components/PageHeader'
+import IntroPanel, { Key } from '../components/IntroPanel'
 import StatusBadge from '../components/StatusBadge'
 import { useToast } from '../components/Toast'
 import Spinner from '../components/Spinner'
@@ -352,7 +354,7 @@ function WaveLoader({ count, label }) {
           </div>
         </div>
       ))}
-      <p className="text-[11px] font-mono text-paper-500 dark:text-pitch-200 text-center pt-0.5">
+      <p className="text-2xs font-mono text-paper-500 dark:text-pitch-200 text-center pt-0.5">
         {label}
       </p>
     </div>
@@ -407,7 +409,7 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
             className={`flex-shrink-0 text-paper-400 dark:text-paper-600 transition-transform ${collapsed ? '' : 'rotate-90'}`}
           />
           <MessageSquare size={15} className="flex-shrink-0 text-paper-500 dark:text-paper-400" />
-          <span className="font-display font-medium text-[15px] text-pitch-800 dark:text-white truncate min-w-0">
+          <span className="font-display font-medium text-sm text-pitch-800 dark:text-white truncate min-w-0">
             {dest.title}
           </span>
           {dest.isExisting
@@ -421,7 +423,7 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
           <button
             onClick={() => setEditing((e) => !e)}
             title="Change which thread these items go into"
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-display uppercase tracking-wide transition-colors ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-2xs font-display uppercase tracking-wide transition-colors ${
               editing
                 ? 'text-pitch-700 dark:text-white bg-paper-300 dark:bg-pitch-600'
                 : 'text-paper-600 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-600'
@@ -435,7 +437,7 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
               onClick={onApproveAll}
               disabled={busy}
               title={`Approve all ${n} items in this thread`}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-display uppercase tracking-wide text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/20 hover:bg-mint-100 dark:hover:bg-mint-900/35 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-2xs font-display uppercase tracking-wide text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/20 hover:bg-mint-100 dark:hover:bg-mint-900/35 disabled:opacity-50 transition-colors"
             >
               <CheckCheck size={12} />
               Approve all
@@ -447,13 +449,13 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
       {/* Destination editor - pick an existing thread, or name a new one */}
       {editing && (
         <div className="px-4 py-3 border-b border-paper-200 dark:border-pitch-500 bg-paper-100/30 dark:bg-pitch-800/20 space-y-3">
-          <p className="text-[11px] font-display uppercase tracking-widest text-paper-500 dark:text-paper-400">
+          <p className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-400">
             File these {n} item{n === 1 ? '' : 's'} into
           </p>
 
           {/* Create / rename a new thread */}
           <div className="flex items-center gap-2">
-            <span className="flex-shrink-0 inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 text-[11px] font-display uppercase tracking-wide">
+            <span className="flex-shrink-0 inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 text-2xs font-display uppercase tracking-wide">
               <Plus size={12} strokeWidth={3} /> New
             </span>
             <input
@@ -475,7 +477,7 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
           {/* Or file into an existing thread */}
           {areaThreads.length > 0 && (
             <div>
-              <p className="text-[11px] font-display uppercase tracking-widest text-paper-400 dark:text-paper-600 mb-1.5">
+              <p className="text-2xs font-display uppercase tracking-widest text-paper-400 dark:text-paper-600 mb-1.5">
                 Or an existing thread
               </p>
               <div className="max-h-44 overflow-y-auto space-y-1 pr-1">
@@ -521,7 +523,7 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
 export default function ProcessView() {
   // AI gate - checked first so the rest of the page doesn't even mount its
   // ingest/extract machinery when the engine isn't set up.
-  const { configured: aiConfigured, loading: aiLoading } = useAIConfigured()
+  const { configured: aiConfigured, loading: aiLoading, smallModel: aiSmallModel } = useAIConfigured()
 
   // Initialise from localStorage so navigation away doesn't lose work
   const [selectedAreaId, setSelectedAreaId] = useState(() => loadSaved()?.selectedAreaId ?? null)
@@ -876,19 +878,34 @@ export default function ProcessView() {
         </div>
       ) : (
       <div className="max-w-5xl mx-auto px-6 md:px-8 py-6 space-y-6">
-        {/* Intro - short tagline + three-step "how it works" */}
+        {/* Intro - mint explainer box + three-step "how it works" */}
         <div className="space-y-4">
-          <p className="text-base leading-relaxed text-pitch-700 dark:text-paper-200 max-w-2xl">
-            Turn messy input into structured items. Drop notes, emails,
-            calendar invites, or PDFs - Effro extracts the to-dos,
-            decisions, and context for you to approve.
-          </p>
+          <IntroPanel icon={BrainCircuit} title="Smart Generate" storageKey="effro.smartGenerateIntroSeen">
+            Drop in something messy, a note, an email, a calendar invite or a
+            PDF, and we read through it with your connected AI engine and draw
+            out the <Key>to-dos</Key>, <Key>decisions</Key> and{' '}
+            <Key>context</Key>, ready for you to approve. Nothing is filed until
+            you say so. We built this because turning a wall of text into clear
+            next steps is exactly the sort of friction that quietly drains a day,
+            and we would rather carry that for you.
+          </IntroPanel>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <Step n="01" label="Pick an area" hint="Where items will land" />
             <Step n="02" label="Drop or paste" hint="Email, calendar, PDF, or text" />
             <Step n="03" label="Review & approve" hint="Edit, refine, or reject each item" />
           </div>
         </div>
+
+        {aiSmallModel && (
+          <div className="flex items-start gap-2.5 rounded-lg border border-paper-300 dark:border-pitch-500 bg-paper-200/50 dark:bg-pitch-700/40 px-3.5 py-2.5 text-xs text-paper-600 dark:text-paper-300">
+            <Info size={14} className="mt-0.5 flex-shrink-0 text-paper-500 dark:text-paper-500" />
+            <span>
+              You're using a smaller model, which can miss items or dates here. For the
+              most reliable extraction, connect a capable engine like Claude in{' '}
+              <Link to="/settings" className="text-mint-700 dark:text-mint-300 hover:underline">Settings → AI Engine</Link>.
+            </span>
+          </div>
+        )}
 
         {/* Input Panel */}
         <div
@@ -947,7 +964,7 @@ export default function ProcessView() {
                 key={area.id}
                 onClick={() => setSelectedAreaId(area.id)}
                 className={`
-                  px-3 py-1.5 rounded-full text-xs font-display uppercase tracking-wide transition-colors
+                  px-3 py-1.5 rounded-full text-xs font-display transition-colors
                   ${selectedAreaId === area.id
                     ? 'bg-mint-700 text-white'
                     : 'text-paper-600 dark:text-paper-500 bg-paper-200 dark:bg-pitch-700 hover:bg-paper-300 dark:hover:bg-pitch-500'

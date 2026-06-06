@@ -7,7 +7,6 @@ import {
 import { getAreaStatus } from '../utils/status'
 import { MOD_KEY } from '../utils/platform'
 import { AreaIcon } from './IconPicker'
-import { useAppVersion } from '../hooks/useAppVersion'
 import { listSignals } from '../api/signals'
 import Logo from './Logo'
 
@@ -26,7 +25,6 @@ export default function Sidebar({
   const location = useLocation()
   const settingsActive = location.pathname === '/settings'
   const logActive = location.pathname === '/log'
-  const version = useAppVersion()
 
   // ─── Signals pending count (sidebar badge) ─────────────────────────────────
   // Poll every 60s so the badge updates without a refresh after the
@@ -148,7 +146,7 @@ export default function Sidebar({
                   />
                 </span>
                 {/* Slogan - tight tracking + light opacity so it sits behind the brand. */}
-                <span className="mt-1 font-mono uppercase tracking-[0.12em] text-[9px] text-paper-400 dark:text-paper-700 truncate">
+                <span className="mt-1 font-mono uppercase tracking-[0.12em] text-2xs text-paper-400 dark:text-paper-700 truncate">
                   Stay across everything.
                 </span>
               </div>
@@ -277,7 +275,7 @@ export default function Sidebar({
               {area.icon ? (
                 <AreaIcon name={area.icon} size={13} className="flex-shrink-0" />
               ) : null}
-              <span className="flex-1 truncate font-medium text-xs font-display uppercase tracking-wide">
+              <span className="flex-1 truncate font-medium text-xs font-display">
                 {area.name}
               </span>
               {area.open_thread_count > 0 && (
@@ -315,27 +313,18 @@ export default function Sidebar({
         )}
       </nav>
 
-      {/* Footer */}
+      {/* Footer - icon-only Audit Log + System + keyboard shortcuts. Names and
+          shortcuts show on hover; stacked when collapsed, side-by-side when
+          expanded. Version lives in Settings -> System, so it's not repeated here. */}
       <div className={`
-        ${collapsed ? 'px-2 py-3' : 'px-4 py-3'}
+        ${collapsed ? 'px-2 py-2' : 'px-4 py-2'}
         border-t border-paper-300 dark:border-pitch-700
-        ${collapsed ? 'space-y-2' : 'space-y-2.5'}
       `}>
-        {/* Utility row - icon-only Audit Log + System + keyboard shortcuts.
-            Names/shortcuts shown on hover. Stacked when collapsed, side-by-side
-            when expanded. The shortcuts moved from two always-on rows into a
-            single hover popover here, reclaiming the bottom of the panel. */}
         <div className={`flex ${collapsed ? 'flex-col items-center gap-2' : 'items-center gap-1'}`}>
           <FooterIconLink to="/log" icon={History} label="Audit Log" active={logActive} />
           <FooterIconLink to="/settings" icon={Settings} label="System" active={settingsActive} badge={systemSettingsBadge} />
           <FooterShortcuts />
         </div>
-
-        {!collapsed && version && (
-          <div className="text-xs font-mono text-paper-400 dark:text-pitch-500">
-            v{version}
-          </div>
-        )}
       </div>
 
       {/* Collapse / expand toggle.
@@ -426,7 +415,7 @@ function NavLink({ to, icon: Icon, label, active, collapsed, badge }) {
       <span className="font-display uppercase tracking-wide text-xs flex-1">{label}</span>
       {showBadge && (
         <span className="
-          ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded-full
+          ml-auto text-2xs font-mono px-1.5 py-0.5 rounded-full
           bg-mint-50 dark:bg-mint-900/30 text-mint-700 dark:text-mint-300
           min-w-[18px] text-center
         ">
@@ -491,7 +480,7 @@ function ShortcutHint({ label, keys }) {
         {keys.map((k) => (
           <kbd
             key={k}
-            className="px-1.5 py-0.5 rounded bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 font-mono text-paper-600 dark:text-paper-500 text-[10px]"
+            className="px-1.5 py-0.5 rounded bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 font-mono text-paper-600 dark:text-paper-500 text-2xs"
           >
             {k}
           </kbd>
@@ -532,7 +521,7 @@ function FooterShortcuts() {
         group-hover/keys:opacity-100 group-hover/keys:translate-y-0
         transition-all duration-150
       ">
-        <p className="font-display uppercase tracking-widest text-[9px] text-paper-400 dark:text-paper-600 mb-1.5">
+        <p className="font-display uppercase tracking-widest text-2xs text-paper-400 dark:text-paper-600 mb-1.5">
           Shortcuts
         </p>
         <ShortcutHint label="Capture" keys={['N']} />

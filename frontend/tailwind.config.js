@@ -67,13 +67,20 @@ export default {
       },
       fontFamily: {
         // Geist: brand voice and product UI
-        sans: ['Geist', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Geist Sans', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
         // Lexend: ADHD-friendly opt-in body alternative
-        lexend: ['Lexend', 'Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        lexend: ['Lexend', 'Geist Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         // Geist Mono: timestamps, IDs, code, technical labels
         mono: ['Geist Mono', 'JetBrains Mono', 'ui-monospace', 'monospace'],
         // Keep "display" for backwards compatibility - now points to Geist
-        display: ['Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Geist Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
+      fontSize: {
+        // Smallest step - 11px, rem-based so the text-size control (useTextSize)
+        // scales it like everything else. 11px is the floor: use sparingly, and
+        // never below it (WCAG 1.4.4 Resize Text / plain readability). Larger
+        // steps use Tailwind's built-in rem scale (xs 12px, sm 14px, base 16px).
+        '2xs': ['0.6875rem', '1rem'],
       },
       letterSpacing: {
         tightest: '-0.045em',

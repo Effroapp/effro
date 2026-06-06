@@ -180,7 +180,7 @@ export default function IconPicker({ value, onChange, children }) {
           </div>
 
           {query && matches.length >= RESULT_LIMIT && (
-            <p className="mt-1.5 text-[10px] font-mono text-paper-400 dark:text-paper-700 text-center">
+            <p className="mt-1.5 text-2xs font-mono text-paper-400 dark:text-paper-700 text-center">
               Showing first {RESULT_LIMIT} matches. Refine your search.
             </p>
           )}

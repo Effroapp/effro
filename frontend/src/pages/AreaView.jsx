@@ -306,7 +306,7 @@ export default function AreaView() {
               {/* Subtle description under the title — the same text the
                   dashboard area card shows, for quick orientation. */}
               {area.summary && (
-                <p className="font-lexend text-[13px] leading-snug text-paper-500 dark:text-pitch-100 normal-case tracking-normal mt-1 max-w-2xl line-clamp-2">
+                <p className="font-lexend text-sm leading-snug text-paper-500 dark:text-pitch-100 normal-case tracking-normal mt-1 max-w-2xl line-clamp-2">
                   {area.summary.split('\n')[0]}
                 </p>
               )}

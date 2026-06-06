@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { History, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
 import { areasApi } from '../api/client'
+import IntroPanel, { Key } from '../components/IntroPanel'
 
 const ACTION_BADGE = {
   created:     'bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-200',
@@ -46,7 +47,7 @@ function LogRow({ record }) {
       <span className="font-mono text-paper-400 dark:text-paper-700 flex-shrink-0 w-28">
         {format(new Date(record.occurred_at), 'dd MMM HH:mm')}
       </span>
-      <span className="font-display font-semibold uppercase tracking-wide text-pitch-700 dark:text-paper-200 flex-shrink-0">
+      <span className="font-display font-semibold text-pitch-700 dark:text-paper-200 flex-shrink-0">
         {record.area_name}
       </span>
       {record.thread_title && (
@@ -159,6 +160,16 @@ export default function LogView() {
 
       {/* Body */}
       <div className="max-w-5xl mx-auto px-8 py-6">
+        {/* First-run explainer - shown once, then dismissed for good. */}
+        <IntroPanel icon={History} title="The audit log" storageKey="effro.auditLogIntroSeen">
+          The audit log is a plain, time-ordered record of the changes to your
+          areas and threads, what was <Key>created</Key>, <Key>edited</Key>,{' '}
+          <Key>completed</Key> or <Key>removed</Key>, and exactly when. We keep it
+          because being able to retrace your own steps is quietly reassuring, and
+          because you deserve to see what the app has done with your work, with
+          nothing tucked away.
+        </IntroPanel>
+
         {loading ? (
           <LogSkeleton />
         ) : error ? (

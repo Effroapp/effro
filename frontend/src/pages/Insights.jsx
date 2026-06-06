@@ -18,6 +18,7 @@ import {
   Eye, EyeOff, RefreshCw, Target, Pencil, ListPlus, AlertTriangle, FolderPlus, Info,
 } from 'lucide-react'
 import { format, addDays, parseISO } from 'date-fns'
+import IntroPanel, { Key } from '../components/IntroPanel'
 import PageHeader from '../components/PageHeader'
 import { AreaIcon } from '../components/IconPicker'
 import { getAreaStatus } from '../utils/status'
@@ -30,23 +31,23 @@ import { InfoTip } from '../components/Tooltip'
 const ENTRY_META = {
   // Productivity (things added/logged today)
   update:          { Icon: Pencil,        color: '#7B8794' },
-  todo_added:      { Icon: ListPlus,      color: '#6B8AB8' },
-  decision:        { Icon: ScaleIcon,     color: '#C99A5C' },
-  meeting:         { Icon: Calendar,      color: '#8A7BB8' },
-  blockage_logged: { Icon: AlertTriangle, color: '#C99A5C' },
-  thread_started:  { Icon: FolderPlus,    color: '#7A9579' },
+  todo_added:      { Icon: ListPlus,      color: 'var(--sky-muted)' },
+  decision:        { Icon: ScaleIcon,     color: 'var(--amber-muted)' },
+  meeting:         { Icon: Calendar,      color: 'var(--lavender)' },
+  blockage_logged: { Icon: AlertTriangle, color: 'var(--amber-muted)' },
+  thread_started:  { Icon: FolderPlus,    color: 'var(--sage)' },
   // Completions (things closed)
-  todo:     { Icon: CheckSquare, color: '#6B8AB8' },
-  blockage: { Icon: Ban,         color: '#B86A5C' },
-  resolved: { Icon: CircleCheck, color: '#7A9579' },
-  jira:     { Icon: Ticket,      color: '#6B8AB8' },
+  todo:     { Icon: CheckSquare, color: 'var(--sky-muted)' },
+  blockage: { Icon: Ban,         color: 'var(--terracotta)' },
+  resolved: { Icon: CircleCheck, color: 'var(--sage)' },
+  jira:     { Icon: Ticket,      color: 'var(--sky-muted)' },
 }
 
 const CELEB_META = {
-  unblocked: { Icon: Unlock,      color: '#7A9579' },
-  resolved:  { Icon: CircleCheck, color: '#7A9579' },
-  comeback:  { Icon: Undo2,       color: '#6B8AB8' },
-  decisions: { Icon: ScaleIcon,   color: '#C99A5C' },
+  unblocked: { Icon: Unlock,      color: 'var(--sage)' },
+  resolved:  { Icon: CircleCheck, color: 'var(--sage)' },
+  comeback:  { Icon: Undo2,       color: 'var(--sky-muted)' },
+  decisions: { Icon: ScaleIcon,   color: 'var(--amber-muted)' },
 }
 
 const TABS = [
@@ -68,11 +69,36 @@ function fmtDur(h) {
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
-// One calm line per lens, so a first-time viewer understands each at a glance.
+// One calm explainer per lens - shown in the same mint box as the Insights
+// welcome, one per lens, swapping as the tab changes. What it is, then a gentle
+// note on why it earns its place. British, unhurried, never a scorecard.
 const LENS_INTRO = {
-  reflect: 'A calm look back at what you have actually done.',
-  ahead:   'The shape of what is coming, so nothing catches you off guard.',
-  balance: 'Where your attention has been going across your areas.',
+  reflect: (
+    <>
+      Reflect is your gentle look back at what you actually got done, whether{' '}
+      <Key>today</Key> or across <Key>this week</Key>, drawn from real activity
+      rather than wishful memory. We show it because progress is so easily
+      forgotten when you are moving quickly, and seeing it laid out plainly is a
+      quiet, steadying reassurance.
+    </>
+  ),
+  ahead: (
+    <>
+      Ahead is a calm view of what is coming, your <Key>meetings</Key>,{' '}
+      <Key>upcoming work</Key> and a gentle forecast, so the days in front of you
+      hold no nasty surprises. We include it because a little visibility quietly
+      removes a lot of background worry, and lets you plan from a settled place
+      rather than a reactive one.
+    </>
+  ),
+  balance: (
+    <>
+      Balance shows where your attention has truly been going across your{' '}
+      <Key>areas</Key>, including the ones that have quietly gone still. We offer
+      it gently, never as a scorecard. We show it because noticing a drift early
+      is far kinder than realising weeks later that something mattered and slipped.
+    </>
+  ),
 }
 
 export default function Insights() {
@@ -95,10 +121,6 @@ export default function Insights() {
   useEffect(() => { if (tab === 'ahead' && !ahead) insightsApi.ahead().then(setAhead).catch(() => {}) }, [tab, ahead])
   useEffect(() => { if (tab === 'balance' && !balance) insightsApi.balance().then(setBalance).catch(() => {}) }, [tab, balance])
 
-  // First-run explainer: shown once, then it gets out of the way.
-  const [introSeen, setIntroSeen] = useState(() => localStorage.getItem('effro.insightsIntroSeen') === '1')
-  const dismissIntro = () => { localStorage.setItem('effro.insightsIntroSeen', '1'); setIntroSeen(true) }
-
   return (
     <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
       <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
@@ -114,42 +136,17 @@ export default function Insights() {
         />
 
         {/* First-run explainer - shown once, then dismissed for good. */}
-        {!introSeen && (
-          <div className="relative rounded-xl bg-gradient-to-br from-mint/10 to-mint/[0.03] dark:from-mint/[0.12] dark:to-mint/[0.03] p-5 pr-10 mb-6 animate-rise motion-reduce:animate-none">
-            <button
-              onClick={dismissIntro}
-              aria-label="Dismiss"
-              className="absolute top-3 right-3 p-1 rounded text-paper-400 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-200 transition-colors"
-            >
-              <X size={15} />
-            </button>
-            <div className="flex items-start gap-3">
-              <span className="w-9 h-9 rounded-lg bg-mint/15 flex items-center justify-center flex-shrink-0">
-                <Telescope size={17} className="text-mint-600 dark:text-mint-400" />
-              </span>
-              <div>
-                <p className="text-base font-semibold text-pitch-800 dark:text-white">Welcome to Insights</p>
-                <p className="text-sm text-paper-600 dark:text-paper-300 leading-relaxed mt-1">
-                  A calm place to see how things are really going.{' '}
-                  <b className="font-medium text-pitch-700 dark:text-paper-200">Reflect</b> on what you've done,
-                  look <b className="font-medium text-pitch-700 dark:text-paper-200">Ahead</b> at what's coming,
-                  and check the <b className="font-medium text-pitch-700 dark:text-paper-200">Balance</b> across your areas.
-                  It's all real, and none of it is here to nag you.
-                </p>
-                <button
-                  onClick={dismissIntro}
-                  className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-mint-700 dark:text-mint-300 hover:underline"
-                >
-                  Got it
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <IntroPanel icon={Telescope} title="Welcome to Insights" storageKey="effro.insightsIntroSeen">
+          A calm place to see how things are really going.{' '}
+          <Key>Reflect</Key> on what you've done,
+          look <Key>Ahead</Key> at what's coming,
+          and check the <Key>Balance</Key> across your areas.
+          It's all real, and none of it is here to nag you.
+        </IntroPanel>
 
         {/* Narrative line - the calm "what to notice", deterministic + accurate. */}
         {week?.narrative && (
-          <p className="font-lexend text-[13px] leading-relaxed text-paper-600 dark:text-pitch-100 italic mb-6 -mt-1 flex items-start gap-1.5">
+          <p className="font-lexend text-sm leading-relaxed text-paper-600 dark:text-pitch-100 italic mb-6 -mt-1 flex items-start gap-1.5">
             <Sparkles size={13} className="mt-1 flex-shrink-0 text-mint/70" />
             <span><BionicText>{week.narrative}</BionicText></span>
           </p>
@@ -159,11 +156,24 @@ export default function Insights() {
 
         <Tabs tab={tab} onChange={setTab} />
 
-        {/* Per-lens description, with the Reflect scope toggle beside it. */}
-        <div className="flex items-center justify-between gap-3 mb-5 -mt-1">
-          <p className="text-[13px] text-paper-500 dark:text-paper-600"><BionicText>{LENS_INTRO[tab]}</BionicText></p>
-          {tab === 'reflect' && <ScopeToggle scope={scope} onChange={setScope} />}
-        </div>
+        {/* Per-lens explainer - the same mint box as the Insights welcome, one
+            per lens, swapping as the tab changes. key forces a remount so each
+            lens re-reads its own dismissed state. */}
+        <IntroPanel
+          key={`lens-intro-${tab}`}
+          icon={TABS.find((t) => t.key === tab).Icon}
+          title={TABS.find((t) => t.key === tab).label}
+          storageKey={`effro.lensIntro.${tab}`}
+        >
+          {LENS_INTRO[tab]}
+        </IntroPanel>
+
+        {/* Reflect scope toggle - its own row, under the box. */}
+        {tab === 'reflect' && (
+          <div className="flex justify-end mb-5 -mt-2">
+            <ScopeToggle scope={scope} onChange={setScope} />
+          </div>
+        )}
 
         <div key={tab} className="animate-rise motion-reduce:animate-none">
           {tab === 'reflect' && (
@@ -215,7 +225,7 @@ function ScopeToggle({ scope, onChange }) {
         <button
           key={k}
           onClick={() => onChange(k)}
-          className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+          className={`px-2.5 py-1 rounded text-2xs font-medium transition-colors ${
             scope === k
               ? 'bg-white dark:bg-pitch-800 text-pitch-700 dark:text-white shadow-sm'
               : 'text-paper-500 dark:text-paper-500 hover:text-pitch-700 dark:hover:text-paper-300'
@@ -246,15 +256,15 @@ function FocusPrompt({ focus, onSave }) {
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
           placeholder="What are you focused on this week?"
-          className="flex-1 bg-transparent border-b border-paper-300 dark:border-pitch-500 text-[13px] text-pitch-700 dark:text-paper-200 placeholder:text-paper-400 dark:placeholder:text-paper-600 focus:outline-none focus:border-mint/50 py-0.5"
+          className="flex-1 bg-transparent border-b border-paper-300 dark:border-pitch-500 text-sm text-pitch-700 dark:text-paper-200 placeholder:text-paper-400 dark:placeholder:text-paper-600 focus:outline-none focus:border-mint/50 py-0.5"
         />
-        <button onClick={save} className="text-[12px] font-medium text-mint-700 dark:text-mint-300 hover:underline">Save</button>
+        <button onClick={save} className="text-xs font-medium text-mint-700 dark:text-mint-300 hover:underline">Save</button>
       </div>
     )
   }
   if (focus) {
     return (
-      <div className="group flex items-center gap-2 mb-5 text-[13px]">
+      <div className="group flex items-center gap-2 mb-5 text-sm">
         <Target size={13} className="text-mint/70 flex-shrink-0" />
         <span className="text-paper-600 dark:text-paper-400">Focused on <span className="font-medium text-pitch-700 dark:text-paper-200">{focus}</span></span>
         <button onClick={() => setEditing(true)} aria-label="Edit focus" className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-paper-400 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300"><Pencil size={12} /></button>
@@ -265,7 +275,7 @@ function FocusPrompt({ focus, onSave }) {
   return (
     <button
       onClick={() => setEditing(true)}
-      className="flex items-center gap-1.5 mb-5 text-[13px] text-paper-500 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300 transition-colors"
+      className="flex items-center gap-1.5 mb-5 text-sm text-paper-500 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300 transition-colors"
     >
       <Target size={13} className="text-mint/60" />
       What are you focused on this week?
@@ -329,11 +339,11 @@ function WeekReflect({ data }) {
         </Section>
       )}
 
-      <Section label="Your days — when you start and stop">
+      <Section label="Your days, when you start and stop">
         <RaisedCard><WorkingWindows days={data.your_days || []} /></RaisedCard>
       </Section>
 
-      <Section label="Your rhythm — last 14 days">
+      <Section label="Your rhythm over the last 14 days">
         <RaisedCard><RhythmChart rhythm={data.rhythm || []} /></RaisedCard>
       </Section>
     </div>
@@ -363,7 +373,7 @@ function Hero({ count, unit = 'done today', caption, chips = [], items = [], onO
             {chips.map((b) => {
               const m = ENTRY_META[b.type] || ENTRY_META.todo
               return (
-                <span key={b.type} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[13px]" style={{ backgroundColor: `${m.color}1A`, color: m.color }}>
+                <span key={b.type} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm" style={{ backgroundColor: `color-mix(in srgb, ${m.color} 10%, transparent)`, color: m.color }}>
                   <m.Icon size={13} />
                   <b className="font-semibold">{b.count}</b>
                   <span className="opacity-80">{b.label}</span>
@@ -374,7 +384,7 @@ function Hero({ count, unit = 'done today', caption, chips = [], items = [], onO
               <button
                 onClick={() => setOpen((o) => !o)}
                 aria-expanded={open}
-                className="ml-auto inline-flex items-center gap-1 text-[12px] font-medium text-paper-500 dark:text-paper-400 hover:text-pitch-700 dark:hover:text-paper-200 transition-colors"
+                className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-paper-500 dark:text-paper-400 hover:text-pitch-700 dark:hover:text-paper-200 transition-colors"
               >
                 {open ? 'Hide details' : 'Show details'}
                 <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -414,7 +424,7 @@ function WindDownCard({ mode, narrative, startedLabel, tip, onRefresh }) {
         </span>
         <div className="min-w-0">
           {startedLabel && (
-            <p className="font-mono text-[12px] text-paper-500 dark:text-paper-600 mb-1">Going since {startedLabel}</p>
+            <p className="font-mono text-xs text-paper-500 dark:text-paper-600 mb-1">Going since {startedLabel}</p>
           )}
           <p className="text-sm text-paper-600 dark:text-paper-300 leading-relaxed"><BionicText>{tip}</BionicText></p>
         </div>
@@ -482,7 +492,7 @@ function ClosedDetails({ items, onOpenItem }) {
         const m = ENTRY_META[t] || ENTRY_META.todo
         return (
           <div key={t}>
-            <p className="font-mono uppercase tracking-widest text-[10px] mb-1.5" style={{ color: m.color }}>{CLOSED_GROUP_LABEL[t]}</p>
+            <p className="font-mono uppercase tracking-widest text-2xs mb-1.5" style={{ color: m.color }}>{CLOSED_GROUP_LABEL[t]}</p>
             <ul className="-my-0.5">
               {groups[t].map((c, i) => (
                 <li key={`${c.id}-${i}`} className={`flex items-center gap-3 py-1.5 ${i > 0 ? 'border-t border-paper-200 dark:border-pitch-600' : ''}`}>
@@ -493,8 +503,8 @@ function ClosedDetails({ items, onOpenItem }) {
                   >
                     {c.content}
                   </button>
-                  {c.area && <span className="text-[11px] font-medium text-paper-500 dark:text-paper-500 flex-shrink-0">{c.area}</span>}
-                  {c.right && <span className="font-mono text-[11px] text-paper-400 dark:text-paper-700 flex-shrink-0 w-12 text-right">{c.right}</span>}
+                  {c.area && <span className="text-2xs font-medium text-paper-500 dark:text-paper-500 flex-shrink-0">{c.area}</span>}
+                  {c.right && <span className="font-mono text-2xs text-paper-400 dark:text-paper-700 flex-shrink-0 w-12 text-right">{c.right}</span>}
                 </li>
               ))}
             </ul>
@@ -520,13 +530,13 @@ function WorkingWindows({ days }) {
           const width = has ? ((clamp(d.end_hour) - clamp(d.start_hour)) / SPAN) * 100 : 0
           return (
             <li key={i} className="flex items-center gap-3">
-              <span className={`w-12 font-mono text-[11px] flex-shrink-0 ${d.label === 'Today' ? 'text-mint-600 dark:text-mint-400 font-bold' : 'text-paper-500 dark:text-paper-600'}`}>{d.label}</span>
+              <span className={`w-12 font-mono text-2xs flex-shrink-0 ${d.label === 'Today' ? 'text-mint-600 dark:text-mint-400 font-bold' : 'text-paper-500 dark:text-paper-600'}`}>{d.label}</span>
               <div className="relative flex-1 h-3 rounded-full bg-paper-200 dark:bg-pitch-800/60">
                 {has && (
-                  <div className="absolute top-0 h-3 rounded-full" style={{ left: `${left}%`, width: `${Math.max(width, 1)}%`, backgroundColor: d.over ? '#C9A85C' : '#7A9579', opacity: d.label === 'Today' ? 0.6 : 1 }} />
+                  <div className="absolute top-0 h-3 rounded-full" style={{ left: `${left}%`, width: `${Math.max(width, 1)}%`, backgroundColor: d.over ? 'var(--mustard)' : 'var(--sage)', opacity: d.label === 'Today' ? 0.6 : 1 }} />
                 )}
               </div>
-              <span className="w-28 flex-shrink-0 text-right font-mono text-[11px] text-paper-500 dark:text-paper-500">
+              <span className="w-28 flex-shrink-0 text-right font-mono text-2xs text-paper-500 dark:text-paper-500">
                 {has ? `${fmtDur(d.active_hours)} · ${fmtHour(d.end_hour)}` : '—'}
               </span>
             </li>
@@ -535,14 +545,14 @@ function WorkingWindows({ days }) {
       </ul>
       <div className="flex items-center gap-3 mt-1.5">
         <span className="w-12 flex-shrink-0" />
-        <div className="relative flex-1 h-3 font-mono text-[9px] text-paper-400 dark:text-paper-700">
+        <div className="relative flex-1 h-3 font-mono text-2xs text-paper-400 dark:text-paper-700">
           <span className="absolute left-0">7am</span>
           <span className="absolute left-1/2 -translate-x-1/2">1pm</span>
           <span className="absolute right-0">8pm</span>
         </div>
         <span className="w-28 flex-shrink-0" />
       </div>
-      <p className="text-[12px] text-sage dark:text-sage leading-relaxed mt-4 flex items-start gap-1.5">
+      <p className="text-xs text-sage dark:text-sage leading-relaxed mt-4 flex items-start gap-1.5">
         <Sparkles size={12} className="mt-0.5 flex-shrink-0" />
         <span>
           {withData.length === 0
@@ -566,9 +576,9 @@ function RhythmChart({ rhythm }) {
         return (
           <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
             <div className="w-full flex items-end justify-center" style={{ height: '92px' }}>
-              <div className="w-full rounded-sm" style={{ height: `${h}px`, backgroundColor: r.is_today ? '#10B981' : r.weekend ? '#A8A49E55' : '#7A9579AA' }} title={`${r.count} entries`} />
+              <div className="w-full rounded-sm" style={{ height: `${h}px`, backgroundColor: r.is_today ? 'var(--mint)' : r.weekend ? 'color-mix(in srgb, var(--paper-soft-d) 33%, transparent)' : 'color-mix(in srgb, var(--sage) 67%, transparent)' }} title={`${r.count} entries`} />
             </div>
-            <span className={`font-mono text-[9px] ${r.is_today ? 'text-mint-600 dark:text-mint-400 font-bold' : 'text-paper-400 dark:text-paper-700'}`}>{r.label}</span>
+            <span className={`font-mono text-2xs ${r.is_today ? 'text-mint-600 dark:text-mint-400 font-bold' : 'text-paper-400 dark:text-paper-700'}`}>{r.label}</span>
           </div>
         )
       })}
@@ -619,12 +629,12 @@ function AheadLens({ data }) {
             onClick={() => navigate(`/thread/${data.next_meeting.thread_id}`)}
             className="w-full text-left rounded-xl bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 p-5 flex items-center gap-4 hover:border-paper-400 dark:hover:border-pitch-400 transition-colors"
           >
-            <span className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#8A7BB81A' }}>
+            <span className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'color-mix(in srgb, var(--lavender) 10%, transparent)' }}>
               <Calendar size={20} className="text-lavender" />
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-base font-medium text-pitch-800 dark:text-white truncate">{data.next_meeting.content}</p>
-              <p className="font-mono text-[13px] text-lavender mt-0.5">{format(parseISO(data.next_meeting.at), 'EEE d MMM · HH:mm')}</p>
+              <p className="font-mono text-sm text-lavender mt-0.5">{format(parseISO(data.next_meeting.at), 'EEE d MMM · HH:mm')}</p>
             </div>
             <ArrowUpRight size={16} className="text-paper-400 dark:text-paper-700 flex-shrink-0" />
           </button>
@@ -637,7 +647,7 @@ function AheadLens({ data }) {
             {[['Today', todayItems], ['Tomorrow', tmrwItems], ['This week', restItems]].map(([label, items], bi) =>
               items.length === 0 ? null : (
                 <div key={label} className={bi > 0 ? 'mt-4 pt-4 border-t border-paper-200 dark:border-pitch-600' : ''}>
-                  <p className="font-mono uppercase tracking-widest text-[10px] text-paper-500 dark:text-paper-600 mb-2">{label}</p>
+                  <p className="font-mono uppercase tracking-widest text-2xs text-paper-500 dark:text-paper-600 mb-2">{label}</p>
                   <ul className="space-y-1">
                     {items.map((u, i) => {
                       const m = ENTRY_META[u.kind] || ENTRY_META.todo
@@ -645,8 +655,8 @@ function AheadLens({ data }) {
                         <li key={i} className="flex items-center gap-3 py-1">
                           <m.Icon size={14} style={{ color: m.color }} className="flex-shrink-0" />
                           <span className="flex-1 text-sm text-pitch-700 dark:text-paper-300 truncate">{u.content}</span>
-                          {u.area_name && <span className="text-[11px] font-medium text-paper-500 dark:text-paper-500">{u.area_name}</span>}
-                          {u.time_local && <span className="font-mono text-[11px] text-paper-400 dark:text-paper-700 w-14 text-right">{u.time_local}</span>}
+                          {u.area_name && <span className="text-2xs font-medium text-paper-500 dark:text-paper-500">{u.area_name}</span>}
+                          {u.time_local && <span className="font-mono text-2xs text-paper-400 dark:text-paper-700 w-14 text-right">{u.time_local}</span>}
                         </li>
                       )
                     })}
@@ -677,17 +687,17 @@ function TimelineStrip({ days }) {
     <div className="flex gap-1.5">
       {days.map((d, i) => (
         <div key={i} className="flex-1 min-w-0 flex flex-col items-center">
-          <span className={`font-mono text-[10px] mb-1 ${d.is_today ? 'text-mint-600 dark:text-mint-400 font-bold' : 'text-paper-400 dark:text-paper-700'}`}>{d.label}</span>
-          <span className={`font-mono text-[11px] mb-2 ${d.is_today ? 'text-pitch-700 dark:text-paper-200' : 'text-paper-500 dark:text-paper-600'}`}>{d.day_num}</span>
+          <span className={`font-mono text-2xs mb-1 ${d.is_today ? 'text-mint-600 dark:text-mint-400 font-bold' : 'text-paper-400 dark:text-paper-700'}`}>{d.label}</span>
+          <span className={`font-mono text-2xs mb-2 ${d.is_today ? 'text-pitch-700 dark:text-paper-200' : 'text-paper-500 dark:text-paper-600'}`}>{d.day_num}</span>
           <div className={`w-full min-h-[88px] rounded-md p-1 flex flex-col gap-1 overflow-hidden ${d.is_today ? 'bg-mint/5 ring-1 ring-mint/30' : d.weekend ? 'bg-paper-200/40 dark:bg-pitch-800/40' : 'bg-paper-100/60 dark:bg-pitch-800/30'}`}>
             {d.items.map((u, j) => u.kind === 'meeting' ? (
-              <div key={j} className="max-w-full rounded px-1 py-0.5 text-[9px] leading-tight font-medium truncate" style={{ backgroundColor: '#8A7BB826', color: '#8A7BB8' }} title={`${u.time_local || ''} ${u.content}`.trim()}>
+              <div key={j} className="max-w-full rounded px-1 py-0.5 text-2xs leading-tight font-medium truncate" style={{ backgroundColor: 'color-mix(in srgb, var(--lavender) 15%, transparent)', color: 'var(--lavender)' }} title={`${u.time_local || ''} ${u.content}`.trim()}>
                 {u.time_local} {u.content}
               </div>
             ) : (
               <div key={j} className="flex items-center gap-1 px-0.5 min-w-0 w-full" title={u.content}>
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#6B8AB8' }} />
-                <span className="text-[9px] leading-tight text-paper-600 dark:text-paper-400 truncate min-w-0">{u.content}</span>
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--sky-muted)' }} />
+                <span className="text-2xs leading-tight text-paper-600 dark:text-paper-400 truncate min-w-0">{u.content}</span>
               </div>
             ))}
           </div>
@@ -718,7 +728,7 @@ function BalanceLens({ data }) {
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1.5">
               {active.map((a) => (
-                <span key={a.area_id} className="inline-flex items-center gap-1.5 text-[12px] text-paper-600 dark:text-paper-400">
+                <span key={a.area_id} className="inline-flex items-center gap-1.5 text-xs text-paper-600 dark:text-paper-400">
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getAreaStatus(a.status).dot }} />
                   {a.name}
                   <span className="font-mono text-paper-400 dark:text-paper-700">{Math.round((a.total / grand) * 100)}%</span>
@@ -740,7 +750,7 @@ function BalanceLens({ data }) {
                   {a.icon && <AreaIcon name={a.icon} size={14} className="flex-shrink-0 text-pitch-700 dark:text-paper-300" />}
                   <span className="flex-1 text-sm font-medium text-pitch-700 dark:text-paper-200 truncate">{a.name}</span>
                   <Sparkline series={a.series} color={dot} />
-                  <span className={`text-[11px] flex-shrink-0 w-24 text-right ${a.quiet_days === 0 ? 'text-sage' : a.quiet_days != null && a.quiet_days >= 7 ? 'text-mustard' : 'text-paper-500 dark:text-paper-600'}`}>
+                  <span className={`text-2xs flex-shrink-0 w-24 text-right ${a.quiet_days === 0 ? 'text-sage' : a.quiet_days != null && a.quiet_days >= 7 ? 'text-mustard' : 'text-paper-500 dark:text-paper-600'}`}>
                     {a.quiet_days == null ? 'no activity yet' : a.quiet_days === 0 ? 'active today' : `${a.quiet_days}d quiet`}
                   </span>
                 </li>
@@ -758,9 +768,9 @@ function BalanceLens({ data }) {
             </p>
             <ul className="space-y-1 mt-3">
               {data.not_on_you.map((n) => (
-                <li key={n.thread_id} className="flex items-center gap-2 text-[12px]">
+                <li key={n.thread_id} className="flex items-center gap-2 text-xs">
                   <span className="text-pitch-700 dark:text-paper-300 truncate">{n.title}</span>
-                  {n.area_name && <span className="ml-auto text-[11px] font-medium text-paper-400 dark:text-paper-600">{n.area_name}</span>}
+                  {n.area_name && <span className="ml-auto text-2xs font-medium text-paper-400 dark:text-paper-600">{n.area_name}</span>}
                 </li>
               ))}
             </ul>
@@ -817,9 +827,9 @@ function _setHidden(key, val) {
 const SECTION_INFO = {
   'Worth celebrating':
     'The wins worth a pause this week, one calm line per kind. Built from blockers you cleared, threads you resolved, areas you returned to after a 7-plus day gap, and decisions you logged.',
-  'Your days — when you start and stop':
+  'Your days, when you start and stop':
     'When each of the last 7 days began and ended, read from app activity (heartbeats): your first and last active moment each day, with the bar showing the hours between.',
-  'Your rhythm — last 14 days':
+  'Your rhythm over the last 14 days':
     'How busy each of the last 14 days was. Each bar is the number of entries logged that day, with notes, todos, decisions and meetings all counting.',
   'The shape of your next 10 days':
     'A 10-day look ahead. Each column shows the meetings and todo due-dates that fall on that day.',
@@ -854,8 +864,8 @@ function Section({ label, children, hideable = true, info }) {
           title="Show this section again"
         >
           <EyeOff size={14} className="flex-shrink-0" />
-          <span className="text-[13px]"><span className="font-medium">{label}</span> is tucked away</span>
-          <span className="ml-auto text-[12px] font-medium">Show</span>
+          <span className="text-sm"><span className="font-medium">{label}</span> is tucked away</span>
+          <span className="ml-auto text-xs font-medium">Show</span>
         </button>
       </section>
     )

@@ -84,6 +84,19 @@ PROVIDER_PRESETS: dict[str, dict] = {
     },
 }
 
+# Free / small / local presets whose JSON adherence, thread-matching and date
+# handling are noticeably weaker than a capable model. Smart Generate sets
+# expectations in the UI and adds a few-shot example to the extraction prompt
+# when one of these is the active engine. "custom" is excluded: the user picked
+# the model deliberately, so we don't second-guess its capability.
+SMALL_MODEL_PROVIDERS = {"groq", "gemini", "ollama"}
+
+
+def is_small_model(db: Session) -> bool:
+    """True when the active AI engine is a small/free/local preset (see
+    SMALL_MODEL_PROVIDERS). Used to gate the few-shot example and the UI note."""
+    return _read_config(db).get("provider", "claude") in SMALL_MODEL_PROVIDERS
+
 
 # ─── Base class ───────────────────────────────────────────────────────────────
 
@@ -324,6 +337,9 @@ def read_config_for_api(db: Session) -> dict:
         "base_url": config.get("base_url"),
         "api_key_masked": masked,
         "is_configured": is_configured,
+        # Lets the UI set expectations (e.g. Smart Generate) when a small/free/
+        # local model is the active engine.
+        "small_model": config.get("provider", "claude") in SMALL_MODEL_PROVIDERS,
     }
 
 

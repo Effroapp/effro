@@ -244,7 +244,7 @@ def suggest_area_summary(area_id: int, db: Session = Depends(get_db)):
         "Output exactly 2 sentences. No preamble, no formatting, no bullet points.\n"
         "Sentence 1: the current state - what's happening right now, what's in motion.\n"
         "Sentence 2: what's next or blocking - risks, pending decisions, what to watch.\n"
-        "Tone: direct, factual, suitable for a status board. Avoid filler like 'currently' or 'we are'.\n"
+        "Tone: direct, factual, suitable for a status board. Avoid filler like 'currently' or 'we are', and do not open with \"Overall\", \"It's worth noting\", \"Additionally\" or \"In summary\".\n"
         "Use commas or hyphens for punctuation, never em dashes."
     )
 
