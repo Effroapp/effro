@@ -21,16 +21,22 @@
 !macro NSIS_HOOK_PREINSTALL
   DetailPrint "Stopping any running Effro. processes before extract..."
   ; /F = force, /T = kill tree (children too), /IM = by image name.
-  ; Suppress output so the installer log stays readable.
-  nsExec::Exec 'taskkill /F /T /IM effro-backend.exe'
+  ; CRITICAL: every nsExec::Exec carries a /TIMEOUT. nsExec is synchronous and
+  ; will block the entire installer forever if taskkill stalls (a process mid-
+  ; teardown, a handle that won't release, a hidden prompt). A timeout means the
+  ; hook can never freeze the install - worst case a process survives and the
+  ; normal extract-time lock check handles it, instead of hanging on this step.
+  ; On timeout nsExec pushes "timeout"; we discard it like any other result.
+  ; wrap in `cmd /c ... >nul 2>&1` so no console output can fill the pipe.
+  nsExec::Exec /TIMEOUT=4000 'cmd /c taskkill /F /T /IM effro-backend.exe >nul 2>&1'
   Pop $0
-  nsExec::Exec 'taskkill /F /T /IM effro.exe'
+  nsExec::Exec /TIMEOUT=4000 'cmd /c taskkill /F /T /IM effro.exe >nul 2>&1'
   Pop $0
   ; Also kill any leftover Trace-era processes, so users upgrading from a
   ; pre-rename install don't hit a file lock during the migration install.
-  nsExec::Exec 'taskkill /F /T /IM trace-backend.exe'
+  nsExec::Exec /TIMEOUT=4000 'cmd /c taskkill /F /T /IM trace-backend.exe >nul 2>&1'
   Pop $0
-  nsExec::Exec 'taskkill /F /T /IM trace.exe'
+  nsExec::Exec /TIMEOUT=4000 'cmd /c taskkill /F /T /IM trace.exe >nul 2>&1'
   Pop $0
   ; Brief pause — gives Windows time to release file handles after the
   ; process exits. 500ms is conservative; usually it's instant.
