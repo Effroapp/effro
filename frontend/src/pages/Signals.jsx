@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import PageHeader from '../components/PageHeader'
+import IntroPanel, { Key } from '../components/IntroPanel'
 import JiraIssueType from '../components/JiraIssueType'
 import { listSignals, acceptSignal, reassignSignal, dismissSignal } from '../api/signals'
 import { syncNow } from '../api/microsoft'
@@ -127,6 +128,17 @@ export default function Signals() {
           </>
         }
       />
+
+      {/* First-run explainer - shown once, then dismissed for good. */}
+      <IntroPanel icon={Radar} title="Welcome to Signals" storageKey="effro.signalsIntroSeen">
+        Signals is a gentle holding area for the things your connected tools
+        surface, the <Key>meetings</Key>, <Key>emails</Key>, <Key>issues</Key>{' '}
+        and <Key>pull requests</Key> waiting on one small decision from you.
+        Accept an item onto a thread, reassign it, or quietly let it go. We keep
+        it because the important bits deserve one calm place rather than a dozen
+        scattered tabs, and because nothing should slip by while you are head
+        down in deeper work.
+      </IntroPanel>
 
       {error && (
         <div className="mb-4 rounded-lg border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">

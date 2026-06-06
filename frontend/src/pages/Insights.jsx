@@ -69,11 +69,37 @@ function fmtDur(h) {
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
-// One calm line per lens, so a first-time viewer understands each at a glance.
+// One calm explainer per lens - a light descriptor line just under the tab
+// selector that swaps as the tab changes (the single mint welcome box above
+// stays the only box). What it is, then a gentle note on why it earns its
+// place. British, unhurried, never a scorecard.
 const LENS_INTRO = {
-  reflect: 'A calm look back at what you have actually done.',
-  ahead:   'The shape of what is coming, so nothing catches you off guard.',
-  balance: 'Where your attention has been going across your areas.',
+  reflect: (
+    <>
+      Reflect is your gentle look back at what you actually got done, whether{' '}
+      <Key>today</Key> or across <Key>this week</Key>, drawn from real activity
+      rather than wishful memory. We show it because progress is so easily
+      forgotten when you are moving quickly, and seeing it laid out plainly is a
+      quiet, steadying reassurance.
+    </>
+  ),
+  ahead: (
+    <>
+      Ahead is a calm view of what is coming, your <Key>meetings</Key>,{' '}
+      <Key>upcoming work</Key> and a gentle forecast, so the days in front of you
+      hold no nasty surprises. We include it because a little visibility quietly
+      removes a lot of background worry, and lets you plan from a settled place
+      rather than a reactive one.
+    </>
+  ),
+  balance: (
+    <>
+      Balance shows where your attention has truly been going across your{' '}
+      <Key>areas</Key>, including the ones that have quietly gone still. We offer
+      it gently, never as a scorecard. We show it because noticing a drift early
+      is far kinder than realising weeks later that something mattered and slipped.
+    </>
+  ),
 }
 
 export default function Insights() {
@@ -131,10 +157,17 @@ export default function Insights() {
 
         <Tabs tab={tab} onChange={setTab} />
 
-        {/* Per-lens description, with the Reflect scope toggle beside it. */}
-        <div className="flex items-center justify-between gap-3 mb-5 -mt-1">
-          <p className="text-[13px] text-paper-500 dark:text-paper-600"><BionicText>{LENS_INTRO[tab]}</BionicText></p>
-          {tab === 'reflect' && <ScopeToggle scope={scope} onChange={setScope} />}
+        {/* Per-lens description - sits just under the tab selector and swaps as
+            the tab changes. The single mint welcome box above stays the only box. */}
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <p className="text-sm leading-relaxed text-paper-600 dark:text-paper-300 max-w-2xl">
+            {LENS_INTRO[tab]}
+          </p>
+          {tab === 'reflect' && (
+            <div className="flex-shrink-0 pt-0.5">
+              <ScopeToggle scope={scope} onChange={setScope} />
+            </div>
+          )}
         </div>
 
         <div key={tab} className="animate-rise motion-reduce:animate-none">
@@ -301,11 +334,11 @@ function WeekReflect({ data }) {
         </Section>
       )}
 
-      <Section label="Your days — when you start and stop">
+      <Section label="Your days, when you start and stop">
         <RaisedCard><WorkingWindows days={data.your_days || []} /></RaisedCard>
       </Section>
 
-      <Section label="Your rhythm — last 14 days">
+      <Section label="Your rhythm over the last 14 days">
         <RaisedCard><RhythmChart rhythm={data.rhythm || []} /></RaisedCard>
       </Section>
     </div>
@@ -789,9 +822,9 @@ function _setHidden(key, val) {
 const SECTION_INFO = {
   'Worth celebrating':
     'The wins worth a pause this week, one calm line per kind. Built from blockers you cleared, threads you resolved, areas you returned to after a 7-plus day gap, and decisions you logged.',
-  'Your days — when you start and stop':
+  'Your days, when you start and stop':
     'When each of the last 7 days began and ended, read from app activity (heartbeats): your first and last active moment each day, with the bar showing the hours between.',
-  'Your rhythm — last 14 days':
+  'Your rhythm over the last 14 days':
     'How busy each of the last 14 days was. Each bar is the number of entries logged that day, with notes, todos, decisions and meetings all counting.',
   'The shape of your next 10 days':
     'A 10-day look ahead. Each column shows the meetings and todo due-dates that fall on that day.',

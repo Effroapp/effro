@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { BrainCircuit, Check, X, RotateCcw, Upload, FileText, Mail, Calendar, ChevronRight, MessageSquare, CheckCheck, Plus, Edit3 } from 'lucide-react'
 import { areasApi, generateApi, entriesApi, ingestApi } from '../api/client'
 import PageHeader from '../components/PageHeader'
+import IntroPanel, { Key } from '../components/IntroPanel'
 import StatusBadge from '../components/StatusBadge'
 import { useToast } from '../components/Toast'
 import Spinner from '../components/Spinner'
@@ -876,13 +877,17 @@ export default function ProcessView() {
         </div>
       ) : (
       <div className="max-w-5xl mx-auto px-6 md:px-8 py-6 space-y-6">
-        {/* Intro - short tagline + three-step "how it works" */}
+        {/* Intro - mint explainer box + three-step "how it works" */}
         <div className="space-y-4">
-          <p className="text-base leading-relaxed text-pitch-700 dark:text-paper-200 max-w-2xl">
-            Turn messy input into structured items. Drop notes, emails,
-            calendar invites, or PDFs - Effro extracts the to-dos,
-            decisions, and context for you to approve.
-          </p>
+          <IntroPanel icon={BrainCircuit} title="Smart Generate" storageKey="effro.smartGenerateIntroSeen">
+            Drop in something messy, a note, an email, a calendar invite or a
+            PDF, and we read through it with your connected AI engine and draw
+            out the <Key>to-dos</Key>, <Key>decisions</Key> and{' '}
+            <Key>context</Key>, ready for you to approve. Nothing is filed until
+            you say so. We built this because turning a wall of text into clear
+            next steps is exactly the sort of friction that quietly drains a day,
+            and we would rather carry that for you.
+          </IntroPanel>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <Step n="01" label="Pick an area" hint="Where items will land" />
             <Step n="02" label="Drop or paste" hint="Email, calendar, PDF, or text" />
