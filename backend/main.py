@@ -76,6 +76,7 @@ from auth_utils import SESSION_COOKIE
 from dependencies import auth_enabled
 from routers import (
     auth as auth_router,
+    account as account_router,
     areas, threads, entries, attachments, generate, ingest,
     settings as settings_router,
     storage as storage_router,
@@ -185,6 +186,8 @@ def _init_db():
             "CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id)",
             "CREATE TABLE IF NOT EXISTS password_reset_tokens (id VARCHAR(64) PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, expires_at DATETIME NOT NULL, used BOOLEAN NOT NULL DEFAULT 0)",
             "ALTER TABLE audit_logs ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL",
+            # GDPR account-deletion tombstone
+            "CREATE TABLE IF NOT EXISTS deletion_log (id INTEGER PRIMARY KEY, email_hash VARCHAR(64) NOT NULL, deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP, reason VARCHAR(200))",
         ]:
             try:
                 conn.execute(text(sql))
@@ -379,6 +382,7 @@ else:
 # API routers
 # Auth first - it is always public and creates the sessions everything else uses.
 app.include_router(auth_router.router, prefix="/api")
+app.include_router(account_router.router, prefix="/api")
 app.include_router(areas.router, prefix="/api")
 app.include_router(threads.router, prefix="/api")
 app.include_router(entries.router, prefix="/api")

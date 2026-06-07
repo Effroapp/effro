@@ -525,3 +525,17 @@ class PasswordResetToken(Base):
     created_at = Column(DateTime, server_default=func.now())
     expires_at = Column(DateTime, nullable=False)
     used = Column(Boolean, nullable=False, default=False)
+
+
+class DeletionLog(Base):
+    """
+    A tombstone for a GDPR account deletion. Stores only the SHA-256 of the
+    original email (so a later sign-up can be recognised without retaining the
+    address), when, and an optional reason. Contains no personal data itself.
+    """
+    __tablename__ = "deletion_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email_hash = Column(String(64), nullable=False)  # sha256 hex of the email
+    deleted_at = Column(DateTime, server_default=func.now())
+    reason = Column(String(200), nullable=True)
