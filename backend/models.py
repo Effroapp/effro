@@ -160,6 +160,10 @@ class AuditLog(Base):
     field = Column(String(100), nullable=True)
     old_value = Column(Text, nullable=True)
     new_value = Column(Text, nullable=True)
+    # Who performed the action. Null for system/scheduler actions and for rows
+    # written before auth existed. Set by log_audit to current_user.id (or the
+    # synthetic local admin's id when EFFRO_AUTH_ENABLED is off).
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     occurred_at = Column(DateTime, server_default=func.now())
 
 
@@ -444,3 +448,80 @@ class Nudge(Base):
     source = Column(String(20), nullable=False, default="seed")
     active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+
+
+# ── Authentication, sessions & GDPR (flag-gated via EFFRO_AUTH_ENABLED) ───────
+# These tables exist in every install but only carry real rows when auth is
+# enabled (Docker / hosted). On the desktop build the gate is open and
+# get_current_user returns a synthetic local admin, so no User row is created.
+
+class User(Base):
+    """
+    An account that can sign in.
+
+    password_hash is null for SSO-only accounts (OIDC), which authenticate via
+    sso_subject + sso_provider instead. role is 'admin' | 'member'. GDPR account
+    deletion sets is_active=False, blanks email/display_name, and writes a
+    deletion_log row rather than dropping the user (audit rows are anonymised,
+    not deleted).
+    """
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(320), unique=True, nullable=False, index=True)
+    display_name = Column(String(200), nullable=True)
+    # Argon2 hash. Null for SSO-only accounts.
+    password_hash = Column(String(512), nullable=True)
+    # admin | member
+    role = Column(String(20), nullable=False, default="member")
+    is_active = Column(Boolean, nullable=False, default=True)
+    # OIDC identity for SSO accounts (the ID token's sub + iss); null for
+    # password accounts.
+    sso_subject = Column(String(320), nullable=True)
+    sso_provider = Column(String(320), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    last_login_at = Column(DateTime, nullable=True)
+
+    sessions = relationship(
+        "UserSession", back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class UserSession(Base):
+    """
+    A server-side session. The id is a 256-bit random token
+    (secrets.token_hex(32) = 64 hex chars) stored in the effro_session cookie;
+    every authenticated request resolves the cookie to this row. Server-side so
+    a session can be revoked (is_active=False) individually without rotating any
+    signing key.
+    """
+    __tablename__ = "user_sessions"
+
+    id = Column(String(64), primary_key=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    created_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=False)
+    last_seen_at = Column(DateTime, server_default=func.now())
+    ip_address = Column(String(64), nullable=True)
+    user_agent = Column(String(512), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+
+    user = relationship("User", back_populates="sessions")
+
+
+class PasswordResetToken(Base):
+    """
+    A single-use, time-limited password-reset token. Created by a reset flow and
+    consumed (used=True) when the new password is set.
+    """
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(String(64), primary_key=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    created_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=False)
+    used = Column(Boolean, nullable=False, default=False)

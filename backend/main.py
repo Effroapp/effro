@@ -176,6 +176,12 @@ def _init_db():
             "ALTER TABLE threads ADD COLUMN position INTEGER",
             # Work sessions - heartbeat-derived presence, powers the Insights wind-down
             "CREATE TABLE IF NOT EXISTS work_sessions (id INTEGER PRIMARY KEY, started_at DATETIME NOT NULL, ended_at DATETIME NOT NULL, ping_count INTEGER DEFAULT 1)",
+            # ── Authentication (flag-gated via EFFRO_AUTH_ENABLED) ──────────────
+            "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, email VARCHAR(320) NOT NULL UNIQUE, display_name VARCHAR(200), password_hash VARCHAR(512), role VARCHAR(20) NOT NULL DEFAULT 'member', is_active BOOLEAN NOT NULL DEFAULT 1, sso_subject VARCHAR(320), sso_provider VARCHAR(320), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login_at DATETIME)",
+            "CREATE TABLE IF NOT EXISTS user_sessions (id VARCHAR(64) PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, expires_at DATETIME NOT NULL, last_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP, ip_address VARCHAR(64), user_agent VARCHAR(512), is_active BOOLEAN NOT NULL DEFAULT 1)",
+            "CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id)",
+            "CREATE TABLE IF NOT EXISTS password_reset_tokens (id VARCHAR(64) PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, expires_at DATETIME NOT NULL, used BOOLEAN NOT NULL DEFAULT 0)",
+            "ALTER TABLE audit_logs ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL",
         ]:
             try:
                 conn.execute(text(sql))
@@ -207,6 +213,10 @@ def _init_db():
             # PRAGMA table_info columns: (cid, name, type, notnull, dflt_value, pk)
             if thread_col is not None and thread_col[3] == 1:
                 conn.execute(_text("PRAGMA foreign_keys=OFF"))
+                # user_id is added by the ALTER above before this rebuild runs, so
+                # it already exists on the source table; carry it through (and keep
+                # it last-before-occurred_at to match the model) or it would be
+                # silently dropped for users whose DB still triggers this rebuild.
                 conn.execute(_text(
                     "CREATE TABLE audit_logs_new ("
                     "id INTEGER PRIMARY KEY, "
@@ -218,13 +228,14 @@ def _init_db():
                     "field VARCHAR(100), "
                     "old_value TEXT, "
                     "new_value TEXT, "
+                    "user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, "
                     "occurred_at DATETIME DEFAULT CURRENT_TIMESTAMP"
                     ")"
                 ))
                 conn.execute(_text(
                     "INSERT INTO audit_logs_new "
-                    "(id, entity_type, entity_id, area_id, thread_id, action, field, old_value, new_value, occurred_at) "
-                    "SELECT id, entity_type, entity_id, area_id, thread_id, action, field, old_value, new_value, occurred_at "
+                    "(id, entity_type, entity_id, area_id, thread_id, action, field, old_value, new_value, user_id, occurred_at) "
+                    "SELECT id, entity_type, entity_id, area_id, thread_id, action, field, old_value, new_value, user_id, occurred_at "
                     "FROM audit_logs"
                 ))
                 conn.execute(_text("DROP TABLE audit_logs"))
