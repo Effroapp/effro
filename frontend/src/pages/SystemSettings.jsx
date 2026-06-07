@@ -4,7 +4,7 @@ import {
   Settings as SettingsIcon, ArrowLeft, Cpu, FolderOpen, RefreshCw,
   AlertCircle, Download, Zap, ChevronRight, ChevronLeft,
   CheckCircle2, XCircle, Loader2, ExternalLink,
-  Database, CloudOff, Plug, Info,
+  Database, CloudOff, Plug, Info, Users,
 } from 'lucide-react'
 import {
   isTauri,
@@ -29,6 +29,8 @@ import IntegrationsPanel from '../components/IntegrationsPanel'
 import ProviderLogo from '../components/ProviderLogos'
 import { useAppVersion } from '../hooks/useAppVersion'
 import { notifyAIConfigChanged } from '../hooks/useAIConfigured'
+import { useAuth } from '../contexts/AuthContext'
+import UsersSection from '../components/UsersSection'
 
 /**
  * System Settings - a dedicated page (was a popover; promoted because
@@ -84,9 +86,19 @@ const SETTINGS_TABS = [
   },
 ]
 
+// Shown only to admins on an auth-enabled (hosted/team) instance - never on the
+// single-user desktop build, where the synthetic local admin has nobody to manage.
+const USERS_TAB = {
+  key: 'users', label: 'Users', Icon: Users,
+  intro: 'Invite teammates and manage their access. Admins only.',
+}
+
 export default function SystemSettings({ updater }) {
+  const { user } = useAuth()
+  const showUsers = user?.role === 'admin' && user?.auth_enabled
+  const tabs = showUsers ? [...SETTINGS_TABS, USERS_TAB] : SETTINGS_TABS
   const [tab, setTab] = useState('ai')
-  const active = SETTINGS_TABS.find((t) => t.key === tab) || SETTINGS_TABS[0]
+  const active = tabs.find((t) => t.key === tab) || tabs[0]
 
   // Land on the right tab after an OAuth round-trip back to /settings.
   useEffect(() => {
@@ -124,7 +136,7 @@ export default function SystemSettings({ updater }) {
       </header>
 
       <main className="max-w-5xl mx-auto px-8 py-8">
-        <SettingsTabs tab={tab} onChange={setTab} />
+        <SettingsTabs tabs={tabs} tab={tab} onChange={setTab} />
         {active.body
           ? <IntroPanel icon={active.Icon} title={active.introTitle || active.label} storageKey={`effro.introPanel.${active.key}`}>{active.body}</IntroPanel>
           : <p className="text-sm text-paper-500 dark:text-paper-500 mb-5 leading-relaxed">{active.intro}</p>}
@@ -133,6 +145,7 @@ export default function SystemSettings({ updater }) {
           {tab === 'ai' && <AISection />}
           {tab === 'storage' && <StorageSection />}
           {tab === 'integrations' && <IntegrationsPanel />}
+          {tab === 'users' && <UsersSection />}
           {tab === 'about' && (
             <>
               {isTauri() && <UpdateSection updater={updater} />}
@@ -145,10 +158,10 @@ export default function SystemSettings({ updater }) {
   )
 }
 
-function SettingsTabs({ tab, onChange }) {
+function SettingsTabs({ tabs, tab, onChange }) {
   return (
     <div className="flex items-stretch gap-1 p-1 mb-4 rounded-lg bg-paper-200 dark:bg-pitch-700/60 border border-paper-300 dark:border-pitch-500">
-      {SETTINGS_TABS.map(({ key, label, Icon }) => {
+      {tabs.map(({ key, label, Icon }) => {
         const active = tab === key
         return (
           <button

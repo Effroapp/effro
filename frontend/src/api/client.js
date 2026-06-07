@@ -65,6 +65,15 @@ export const authApi = {
   logout: () => request('/auth/logout', { method: 'POST' }),
 }
 
+// ─── Admin (user management; admin-only, auth-enabled deployments) ────────────
+
+export const adminApi = {
+  listUsers: () => request('/admin/users'),
+  createUser: (payload) => request('/admin/users', { method: 'POST', body: payload }),
+  updateUser: (id, payload) => request(`/admin/users/${id}`, { method: 'PATCH', body: payload }),
+  revokeSessions: (id) => request(`/admin/users/${id}/sessions`, { method: 'DELETE' }),
+}
+
 // ─── Areas ────────────────────────────────────────────────────────────────────
 
 export const areasApi = {
