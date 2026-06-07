@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, Outlet } from 'react-router-dom'
 import { useEffect, useState, useCallback } from 'react'
 import { useTheme } from './hooks/useTheme'
 import { useFont } from './hooks/useFont'
@@ -16,6 +16,7 @@ import NewAreaModal from './components/NewAreaModal'
 import SplashScreen from './components/SplashScreen'
 import OnboardingWizard, { useOnboarding } from './components/OnboardingWizard'
 import Sidebar from './components/Sidebar'
+import RequireAuth from './components/RequireAuth'
 import { useHeartbeat } from './hooks/useHeartbeat'
 import Dashboard from './pages/Dashboard'
 import Insights from './pages/Insights'
@@ -25,6 +26,7 @@ import ThreadView from './pages/ThreadView'
 import LogView from './pages/LogView'
 import ProcessView from './pages/ProcessView'
 import SystemSettings from './pages/SystemSettings'
+import LoginPage from './pages/LoginPage'
 import { areasApi } from './api/client'
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
@@ -79,49 +81,99 @@ export default function App() {
       <SplashScreen visible={booting} />
       <BrowserRouter>
         <BionicContext.Provider value={font === 'bionic'}>
-        <Shell
-          onOpenSwitcher={() => setSwitcherOpen(true)}
-          onOpenNewArea={() => setNewAreaOpen(true)}
-          updater={updater}
-          // Badge lights up for both 'available' (just detected) and
-          // 'dismissed' (user clicked Later but the update is still pending).
-          systemSettingsBadge={
-            updater?.status === 'available' || updater?.status === 'dismissed'
-          }
-        />
-        {/* Personal settings - top-right avatar, on every page */}
-        <SettingsMenu
-          avatar={avatar}
-          onChangeAvatar={setAvatar}
-          displayName={displayName}
-          onChangeDisplayName={setDisplayName}
-          dark={dark}
-          onToggleTheme={toggle}
-          font={font}
-          onChangeFont={setFont}
-          textSize={textSize}
-          onChangeTextSize={setTextSize}
-        />
-        {/* Update prompt - appears once per detected new version, then
-            collapses into the cog badge until installed. */}
-        <UpdateToast updater={updater} />
-        <QuickCapture />
-        <QuickSwitcher
-          isOpen={switcherOpen}
-          onClose={() => setSwitcherOpen(false)}
-        />
-        <NewAreaModal
-          isOpen={newAreaOpen}
-          onClose={() => setNewAreaOpen(false)}
-        />
+          <Routes>
+            {/* Public auth routes - no chrome, no gated API calls */}
+            <Route path="/login" element={<LoginPage />} />
+
+            {/* Everything else is gated. When auth is off (desktop) the guard
+                always passes; when on (hosted) it redirects to /login. */}
+            <Route element={<RequireAuth />}>
+              <Route
+                element={
+                  <AuthedChrome
+                    avatar={avatar}
+                    setAvatar={setAvatar}
+                    displayName={displayName}
+                    setDisplayName={setDisplayName}
+                    dark={dark}
+                    toggle={toggle}
+                    font={font}
+                    setFont={setFont}
+                    textSize={textSize}
+                    setTextSize={setTextSize}
+                    updater={updater}
+                    switcherOpen={switcherOpen}
+                    setSwitcherOpen={setSwitcherOpen}
+                    newAreaOpen={newAreaOpen}
+                    setNewAreaOpen={setNewAreaOpen}
+                  />
+                }
+              >
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/insights" element={<Insights />} />
+                <Route path="/signals" element={<Signals />} />
+                <Route path="/area/:areaId" element={<AreaView />} />
+                <Route path="/thread/:threadId" element={<ThreadView />} />
+                <Route path="/log" element={<LogView />} />
+                <Route path="/process" element={<ProcessView />} />
+                <Route path="/settings" element={<SystemSettings updater={updater} />} />
+              </Route>
+            </Route>
+          </Routes>
         </BionicContext.Provider>
       </BrowserRouter>
     </ToastProvider>
   )
 }
 
-// Shell wraps every route so navigation is always visible
-function Shell({ onOpenSwitcher, onOpenNewArea, updater, systemSettingsBadge }) {
+// AuthedChrome wraps the persistent app chrome (sidebar, personal settings,
+// quick capture/switcher, update toast) around the routed page, which renders
+// into Shell's <Outlet/>. Rendered only once the guard has admitted the user,
+// so the heartbeat and area loads never fire pre-login.
+function AuthedChrome({
+  avatar, setAvatar, displayName, setDisplayName,
+  dark, toggle, font, setFont, textSize, setTextSize,
+  updater, switcherOpen, setSwitcherOpen, newAreaOpen, setNewAreaOpen,
+}) {
+  // Badge lights up for both 'available' (just detected) and 'dismissed'
+  // (user clicked Later but the update is still pending).
+  const systemSettingsBadge =
+    updater?.status === 'available' || updater?.status === 'dismissed'
+
+  return (
+    <>
+      <Shell
+        onOpenSwitcher={() => setSwitcherOpen(true)}
+        onOpenNewArea={() => setNewAreaOpen(true)}
+        updater={updater}
+        systemSettingsBadge={systemSettingsBadge}
+      />
+      {/* Personal settings - top-right avatar, on every page */}
+      <SettingsMenu
+        avatar={avatar}
+        onChangeAvatar={setAvatar}
+        displayName={displayName}
+        onChangeDisplayName={setDisplayName}
+        dark={dark}
+        onToggleTheme={toggle}
+        font={font}
+        onChangeFont={setFont}
+        textSize={textSize}
+        onChangeTextSize={setTextSize}
+      />
+      {/* Update prompt - appears once per detected new version, then
+          collapses into the cog badge until installed. */}
+      <UpdateToast updater={updater} />
+      <QuickCapture />
+      <QuickSwitcher isOpen={switcherOpen} onClose={() => setSwitcherOpen(false)} />
+      <NewAreaModal isOpen={newAreaOpen} onClose={() => setNewAreaOpen(false)} />
+    </>
+  )
+}
+
+// Shell wraps every route so navigation is always visible. The active page
+// renders into the <Outlet/>.
+function Shell({ onOpenSwitcher, onOpenNewArea, systemSettingsBadge }) {
   const [areas, setAreas] = useState([])
   const location = useLocation()
   const { shouldShow } = useOnboarding()
@@ -153,16 +205,7 @@ function Shell({ onOpenSwitcher, onOpenNewArea, updater, systemSettingsBadge }) 
         systemSettingsBadge={systemSettingsBadge}
       />
       <main data-onboarding="main-content" className="flex-1 min-w-0">
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/insights" element={<Insights />} />
-          <Route path="/signals" element={<Signals />} />
-          <Route path="/area/:areaId" element={<AreaView />} />
-          <Route path="/thread/:threadId" element={<ThreadView />} />
-          <Route path="/log" element={<LogView />} />
-          <Route path="/process" element={<ProcessView />} />
-          <Route path="/settings" element={<SystemSettings updater={updater} />} />
-        </Routes>
+        <Outlet />
       </main>
 
       {/* Onboarding wizard — fires once on first run, replayable from Help */}
