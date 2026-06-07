@@ -16,7 +16,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -51,6 +51,11 @@ class LoginIn(BaseModel):
     password: str
 
 
+class ChangePasswordIn(BaseModel):
+    current_password: str
+    new_password: str
+
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _normalise_email(email: str) -> str:
@@ -59,6 +64,13 @@ def _normalise_email(email: str) -> str:
 
 def _issue_session(db: Session, user: User, request: Request, response: Response) -> str:
     """Create a session row for the user and set the session cookie."""
+    # Opportunistic cleanup: drop this user's expired or revoked session rows so
+    # the table stays bounded without a separate cron (review hygiene finding).
+    db.query(UserSession).filter(
+        UserSession.user_id == user.id,
+        or_(UserSession.expires_at < datetime.utcnow(),
+            UserSession.is_active == False),  # noqa: E712
+    ).delete(synchronize_session=False)
     token = generate_session_token()
     db.add(UserSession(
         id=token,
@@ -162,3 +174,113 @@ def me(current_user: User = Depends(get_current_user)):
         "display_name": current_user.display_name,
         "role": current_user.role,
     }
+
+
+# ── Session management ───────────────────────────────────────────────────────
+# Gated (not in the public allowlist): a user manages only their own sessions.
+
+@router.get("/sessions")
+def list_sessions(
+    session_token: Optional[str] = Cookie(None, alias=SESSION_COOKIE),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List the current user's active sessions. Only an 8-char id prefix is
+    exposed (never the full token), enough to identify a row for revocation."""
+    rows = (
+        db.query(UserSession)
+        .filter(UserSession.user_id == current_user.id,
+                UserSession.is_active == True)  # noqa: E712
+        .order_by(UserSession.last_seen_at.desc())
+        .all()
+    )
+    return [
+        {
+            "id": s.id[:8],
+            "created_at": s.created_at,
+            "last_seen_at": s.last_seen_at,
+            "ip_address": s.ip_address,
+            "user_agent": s.user_agent,
+            "is_current": bool(session_token and s.id == session_token),
+        }
+        for s in rows
+    ]
+
+
+@router.delete("/sessions/{session_id}")
+def revoke_session(
+    session_id: str,
+    session_token: Optional[str] = Cookie(None, alias=SESSION_COOKIE),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Revoke one of the current user's sessions by the 8-char prefix from GET
+    /sessions. Only that user's rows match; the current session can't be revoked
+    here (use logout)."""
+    rows = (
+        db.query(UserSession)
+        .filter(
+            UserSession.user_id == current_user.id,
+            UserSession.is_active == True,  # noqa: E712
+            UserSession.id.like(f"{session_id}%"),
+        )
+        .all()
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session_token and any(s.id == session_token for s in rows):
+        raise HTTPException(status_code=400, detail="Cannot revoke the current session; use logout.")
+    for s in rows:
+        s.is_active = False
+    db.commit()
+    return {"revoked": len(rows)}
+
+
+@router.delete("/sessions")
+def revoke_other_sessions(
+    session_token: Optional[str] = Cookie(None, alias=SESSION_COOKIE),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Revoke all of the current user's sessions except the current one."""
+    q = db.query(UserSession).filter(
+        UserSession.user_id == current_user.id,
+        UserSession.is_active == True,  # noqa: E712
+    )
+    if session_token:
+        q = q.filter(UserSession.id != session_token)
+    revoked = 0
+    for s in q.all():
+        s.is_active = False
+        revoked += 1
+    db.commit()
+    return {"revoked": revoked}
+
+
+@router.post("/change-password")
+def change_password(
+    body: ChangePasswordIn,
+    session_token: Optional[str] = Cookie(None, alias=SESSION_COOKIE),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Change the current user's password, then revoke every other session."""
+    # Re-load the persistent row: the flag-off synthetic local admin has no DB
+    # row / password, so this correctly 401s on the desktop build.
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if not user or not user.password_hash or not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Current password is incorrect.")
+    if not body.new_password:
+        raise HTTPException(status_code=400, detail="A new password is required.")
+    user.password_hash = hash_password(body.new_password)
+    # Force re-login everywhere else (keep the current session alive).
+    others = db.query(UserSession).filter(
+        UserSession.user_id == user.id,
+        UserSession.is_active == True,  # noqa: E712
+    )
+    if session_token:
+        others = others.filter(UserSession.id != session_token)
+    for s in others.all():
+        s.is_active = False
+    db.commit()
+    return {"ok": True}
