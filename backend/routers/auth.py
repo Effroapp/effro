@@ -180,6 +180,7 @@ def me(current_user: User = Depends(get_current_user)):
         "email": current_user.email,
         "display_name": current_user.display_name,
         "role": current_user.role,
+        "avatar": current_user.avatar,
         # Lets the frontend tell desktop (gate open, synthetic admin) from a real
         # hosted session, e.g. to show the admin Users tab only when auth is on.
         "auth_enabled": auth_enabled(),
@@ -371,6 +372,15 @@ def oidc_callback(
 
     if not user.is_active:
         return RedirectResponse(url="/login?error=account_disabled")
+
+    # First SSO sign-in with no avatar yet: pull the IdP profile photo
+    # (best-effort; never blocks sign-in). Committed by _issue_session below.
+    if not user.avatar:
+        avatar = oidc_client.fetch_avatar(
+            claims.get("access_token"), claims.get("picture"), claims.get("is_microsoft"),
+        )
+        if avatar:
+            user.avatar = avatar
 
     resp = RedirectResponse(url="/", status_code=303)
     _issue_session(db, user, request, resp)

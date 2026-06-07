@@ -10,10 +10,13 @@ dependency, and is sound because the code exchange is server-side over TLS (no
 token ever passes through the browser). A short-lived state value defends the
 callback against CSRF.
 """
+import base64
+import ipaddress
 import json
+import socket
 import time
 from typing import Optional
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
 
@@ -129,10 +132,13 @@ def build_auth_url(db, redirect_uri: str) -> str:
     doc = _discovery(cfg["discovery_url"])
     state = __import__("secrets").token_urlsafe(32)
     add_state(db, state)
+    scope = "openid email profile"
+    if _is_microsoft(cfg["discovery_url"]):
+        scope += " User.Read"  # so the access token can read the Graph profile photo
     params = {
         "client_id": cfg["client_id"],
         "response_type": "code",
-        "scope": "openid email profile",
+        "scope": scope,
         "redirect_uri": redirect_uri,
         "state": state,
     }
@@ -176,4 +182,76 @@ def complete_login(db, code: str, redirect_uri: str) -> dict:
         "iss": doc.get("issuer") or cfg["discovery_url"],
         "email": claims.get("email"),
         "name": claims.get("name") or claims.get("preferred_username"),
+        "picture": claims.get("picture"),
+        "access_token": access_token,
+        "is_microsoft": _is_microsoft(cfg["discovery_url"]),
     }
+
+
+# ── Profile photo (best-effort) ───────────────────────────────────────────────
+
+def _is_microsoft(discovery_url) -> bool:
+    # Hostname match (not substring) so a look-alike like
+    # login.microsoftonline.com.evil.test can't flip the Microsoft branch.
+    try:
+        host = (urlparse(discovery_url or "").hostname or "").lower()
+    except ValueError:
+        return False
+    return (host == "login.microsoftonline.com" or host.endswith(".microsoftonline.com")
+            or host == "sts.windows.net" or host.endswith(".sts.windows.net"))
+
+
+def _is_public_https(url) -> bool:
+    """True only for an https URL whose host resolves entirely to PUBLIC IPs.
+    Blocks SSRF to internal / loopback / link-local / metadata hosts via a
+    malicious `picture` claim. (A residual DNS-rebinding gap remains since httpx
+    re-resolves; the public-IP gate closes the practical exploit for what is an
+    admin-configured, trusted IdP.)"""
+    try:
+        p = urlparse(url)
+        if p.scheme != "https" or not p.hostname:
+            return False
+        infos = socket.getaddrinfo(p.hostname, 443, proto=socket.IPPROTO_TCP)
+        if not infos:
+            return False
+        for *_unused, sockaddr in infos:
+            ip = ipaddress.ip_address(sockaddr[0])
+            if (ip.is_private or ip.is_loopback or ip.is_link_local
+                    or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+                return False
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+_MAX_AVATAR_BYTES = 1_000_000  # ~1 MB cap on the source image
+# Raster only - never store an SVG (avoids any scripted-SVG surprise downstream).
+_ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"}
+
+
+def fetch_avatar(access_token, picture_url, is_microsoft):
+    """Best-effort profile photo as a data: URI. Tries the OIDC `picture` claim
+    (Google et al.), then Microsoft Graph's /me/photo. Returns None on ANY
+    problem - the caller treats the avatar as optional and never lets it block
+    sign-in. follow_redirects is off and only https picture URLs are fetched, to
+    limit the SSRF surface from an attacker-influenced claim value."""
+    try:
+        with httpx.Client(timeout=10, follow_redirects=False) as c:
+            if picture_url and _is_public_https(str(picture_url)):
+                r = c.get(picture_url)
+            elif is_microsoft and access_token:
+                r = c.get(
+                    "https://graph.microsoft.com/v1.0/me/photo/$value",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+            else:
+                return None
+            if r.status_code != 200:
+                return None
+            data = r.content
+            ctype = (r.headers.get("content-type") or "image/jpeg").split(";")[0].strip()
+        if not data or len(data) > _MAX_AVATAR_BYTES or ctype not in _ALLOWED_IMAGE_TYPES:
+            return None
+        return f"data:{ctype};base64," + base64.b64encode(data).decode("ascii")
+    except Exception:
+        return None

@@ -183,6 +183,7 @@ def _init_db():
             "CREATE TABLE IF NOT EXISTS work_sessions (id INTEGER PRIMARY KEY, started_at DATETIME NOT NULL, ended_at DATETIME NOT NULL, ping_count INTEGER DEFAULT 1)",
             # ── Authentication (flag-gated via EFFRO_AUTH_ENABLED) ──────────────
             "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, email VARCHAR(320) NOT NULL UNIQUE, display_name VARCHAR(200), password_hash VARCHAR(512), role VARCHAR(20) NOT NULL DEFAULT 'member', is_active BOOLEAN NOT NULL DEFAULT 1, sso_subject VARCHAR(320), sso_provider VARCHAR(320), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_login_at DATETIME)",
+            "ALTER TABLE users ADD COLUMN avatar TEXT",
             "CREATE TABLE IF NOT EXISTS user_sessions (id VARCHAR(64) PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, expires_at DATETIME NOT NULL, last_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP, ip_address VARCHAR(64), user_agent VARCHAR(512), is_active BOOLEAN NOT NULL DEFAULT 1)",
             "CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id)",
             "CREATE TABLE IF NOT EXISTS password_reset_tokens (id VARCHAR(64) PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, expires_at DATETIME NOT NULL, used BOOLEAN NOT NULL DEFAULT 0)",

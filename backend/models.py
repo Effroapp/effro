@@ -481,6 +481,10 @@ class User(Base):
     sso_provider = Column(String(320), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     last_login_at = Column(DateTime, nullable=True)
+    # Profile photo as a data: URI. Populated best-effort from the IdP on first
+    # SSO sign-in (Microsoft Graph photo / OIDC `picture`); also settable
+    # locally. Null = fall back to initials.
+    avatar = Column(Text, nullable=True)
 
     sessions = relationship(
         "UserSession", back_populates="user", cascade="all, delete-orphan"

@@ -58,6 +58,8 @@ export default function SettingsMenu({
   }, [open])
 
   const initials = getInitials(displayName)
+  // Locally-uploaded photo wins; otherwise the IdP/SSO photo from /auth/me.
+  const shownAvatar = avatar || user?.avatar || ''
 
   const handlePickFile = () => fileInputRef.current?.click()
 
@@ -92,7 +94,7 @@ export default function SettingsMenu({
           w-10 h-10 rounded-full overflow-hidden flex items-center justify-center
           font-display font-semibold text-sm
           shadow-md ring-2 transition-all
-          ${avatar
+          ${shownAvatar
             ? 'ring-paper-300/80 dark:ring-pitch-500/80'
             : 'bg-paper-300 dark:bg-pitch-600 text-paper-700 dark:text-paper-200 ring-paper-300/40 dark:ring-pitch-500/60'
           }
@@ -100,8 +102,8 @@ export default function SettingsMenu({
           hover:ring-mint-500/40
         `}
       >
-        {avatar ? (
-          <img src={avatar} alt="" className="w-full h-full object-cover" />
+        {shownAvatar ? (
+          <img src={shownAvatar} alt="" className="w-full h-full object-cover" />
         ) : (
           <span>{initials}</span>
         )}
@@ -159,8 +161,8 @@ export default function SettingsMenu({
                 flex items-center justify-center
                 bg-paper-300 dark:bg-pitch-600 text-paper-700 dark:text-paper-200 font-display font-semibold text-base
               ">
-                {avatar
-                  ? <img src={avatar} alt="" className="w-full h-full object-cover" />
+                {shownAvatar
+                  ? <img src={shownAvatar} alt="" className="w-full h-full object-cover" />
                   : <span>{initials}</span>
                 }
               </span>
