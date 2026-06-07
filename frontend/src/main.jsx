@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
+import { AuthProvider } from './contexts/AuthContext'
 // Fonts are self-hosted via @fontsource, so the app renders in-brand offline and
 // makes no third-party (Google Fonts) request - one less GDPR question. Weights
 // mirror what the old CDN <link> requested. Geist Sans ships latin-only upstream.
@@ -22,6 +23,8 @@ import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </React.StrictMode>,
 )

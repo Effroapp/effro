@@ -6,6 +6,9 @@ async function request(path, options = {}) {
   const { body, headers = {}, ...rest } = options
 
   const init = {
+    // Send the session cookie so auth-enabled deployments authenticate the
+    // request. Harmless when auth is off (desktop): there is no cookie.
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...headers,
@@ -20,6 +23,12 @@ async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, init)
 
   if (!res.ok) {
+    // A 401 means the session is gone. Let the app react globally (the route
+    // guard redirects to /login) - except for the auth probes themselves, which
+    // expect a 401 and handle it locally to avoid a redirect loop.
+    if (res.status === 401 && path !== '/auth/login' && path !== '/auth/me') {
+      window.dispatchEvent(new Event('effro:unauthorized'))
+    }
     let message = `HTTP ${res.status}`
     try {
       const data = await res.json()
@@ -41,6 +50,19 @@ async function request(path, options = {}) {
 
   if (res.status === 204) return null
   return res.json()
+}
+
+// ─── Auth (flag-gated) ──────────────────────────────────────────────────────
+
+export const authApi = {
+  // Current user. When auth is off the backend returns the synthetic local
+  // admin, so this resolves and the app never shows a login.
+  me: () => request('/auth/me'),
+  setupStatus: () => request('/auth/setup/status'),
+  setup: (payload) => request('/auth/setup', { method: 'POST', body: payload }),
+  login: (email, password) =>
+    request('/auth/login', { method: 'POST', body: { email, password } }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
 }
 
 // ─── Areas ────────────────────────────────────────────────────────────────────
@@ -145,8 +167,10 @@ export const ingestApi = {
     const res = await fetch(`${BASE}/ingest/parse`, {
       method: 'POST',
       body: formData,
+      credentials: 'include',
     })
     if (!res.ok) {
+      if (res.status === 401) window.dispatchEvent(new Event('effro:unauthorized'))
       const data = await res.json().catch(() => ({}))
       throw new Error(data.detail || `HTTP ${res.status}`)
     }
@@ -190,9 +214,11 @@ export const attachmentsApi = {
     const res = await fetch(`${BASE}/threads/${threadId}/attachments/file`, {
       method: 'POST',
       body: formData,
+      credentials: 'include',
       // NOTE: do NOT set Content-Type; browser sets multipart boundary automatically
     })
     if (!res.ok) {
+      if (res.status === 401) window.dispatchEvent(new Event('effro:unauthorized'))
       const data = await res.json().catch(() => ({}))
       throw new Error(data.detail || `HTTP ${res.status}`)
     }
