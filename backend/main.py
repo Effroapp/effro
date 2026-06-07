@@ -77,6 +77,7 @@ from dependencies import auth_enabled
 from routers import (
     auth as auth_router,
     account as account_router,
+    admin as admin_router,
     areas, threads, entries, attachments, generate, ingest,
     settings as settings_router,
     storage as storage_router,
@@ -383,6 +384,7 @@ else:
 # Auth first - it is always public and creates the sessions everything else uses.
 app.include_router(auth_router.router, prefix="/api")
 app.include_router(account_router.router, prefix="/api")
+app.include_router(admin_router.router, prefix="/api")
 app.include_router(areas.router, prefix="/api")
 app.include_router(threads.router, prefix="/api")
 app.include_router(entries.router, prefix="/api")

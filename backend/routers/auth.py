@@ -21,7 +21,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from database import get_db
-from dependencies import get_current_user
+from dependencies import auth_enabled, get_current_user
 from models import User, UserSession
 from auth_utils import (
     DUMMY_PASSWORD_HASH,
@@ -173,6 +173,9 @@ def me(current_user: User = Depends(get_current_user)):
         "email": current_user.email,
         "display_name": current_user.display_name,
         "role": current_user.role,
+        # Lets the frontend tell desktop (gate open, synthetic admin) from a real
+        # hosted session, e.g. to show the admin Users tab only when auth is on.
+        "auth_enabled": auth_enabled(),
     }
 
 
