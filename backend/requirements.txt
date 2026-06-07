@@ -21,3 +21,7 @@ cryptography>=42.0.0
 # is async-friendly for Graph API calls (FastAPI default Python client).
 msal>=1.30.0
 httpx>=0.27.0
+# Auth (flag-gated) - Argon2 password hashing via passlib/argon2-cffi. Session
+# ids use stdlib `secrets`; Fernet (cryptography, above) already covers secrets
+# at rest, so no extra crypto dep is needed.
+passlib[argon2]>=1.7.4
