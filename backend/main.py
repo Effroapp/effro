@@ -72,6 +72,8 @@ from fastapi.responses import JSONResponse
 
 import models
 from database import engine, SessionLocal
+from auth_utils import SESSION_COOKIE
+from dependencies import auth_enabled
 from routers import (
     auth as auth_router,
     areas, threads, entries, attachments, generate, ingest,
@@ -288,12 +290,87 @@ async def health():
     return JSONResponse({"status": "ok"})
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# ── Auth gate (flag-gated, default-deny) ─────────────────────────────────────
+# When EFFRO_AUTH_ENABLED is on, every /api and /uploads request requires a
+# valid session cookie EXCEPT an explicit public allowlist: the health probe,
+# the auth endpoints that create a session, and the OAuth redirect endpoints the
+# provider / system browser hit with no cookie. Default-deny means a new
+# endpoint is protected unless deliberately exempted here. When the flag is off
+# (the desktop build) this is a no-op and the app runs login-free.
+from datetime import datetime as _dt
+
+_PUBLIC_API_EXACT = {
+    "/api/health",
+    "/api/auth/setup",
+    "/api/auth/setup/status",
+    "/api/auth/login",
+    "/api/auth/logout",
+    "/api/auth/me",               # self-gates via get_current_user
+    "/api/auth/oidc/config",
+    "/api/auth/oidc/login",
+    "/api/auth/oidc/callback",
+}
+# Per-integration OAuth redirect endpoints (browser/provider hits, no cookie).
+# github + icloud are PAT/app-password based and have no redirect, so nothing
+# of theirs is public.
+_OAUTH_PUBLIC_INTEGRATIONS = ("microsoft", "google", "jira", "dropbox")
+
+
+def _is_public_api_path(path: str) -> bool:
+    if path in _PUBLIC_API_EXACT:
+        return True
+    for name in _OAUTH_PUBLIC_INTEGRATIONS:
+        if path in (f"/api/{name}/auth/login", f"/api/{name}/auth/callback"):
+            return True
+    return False
+
+
+def _has_valid_session(token) -> bool:
+    if not token:
+        return False
+    db = SessionLocal()
+    try:
+        return db.query(models.UserSession).filter(
+            models.UserSession.id == token,
+            models.UserSession.is_active == True,  # noqa: E712
+            models.UserSession.expires_at > _dt.utcnow(),
+        ).first() is not None
+    finally:
+        db.close()
+
+
+@app.middleware("http")
+async def auth_gate(request, call_next):
+    if auth_enabled() and request.method != "OPTIONS":
+        path = request.url.path
+        if (path.startswith("/api/") or path.startswith("/uploads/")) \
+                and not _is_public_api_path(path):
+            if not _has_valid_session(request.cookies.get(SESSION_COOKIE)):
+                return JSONResponse({"detail": "Not authenticated"}, status_code=401)
+    return await call_next(request)
+
+
+# CORS: with cookie auth, credentialed cross-origin requests need a concrete
+# origin (not "*"). Desktop/dev are same-origin, so "*" without credentials is
+# fine there; a hosted deployment sets EFFRO_CORS_ORIGINS to its web origin(s).
+# Added AFTER auth_gate so CORS is outermost (handles OPTIONS preflight and adds
+# headers to the gate's 401s).
+_cors_origins = os.environ.get("EFFRO_CORS_ORIGINS", "").strip()
+if auth_enabled() and _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[o.strip() for o in _cors_origins.split(",") if o.strip()],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # API routers
 # Auth first - it is always public and creates the sessions everything else uses.
