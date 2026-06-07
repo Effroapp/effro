@@ -155,3 +155,36 @@ already use and pull the important bits into one place. Core ideas:
   local app), then native integrations (Notion, Linear, Asana, Trello, Zoho,
   GitLab, the Atlassian suite incl. Confluence, Azure DevOps, Monday, ClickUp);
   telemetry (PostHog EU, opt-out); dead-code sweep + spec-doc sync.
+
+## Authentication, sessions & GDPR (flag-gated)
+Effro carries a full auth layer that is **off by default** so the desktop app
+stays login-free, and **on** for hosted/Docker deployments. The switch is the
+`EFFRO_AUTH_ENABLED` env var.
+- **Off (unset/false - the Tauri desktop build):** `get_current_user` returns a
+  synthetic local admin (`User(id=1, email="local@effro", display_name="Local
+  user", role="admin")`) instead of 401. The dependency is still on every route,
+  so audit attribution and every auth code path runs; the gate is simply open,
+  and no login/setup UI is shown.
+- **On (set in the Dockerfile - any server deployment):** real sessions are
+  required. First run shows a setup page that creates the admin; everyone else
+  logs in. Admins invite users from Settings -> Users. Optional Entra OIDC SSO.
+- **Files:** backend `auth_utils.py` (argon2 hashing + session tokens),
+  `routers/auth.py` (setup/login/logout/me/sessions/change-password),
+  `dependencies.py` (`get_current_user`, `require_admin`), `routers/admin.py`
+  (user management), `routers/account.py` (GDPR export + delete). Frontend
+  `contexts/AuthContext.jsx`, `components/RequireAuth.jsx`, `pages/LoginPage.jsx`,
+  `pages/SetupPage.jsx`.
+- **Schema:** `users`, `user_sessions`, `password_reset_tokens`, plus
+  `audit_logs.user_id` and a `deletion_log`. Added the **additive** way (models +
+  `CREATE TABLE IF NOT EXISTS` / `ALTER` in `main.py _init_db`), NOT Alembic -
+  the repo is deliberately Alembic-free and autogenerate against the live
+  create_all DB would risk the user's data.
+- **Always public (never gated):** `GET /api/health`, every integration's OAuth
+  `/<name>/auth/login` + `/auth/callback` (providers redirect to them
+  cookieless), and the auth endpoints themselves (setup/setup-status/login/
+  logout, oidc/config + oidc/login + oidc/callback).
+- **Cookies:** `effro_session`, HttpOnly + SameSite. Credentialed cross-origin
+  requests need a concrete CORS origin (set via `EFFRO_CORS_ORIGINS` when auth is
+  on), not `*`; desktop is same-origin so this only matters when hosted. On the
+  desktop the backend port drifts (8000-8010) and clearing the WebView2 cache
+  logs the cookie out - another reason desktop keeps the gate off.
