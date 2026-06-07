@@ -20,6 +20,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import get_db
+from dependencies import get_current_user
 from models import User, UserSession
 from auth_utils import (
     SESSION_COOKIE,
@@ -143,27 +144,12 @@ def logout(
 
 
 @router.get("/me")
-def me(
-    session_token: Optional[str] = Cookie(None, alias=SESSION_COOKIE),
-    db: Session = Depends(get_db),
-):
-    """Return the signed-in user. Inline session lookup for now; step 4 swaps
-    this onto the shared get_current_user dependency."""
-    if not session_token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    sess = db.query(UserSession).filter(
-        UserSession.id == session_token,
-        UserSession.is_active == True,  # noqa: E712 (SQLAlchemy needs ==)
-        UserSession.expires_at > datetime.utcnow(),
-    ).first()
-    if not sess:
-        raise HTTPException(status_code=401, detail="Session expired or invalid")
-    sess.last_seen_at = datetime.utcnow()
-    db.commit()
-    user = sess.user
+def me(current_user: User = Depends(get_current_user)):
+    """Return the signed-in user. When EFFRO_AUTH_ENABLED is off this is the
+    synthetic local admin (see dependencies.get_current_user)."""
     return {
-        "id": user.id,
-        "email": user.email,
-        "display_name": user.display_name,
-        "role": user.role,
+        "id": current_user.id,
+        "email": current_user.email,
+        "display_name": current_user.display_name,
+        "role": current_user.role,
     }
