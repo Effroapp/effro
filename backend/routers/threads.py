@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import models
 import schemas
 from database import get_db
+from dependencies import get_current_user
 from audit import log_audit, log_activity_entry
 
 router = APIRouter(tags=["threads"])
@@ -170,7 +171,7 @@ def suggest_thread_summary(thread_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/threads/{thread_id}/links", response_model=schemas.LinkedThreadRef, status_code=201)
-def add_thread_link(thread_id: int, payload: schemas.ThreadLinkCreate, db: Session = Depends(get_db)):
+def add_thread_link(thread_id: int, payload: schemas.ThreadLinkCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if payload.to_thread_id == thread_id:
         raise HTTPException(status_code=422, detail="Cannot link a thread to itself")
 
@@ -208,6 +209,7 @@ def add_thread_link(thread_id: int, payload: schemas.ThreadLinkCreate, db: Sessi
         db, entity_type="thread_link", entity_id=link.id,
         area_id=from_thread.area_id, thread_id=thread_id,
         action="created", field=payload.kind, new_value=to_thread.title,
+        performed_by=current_user.id,
     )
     db.commit()
 
@@ -218,7 +220,7 @@ def add_thread_link(thread_id: int, payload: schemas.ThreadLinkCreate, db: Sessi
 
 
 @router.delete("/links/{link_id}", status_code=204)
-def delete_thread_link(link_id: int, db: Session = Depends(get_db)):
+def delete_thread_link(link_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     link = db.query(models.ThreadLink).filter(models.ThreadLink.id == link_id).first()
     if not link:
         raise HTTPException(status_code=404, detail="Link not found")
@@ -232,6 +234,7 @@ def delete_thread_link(link_id: int, db: Session = Depends(get_db)):
             area_id=from_thread.area_id, thread_id=link.from_thread_id,
             action="deleted", field=link.kind,
             old_value=to_thread.title if to_thread else None,
+            performed_by=current_user.id,
         )
 
     db.delete(link)
@@ -240,7 +243,7 @@ def delete_thread_link(link_id: int, db: Session = Depends(get_db)):
 
 @router.put("/threads/{thread_id}", response_model=schemas.ThreadDetail)
 def update_thread(
-    thread_id: int, payload: schemas.ThreadUpdate, db: Session = Depends(get_db)
+    thread_id: int, payload: schemas.ThreadUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)
 ):
     thread = db.query(models.Thread).filter(models.Thread.id == thread_id).first()
     if not thread:
@@ -248,14 +251,16 @@ def update_thread(
 
     if payload.title is not None and payload.title != thread.title:
         log_audit(db, entity_type='thread', entity_id=thread.id, area_id=thread.area_id,
-                  thread_id=thread.id, action='updated', field='title', old_value=thread.title, new_value=payload.title)
+                  thread_id=thread.id, action='updated', field='title', old_value=thread.title, new_value=payload.title,
+                  performed_by=current_user.id)
         thread.title = payload.title
     elif payload.title is not None:
         thread.title = payload.title
 
     if payload.description is not None and payload.description != thread.description:
         log_audit(db, entity_type='thread', entity_id=thread.id, area_id=thread.area_id,
-                  thread_id=thread.id, action='updated', field='description', old_value=thread.description or '', new_value=payload.description)
+                  thread_id=thread.id, action='updated', field='description', old_value=thread.description or '', new_value=payload.description,
+                  performed_by=current_user.id)
         thread.description = payload.description
     elif payload.description is not None:
         thread.description = payload.description
@@ -266,14 +271,16 @@ def update_thread(
             raise HTTPException(status_code=422, detail=f"status must be one of {valid}")
         if payload.status != thread.status:
             log_audit(db, entity_type='thread', entity_id=thread.id, area_id=thread.area_id,
-                      thread_id=thread.id, action='updated', field='status', old_value=thread.status, new_value=payload.status)
+                      thread_id=thread.id, action='updated', field='status', old_value=thread.status, new_value=payload.status,
+                      performed_by=current_user.id)
             db.add(models.ActivityEvent(event_type="status_changed", thread_id=thread.id, detail=f"→ {payload.status}"))
         thread.status = payload.status
 
     if payload.summary is not None and payload.summary != thread.summary:
         log_audit(db, entity_type='thread', entity_id=thread.id, area_id=thread.area_id,
                   thread_id=thread.id, action='updated', field='summary',
-                  old_value=(thread.summary or '')[:200], new_value=payload.summary[:200])
+                  old_value=(thread.summary or '')[:200], new_value=payload.summary[:200],
+                  performed_by=current_user.id)
         thread.summary = payload.summary
         thread.summary_updated_at = datetime.utcnow()  # naive UTC for staleness comparison
         thread.summary_auto_generated = False

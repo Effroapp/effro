@@ -8,6 +8,7 @@ import models
 import schemas
 from database import get_db
 from audit import log_audit
+from dependencies import get_current_user
 
 router = APIRouter(tags=["areas"])
 
@@ -115,7 +116,7 @@ def list_areas(db: Session = Depends(get_db)):
 
 
 @router.post("/areas", response_model=schemas.AreaSummary, status_code=201)
-def create_area(payload: schemas.AreaCreate, db: Session = Depends(get_db)):
+def create_area(payload: schemas.AreaCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     name = payload.name.strip()
     if not name:
         raise HTTPException(status_code=422, detail="name is required")
@@ -137,6 +138,7 @@ def create_area(payload: schemas.AreaCreate, db: Session = Depends(get_db)):
     log_audit(
         db, entity_type="area", entity_id=area.id, area_id=area.id,
         action="created", field=None, old_value=None, new_value=name,
+        performed_by=current_user.id,
     )
     db.commit()
 
@@ -165,7 +167,7 @@ def set_auto_update_all(payload: schemas.AreaUpdate, db: Session = Depends(get_d
 
 
 @router.put("/areas/{area_id}", response_model=schemas.AreaDetail)
-def update_area(area_id: int, payload: schemas.AreaUpdate, db: Session = Depends(get_db)):
+def update_area(area_id: int, payload: schemas.AreaUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     area = db.query(models.Area).filter(models.Area.id == area_id).first()
     if not area:
         raise HTTPException(status_code=404, detail="Area not found")
@@ -176,13 +178,15 @@ def update_area(area_id: int, payload: schemas.AreaUpdate, db: Session = Depends
             raise HTTPException(status_code=422, detail=f"status must be one of {valid}")
         if payload.status != area.status:
             log_audit(db, entity_type='area', entity_id=area.id, area_id=area.id,
-                      action='updated', field='status', old_value=area.status, new_value=payload.status)
+                      action='updated', field='status', old_value=area.status, new_value=payload.status,
+                      performed_by=current_user.id)
         area.status = payload.status
 
     if payload.summary is not None and payload.summary != area.summary:
         log_audit(db, entity_type='area', entity_id=area.id, area_id=area.id,
                   action='updated', field='summary',
-                  old_value=(area.summary or '')[:200], new_value=payload.summary[:200])
+                  old_value=(area.summary or '')[:200], new_value=payload.summary[:200],
+                  performed_by=current_user.id)
         area.summary = payload.summary
         # A summary saved through the UI is, by definition, a manual update:
         # stamp it now and clear the auto-generated flag so the card reads
@@ -195,7 +199,8 @@ def update_area(area_id: int, payload: schemas.AreaUpdate, db: Session = Depends
     if payload.icon is not None and payload.icon != area.icon:
         log_audit(db, entity_type='area', entity_id=area.id, area_id=area.id,
                   action='updated', field='icon',
-                  old_value=area.icon, new_value=payload.icon or None)
+                  old_value=area.icon, new_value=payload.icon or None,
+                  performed_by=current_user.id)
         area.icon = payload.icon or None
 
     if payload.auto_update is not None:
@@ -311,7 +316,7 @@ def list_area_threads(area_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/areas/{area_id}/threads", response_model=schemas.ThreadSummary, status_code=201)
-def create_thread(area_id: int, payload: schemas.ThreadCreate, db: Session = Depends(get_db)):
+def create_thread(area_id: int, payload: schemas.ThreadCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     area = db.query(models.Area).filter(models.Area.id == area_id).first()
     if not area:
         raise HTTPException(status_code=404, detail="Area not found")
@@ -336,7 +341,8 @@ def create_thread(area_id: int, payload: schemas.ThreadCreate, db: Session = Dep
     db.refresh(thread)
 
     log_audit(db, entity_type='thread', entity_id=thread.id, area_id=area_id,
-              thread_id=thread.id, action='created', field='title', new_value=thread.title)
+              thread_id=thread.id, action='created', field='title', new_value=thread.title,
+              performed_by=current_user.id)
 
     return schemas.ThreadSummary(
         id=thread.id,

@@ -34,7 +34,11 @@ def log_audit(
     field: str = None,
     old_value: str = None,
     new_value: str = None,
+    performed_by: int = None,
 ):
+    """Record an audit row. `performed_by` is the acting user's id (current_user
+    .id from the endpoint); left None for system/scheduler actions. Best-effort -
+    a failed audit write never poisons the caller's transaction."""
     try:
         record = models.AuditLog(
             entity_type=entity_type,
@@ -45,6 +49,7 @@ def log_audit(
             field=field,
             old_value=old_value,
             new_value=new_value,
+            user_id=performed_by,
         )
         db.add(record)
         db.commit()

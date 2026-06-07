@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from database import get_db
+from dependencies import get_current_user
 from audit import log_audit, log_activity_entry
 
 router = APIRouter(tags=["attachments"])
@@ -28,6 +29,7 @@ async def upload_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     thread = db.query(models.Thread).filter(models.Thread.id == thread_id).first()
     if not thread:
@@ -67,7 +69,8 @@ async def upload_file(
 
     log_audit(db, entity_type='attachment', entity_id=attachment.id, area_id=thread.area_id,
               thread_id=thread_id, action='created', field='file',
-              new_value=attachment.original_name or attachment.name)
+              new_value=attachment.original_name or attachment.name,
+              performed_by=current_user.id)
 
     # Log the activity on the timeline so it reads as something that happened.
     log_activity_entry(db, thread_id, f"Attached a file: **{attachment.name}**")
@@ -142,6 +145,7 @@ def add_link(
     thread_id: int,
     payload: schemas.LinkCreate,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     thread = db.query(models.Thread).filter(models.Thread.id == thread_id).first()
     if not thread:
@@ -164,7 +168,8 @@ def add_link(
         pass
 
     log_audit(db, entity_type='attachment', entity_id=attachment.id, area_id=thread.area_id,
-              thread_id=thread_id, action='created', field='link', new_value=attachment.name)
+              thread_id=thread_id, action='created', field='link', new_value=attachment.name,
+              performed_by=current_user.id)
 
     link_md = f"[**{attachment.name}**]({attachment.url})" if attachment.url else f"**{attachment.name}**"
     log_activity_entry(db, thread_id, f"Added a link: {link_md}")
@@ -173,7 +178,11 @@ def add_link(
 
 
 @router.delete("/attachments/{attachment_id}", status_code=204)
-def delete_attachment(attachment_id: int, db: Session = Depends(get_db)):
+def delete_attachment(
+    attachment_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     attachment = (
         db.query(models.Attachment)
         .filter(models.Attachment.id == attachment_id)
@@ -198,4 +207,5 @@ def delete_attachment(attachment_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     log_audit(db, entity_type='attachment', entity_id=attachment_id, area_id=area_id,
-              thread_id=thread_id, action='deleted', field=att_type, old_value=att_name)
+              thread_id=thread_id, action='deleted', field=att_type, old_value=att_name,
+              performed_by=current_user.id)
