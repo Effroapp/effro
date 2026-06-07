@@ -71,7 +71,8 @@ def _check_backend_deps_installed() -> None:
     `ModuleNotFoundError: No module named 'uvicorn'`. We've shipped that
     footgun once already - never again.
     """
-    required = ["uvicorn", "fastapi", "sqlalchemy", "anthropic", "apscheduler"]
+    required = ["uvicorn", "fastapi", "sqlalchemy", "anthropic", "apscheduler",
+                "passlib", "argon2"]
     missing = []
     for mod in required:
         try:

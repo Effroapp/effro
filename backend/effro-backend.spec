@@ -134,6 +134,17 @@ a = Analysis(
         'msal.token_cache',
         'msal.authority',
         'msal.oauth2cli',
+        # Auth: passlib lazily imports its argon2 backend BY NAME, and that
+        # backend pulls in argon2-cffi - neither is visible to static analysis,
+        # so without these the bundled exe ModuleNotFounds on the first hash.
+        'passlib.handlers.argon2',
+        'argon2',
+        'argon2.low_level',
+        # New auth backend modules (directly imported by main; listed for parity
+        # with the per-router belt-and-braces convention above).
+        'auth_utils',
+        'dependencies',
+        'routers.auth',
     ],
     hookspath=[],
     hooksconfig={},
