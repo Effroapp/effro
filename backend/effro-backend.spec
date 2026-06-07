@@ -145,6 +145,7 @@ a = Analysis(
         'auth_utils',
         'dependencies',
         'oidc_client',
+        'email_client',
         'routers.auth',
         'routers.account',
         'routers.admin',

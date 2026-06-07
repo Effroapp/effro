@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 import oidc_client
 from database import get_db
 from dependencies import auth_enabled, get_current_user
-from models import User, UserSession
+from models import User, UserSession, PasswordResetToken
 from auth_utils import (
     DUMMY_PASSWORD_HASH,
     SESSION_COOKIE,
@@ -55,6 +55,11 @@ class LoginIn(BaseModel):
 
 class ChangePasswordIn(BaseModel):
     current_password: str
+    new_password: str
+
+
+class SetPasswordIn(BaseModel):
+    token: str
     new_password: str
 
 
@@ -370,3 +375,50 @@ def oidc_callback(
     resp = RedirectResponse(url="/", status_code=303)
     _issue_session(db, user, request, resp)
     return resp
+
+
+# ── Set / reset password via emailed token (always public) ────────────────────
+
+def _valid_reset_token(db: Session, token: str):
+    if not token:
+        return None
+    return db.query(PasswordResetToken).filter(
+        PasswordResetToken.id == token,
+        PasswordResetToken.used == False,  # noqa: E712
+        PasswordResetToken.expires_at > datetime.utcnow(),
+    ).first()
+
+
+@router.get("/reset-token/{token}")
+def reset_token_info(token: str, db: Session = Depends(get_db)):
+    """Public. Tells the set-password page whether an invite/reset link is usable."""
+    prt = _valid_reset_token(db, token)
+    if not prt:
+        return {"valid": False, "email": None}
+    user = db.query(User).filter(User.id == prt.user_id).first()
+    if not user or not user.is_active:
+        return {"valid": False, "email": None}
+    return {"valid": True, "email": user.email}
+
+
+@router.post("/set-password")
+def set_password(
+    body: SetPasswordIn,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    """Public. Consume a single-use token, set the password, and sign in."""
+    prt = _valid_reset_token(db, body.token)
+    if not prt:
+        raise HTTPException(status_code=400, detail="This link is invalid or has expired.")
+    if not body.new_password:
+        raise HTTPException(status_code=400, detail="A password is required.")
+    user = db.query(User).filter(User.id == prt.user_id).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=400, detail="This account is not available.")
+    user.password_hash = hash_password(body.new_password)
+    prt.used = True
+    db.commit()
+    _issue_session(db, user, request, response)
+    return {"user_id": user.id, "display_name": user.display_name, "role": user.role}

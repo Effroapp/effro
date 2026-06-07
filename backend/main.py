@@ -310,6 +310,7 @@ _PUBLIC_API_EXACT = {
     "/api/auth/login",
     "/api/auth/logout",
     "/api/auth/me",               # self-gates via get_current_user
+    "/api/auth/set-password",     # consumes an emailed single-use token
     "/api/auth/oidc/config",
     "/api/auth/oidc/login",
     "/api/auth/oidc/callback",
@@ -322,6 +323,9 @@ _OAUTH_PUBLIC_INTEGRATIONS = ("microsoft", "google", "jira", "dropbox")
 
 def _is_public_api_path(path: str) -> bool:
     if path in _PUBLIC_API_EXACT:
+        return True
+    # Invite / reset links carry the token in the path.
+    if path.startswith("/api/auth/reset-token/"):
         return True
     for name in _OAUTH_PUBLIC_INTEGRATIONS:
         if path in (f"/api/{name}/auth/login", f"/api/{name}/auth/callback"):
