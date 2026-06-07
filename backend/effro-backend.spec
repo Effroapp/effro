@@ -144,7 +144,10 @@ a = Analysis(
         # with the per-router belt-and-braces convention above).
         'auth_utils',
         'dependencies',
+        'oidc_client',
         'routers.auth',
+        'routers.account',
+        'routers.admin',
     ],
     hookspath=[],
     hooksconfig={},

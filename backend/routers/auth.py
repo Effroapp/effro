@@ -15,11 +15,13 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+import oidc_client
 from database import get_db
 from dependencies import auth_enabled, get_current_user
 from models import User, UserSession
@@ -287,3 +289,84 @@ def change_password(
         s.is_active = False
     db.commit()
     return {"ok": True}
+
+
+# ── OIDC SSO (hand-rolled; always public, in the gate allowlist) ──────────────
+
+def _oidc_redirect_uri(request: Request) -> str:
+    return str(request.base_url).rstrip("/") + "/api/auth/oidc/callback"
+
+
+@router.get("/oidc/config")
+def oidc_config(db: Session = Depends(get_db)):
+    """Public. Lets the login page decide whether to show the SSO button."""
+    cfg = oidc_client.get_config(db)
+    return {"enabled": oidc_client.is_enabled(db), "provider_name": cfg["provider_name"]}
+
+
+@router.get("/oidc/login")
+def oidc_login(request: Request, db: Session = Depends(get_db)):
+    """Public. Mint state + redirect the browser to the IdP."""
+    try:
+        url = oidc_client.build_auth_url(db, _oidc_redirect_uri(request))
+    except Exception:
+        return RedirectResponse(url="/login?error=sso_unavailable")
+    return RedirectResponse(url=url)
+
+
+@router.get("/oidc/callback")
+def oidc_callback(
+    request: Request,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """Public. IdP redirects here; validate state, exchange the code, sign in."""
+    if error or not code:
+        return RedirectResponse(url="/login?error=sso_failed")
+    if not oidc_client.pop_state(db, state or ""):
+        return RedirectResponse(url="/login?error=invalid_state")
+    try:
+        claims = oidc_client.complete_login(db, code, _oidc_redirect_uri(request))
+    except Exception:
+        return RedirectResponse(url="/login?error=sso_failed")
+
+    user = db.query(User).filter(
+        User.sso_subject == claims["sub"],
+        User.sso_provider == claims["iss"],
+    ).first()
+    if user is None:
+        # First SSO sign-in: provision a member account (no password). If the
+        # email already belongs to an active account, link the SSO identity to it
+        # (same IdP owns the org's addresses, so this is expected for enterprise).
+        email = (claims.get("email") or f"{claims['sub']}@sso.local").strip().lower()
+        user = User(
+            email=email,
+            display_name=claims.get("name"),
+            role="member",
+            is_active=True,
+            sso_subject=claims["sub"],
+            sso_provider=claims["iss"],
+        )
+        db.add(user)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            existing = db.query(User).filter(func.lower(User.email) == email).first()
+            if existing and existing.is_active:
+                existing.sso_subject = claims["sub"]
+                existing.sso_provider = claims["iss"]
+                db.commit()
+                user = existing
+            else:
+                return RedirectResponse(url="/login?error=sso_failed")
+        db.refresh(user)
+
+    if not user.is_active:
+        return RedirectResponse(url="/login?error=account_disabled")
+
+    resp = RedirectResponse(url="/", status_code=303)
+    _issue_session(db, user, request, resp)
+    return resp

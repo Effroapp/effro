@@ -12,6 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+import oidc_client
 from database import get_db
 from dependencies import require_admin
 from auth_utils import hash_password
@@ -32,6 +33,15 @@ class CreateUserIn(BaseModel):
 class UpdateUserIn(BaseModel):
     role: Optional[str] = None
     is_active: Optional[bool] = None
+
+
+class OidcConfigIn(BaseModel):
+    enabled: bool = False
+    provider_name: Optional[str] = None
+    client_id: str = ""
+    discovery_url: str = ""
+    # Write-only; blank means keep the stored secret.
+    client_secret: Optional[str] = None
 
 
 def _public(u: User) -> dict:
@@ -144,3 +154,27 @@ def revoke_user_sessions(
         s.is_active = False
     db.commit()
     return {"revoked": len(rows)}
+
+
+# ── OIDC SSO configuration (admin) ────────────────────────────────────────────
+
+@router.get("/oidc-config")
+def get_oidc_config(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Current OIDC config (never returns the secret, only has_secret)."""
+    return oidc_client.get_config(db)
+
+
+@router.put("/oidc-config")
+def put_oidc_config(
+    body: OidcConfigIn,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return oidc_client.save_config(
+        db,
+        enabled=body.enabled,
+        provider_name=body.provider_name,
+        client_id=body.client_id,
+        discovery_url=body.discovery_url,
+        client_secret=body.client_secret,
+    )
