@@ -47,6 +47,10 @@ RUN mkdir -p /data/uploads
 ENV DB_PATH=/data/department.db
 ENV UPLOAD_DIR=/data/uploads
 ENV FRONTEND_DIST=/app/frontend/dist
+# Hosted/server deployments enforce authentication (the edition flag). The
+# Tauri desktop build leaves this unset, so it stays login-free. First run on a
+# fresh Docker volume shows the setup page to create the admin account.
+ENV EFFRO_AUTH_ENABLED=true
 
 EXPOSE 8000
 
