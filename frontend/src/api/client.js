@@ -67,6 +67,22 @@ export const authApi = {
   resetTokenInfo: (token) => request(`/auth/reset-token/${token}`),
   setPassword: (token, newPassword) =>
     request('/auth/set-password', { method: 'POST', body: { token, new_password: newPassword } }),
+  sessions: () => request('/auth/sessions'),
+  revokeSession: (id) => request(`/auth/sessions/${id}`, { method: 'DELETE' }),
+  revokeOtherSessions: () => request('/auth/sessions', { method: 'DELETE' }),
+  changePassword: (currentPassword, newPassword) =>
+    request('/auth/change-password', {
+      method: 'POST',
+      body: { current_password: currentPassword, new_password: newPassword },
+    }),
+}
+
+// ─── Account (self-service: export / delete your own data) ────────────────────
+
+export const accountApi = {
+  exportUrl: '/api/account/export',  // GET download (same-origin carries the cookie)
+  deleteAccount: (password) =>
+    request('/account', { method: 'DELETE', body: { password } }),
 }
 
 // ─── Admin (user management; admin-only, auth-enabled deployments) ────────────

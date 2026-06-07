@@ -4,7 +4,7 @@ import {
   Settings as SettingsIcon, ArrowLeft, Cpu, FolderOpen, RefreshCw,
   AlertCircle, Download, Zap, ChevronRight, ChevronLeft,
   CheckCircle2, XCircle, Loader2, ExternalLink,
-  Database, CloudOff, Plug, Info, Users,
+  Database, CloudOff, Plug, Info, Users, ShieldCheck,
 } from 'lucide-react'
 import {
   isTauri,
@@ -31,6 +31,7 @@ import { useAppVersion } from '../hooks/useAppVersion'
 import { notifyAIConfigChanged } from '../hooks/useAIConfigured'
 import { useAuth } from '../contexts/AuthContext'
 import UsersSection from '../components/UsersSection'
+import AccountSection from '../components/AccountSection'
 
 /**
  * System Settings - a dedicated page (was a popover; promoted because
@@ -93,17 +94,32 @@ const USERS_TAB = {
   intro: 'Invite teammates and manage their access. Admins only.',
 }
 
+// Personal account settings, shown to any signed-in user when auth is on.
+const ACCOUNT_TAB = {
+  key: 'account', label: 'Account', Icon: ShieldCheck,
+  intro: 'Your password, active sessions, and your data.',
+}
+
 export default function SystemSettings({ updater }) {
   const { user } = useAuth()
   const showUsers = user?.role === 'admin' && user?.auth_enabled
-  const tabs = showUsers ? [...SETTINGS_TABS, USERS_TAB] : SETTINGS_TABS
+  const showAccount = !!user?.auth_enabled
+  // Keep About last; slot Users (admin) and Account before it.
+  const tabs = [
+    ...SETTINGS_TABS.filter((t) => t.key !== 'about'),
+    ...(showUsers ? [USERS_TAB] : []),
+    ...(showAccount ? [ACCOUNT_TAB] : []),
+    ...SETTINGS_TABS.filter((t) => t.key === 'about'),
+  ]
   const [tab, setTab] = useState('ai')
   const active = tabs.find((t) => t.key === tab) || tabs[0]
 
   // Land on the right tab after an OAuth round-trip back to /settings.
   useEffect(() => {
     const s = window.location.search
-    if (/dropbox_(connected|error)/.test(s)) setTab('storage')
+    const tabParam = new URLSearchParams(s).get('tab')
+    if (tabParam) setTab(tabParam)
+    else if (/dropbox_(connected|error)/.test(s)) setTab('storage')
     else if (/(google|ms|jira)_(connected|error)/.test(s)) setTab('integrations')
   }, [])
 
@@ -146,6 +162,7 @@ export default function SystemSettings({ updater }) {
           {tab === 'storage' && <StorageSection />}
           {tab === 'integrations' && <IntegrationsPanel />}
           {tab === 'users' && <UsersSection />}
+          {tab === 'account' && <AccountSection />}
           {tab === 'about' && (
             <>
               {isTauri() && <UpdateSection updater={updater} />}

@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { Sun, Moon, Check, Upload, X, Info, ChevronDown } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Sun, Moon, Check, Upload, X, Info, ChevronDown, LogOut, ShieldCheck } from 'lucide-react'
 import { getInitials } from '../hooks/useDisplayName'
 import { FONT_OPTIONS } from '../hooks/useFont'
 import { TEXT_SIZES } from '../hooks/useTextSize'
 import { Tooltip } from './Tooltip'
+import { useAuth } from '../contexts/AuthContext'
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024  // 2 MB
 
@@ -35,6 +37,11 @@ export default function SettingsMenu({
   const ref = useRef(null)
   const fileInputRef = useRef(null)
   const [uploadError, setUploadError] = useState('')
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const goAccount = () => { setOpen(false); navigate('/settings?tab=account') }
+  const handleLogout = async () => { setOpen(false); await logout(); navigate('/login', { replace: true }) }
 
   useEffect(() => {
     if (!open) return
@@ -118,6 +125,32 @@ export default function SettingsMenu({
           p-3 space-y-3
           animate-fade-in
         ">
+          {/* Identity (auth-enabled deployments only) */}
+          {user?.auth_enabled && (
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-pitch-800 dark:text-pitch-50 truncate">
+                    {user.display_name || user.email}
+                  </div>
+                  <div className="text-2xs text-paper-500 dark:text-paper-600 truncate">{user.email}</div>
+                </div>
+                <span className="flex-shrink-0 text-2xs px-1.5 py-0.5 rounded bg-mint-100 text-mint-800 dark:bg-mint-900/40 dark:text-mint-200">
+                  {user.role}
+                </span>
+              </div>
+              <button
+                onClick={goAccount}
+                className="mt-2 w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs
+                           bg-paper-200 dark:bg-pitch-800 text-pitch-700 dark:text-paper-200
+                           hover:bg-paper-300 dark:hover:bg-pitch-500
+                           font-display uppercase tracking-wide transition-colors"
+              >
+                <ShieldCheck size={11} /> Account &amp; security
+              </button>
+            </div>
+          )}
+
           {/* Profile photo */}
           <Section label="Profile">
             <div className="flex items-center gap-3">
@@ -212,6 +245,18 @@ export default function SettingsMenu({
               onChange={onChangeTextSize}
             />
           </Section>
+
+          {/* Log out (auth-enabled deployments only) */}
+          {user?.auth_enabled && (
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs
+                         text-terracotta hover:bg-terracotta/10
+                         font-display uppercase tracking-wide transition-colors"
+            >
+              <LogOut size={12} /> Log out
+            </button>
+          )}
         </div>
       )}
     </div>
