@@ -25,7 +25,8 @@ from database import get_db
 from dependencies import get_current_user
 from auth_utils import SESSION_COOKIE, verify_password
 from models import (
-    User, UserSession, Area, Thread, Entry, AuditLog, WorkSession, DeletionLog,
+    User, UserSession, PasswordResetToken, Area, Thread, Entry, AuditLog,
+    WorkSession, DeletionLog,
 )
 
 router = APIRouter(prefix="/account", tags=["account"])
@@ -86,6 +87,20 @@ def delete_account(
     if not user or not user.password_hash or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Password is incorrect.")
 
+    # No-lockout safeguard: you may always erase your own account, EXCEPT you
+    # can't strip the instance of its last admin while other people still use it
+    # - promote someone else first. A SOLE user can fully erase (the instance
+    # then returns to first-run /setup, so you simply re-sign up).
+    active_admins = db.query(User).filter(
+        User.role == "admin", User.is_active == True  # noqa: E712
+    ).count()
+    active_users = db.query(User).filter(User.is_active == True).count()  # noqa: E712
+    if user.role == "admin" and user.is_active and active_admins <= 1 and active_users > 1:
+        raise HTTPException(
+            status_code=409,
+            detail="You are the only admin. Make another member an admin before deleting your account.",
+        )
+
     email_hash = hashlib.sha256((user.email or "").encode("utf-8")).hexdigest()
 
     # Anonymise audit rows first (keep the action record, drop the person), then
@@ -99,14 +114,13 @@ def delete_account(
     db.query(Area).delete(synchronize_session=False)
     db.query(WorkSession).delete(synchronize_session=False)
     db.query(UserSession).filter(UserSession.user_id == user.id).delete(synchronize_session=False)
+    db.query(PasswordResetToken).filter(PasswordResetToken.user_id == user.id).delete(synchronize_session=False)
 
-    # Tombstone the user. email is NOT NULL + unique, so anonymise it to a unique
-    # sentinel rather than blanking to NULL.
-    user.is_active = False
-    user.password_hash = None
-    user.display_name = None
-    user.email = f"deleted-{user.id}@deleted.invalid"
-
+    # Hard-delete the user row (not a tombstone): truly erases the person, frees
+    # the email for re-use, and - crucially - lets a sole-user erase return the
+    # instance to first-run /setup instead of a no-login lockout. deletion_log
+    # keeps only a SHA-256 of the email as the record that an account existed.
+    db.delete(user)
     db.add(DeletionLog(email_hash=email_hash))
     db.commit()
 
