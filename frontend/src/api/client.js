@@ -64,6 +64,9 @@ export const authApi = {
     request('/auth/login', { method: 'POST', body: { email, password } }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   oidcConfig: () => request('/auth/oidc/config'),
+  resetTokenInfo: (token) => request(`/auth/reset-token/${token}`),
+  setPassword: (token, newPassword) =>
+    request('/auth/set-password', { method: 'POST', body: { token, new_password: newPassword } }),
 }
 
 // ─── Admin (user management; admin-only, auth-enabled deployments) ────────────
@@ -73,6 +76,9 @@ export const adminApi = {
   createUser: (payload) => request('/admin/users', { method: 'POST', body: payload }),
   updateUser: (id, payload) => request(`/admin/users/${id}`, { method: 'PATCH', body: payload }),
   revokeSessions: (id) => request(`/admin/users/${id}/sessions`, { method: 'DELETE' }),
+  getSmtpConfig: () => request('/admin/smtp-config'),
+  saveSmtpConfig: (payload) => request('/admin/smtp-config', { method: 'PUT', body: payload }),
+  testSmtp: (to) => request('/admin/smtp-config/test', { method: 'POST', body: { to } }),
 }
 
 // ─── Areas ────────────────────────────────────────────────────────────────────
