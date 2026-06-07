@@ -73,6 +73,7 @@ from fastapi.responses import JSONResponse
 import models
 from database import engine, SessionLocal
 from routers import (
+    auth as auth_router,
     areas, threads, entries, attachments, generate, ingest,
     settings as settings_router,
     storage as storage_router,
@@ -295,6 +296,8 @@ app.add_middleware(
 )
 
 # API routers
+# Auth first - it is always public and creates the sessions everything else uses.
+app.include_router(auth_router.router, prefix="/api")
 app.include_router(areas.router, prefix="/api")
 app.include_router(threads.router, prefix="/api")
 app.include_router(entries.router, prefix="/api")
