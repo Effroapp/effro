@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [oidc, setOidc] = useState({ enabled: false, provider_name: null })
 
   // Already signed in (incl. the desktop local admin), or a fresh instance that
   // needs setup first - send them where they belong.
@@ -27,6 +28,16 @@ export default function LoginPage() {
     if (user) navigate('/', { replace: true })
     else if (initialised === false) navigate('/setup', { replace: true })
   }, [user, initialised, navigate])
+
+  // Load SSO availability, and surface any error the OIDC callback bounced back.
+  useEffect(() => {
+    authApi.oidcConfig().then(setOidc).catch(() => {})
+    const err = new URLSearchParams(window.location.search).get('error')
+    if (err === 'account_disabled') setError('Your account is not active. Contact your administrator.')
+    else if (err === 'invalid_state') setError('Sign-in failed. Please try again.')
+    else if (err === 'sso_failed') setError('Single sign-on failed. Please try again.')
+    else if (err === 'sso_unavailable') setError('Single sign-on is not available right now.')
+  }, [])
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -70,6 +81,23 @@ export default function LoginPage() {
           <p className="font-lexend text-sm text-paper-600 dark:text-pitch-100 mb-6">
             Sign in to your Effro workspace.
           </p>
+
+          {oidc.enabled && (
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => { window.location.href = '/api/auth/oidc/login' }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md bg-paper-200 hover:bg-paper-300 dark:bg-pitch-600 dark:hover:bg-pitch-500 text-pitch-800 dark:text-pitch-50 border border-paper-300 dark:border-pitch-500 transition-colors"
+              >
+                Sign in with {oidc.provider_name || 'SSO'}
+              </button>
+              <div className="flex items-center gap-3 mt-4">
+                <div className="flex-1 h-px bg-paper-300 dark:bg-pitch-600" />
+                <span className="text-2xs text-paper-500 dark:text-pitch-300">or</span>
+                <div className="flex-1 h-px bg-paper-300 dark:bg-pitch-600" />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div>

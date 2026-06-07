@@ -63,6 +63,7 @@ export const authApi = {
   login: (email, password) =>
     request('/auth/login', { method: 'POST', body: { email, password } }),
   logout: () => request('/auth/logout', { method: 'POST' }),
+  oidcConfig: () => request('/auth/oidc/config'),
 }
 
 // ─── Admin (user management; admin-only, auth-enabled deployments) ────────────
