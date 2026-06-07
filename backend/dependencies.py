@@ -66,6 +66,13 @@ def get_current_user(
     ).first()
     if not session:
         raise HTTPException(status_code=401, detail="Session expired or invalid")
+    # Defence in depth: a still-active session row must also belong to a
+    # still-active user. Suspending or GDPR-deleting a user sets
+    # User.is_active=False; without this check their existing sessions would stay
+    # valid until natural expiry (up to SESSION_EXPIRY_DAYS). Same generic
+    # message as above so we don't reveal that the account was disabled.
+    if not session.user or not session.user.is_active:
+        raise HTTPException(status_code=401, detail="Session expired or invalid")
     session.last_seen_at = datetime.utcnow()
     db.commit()
     return session.user

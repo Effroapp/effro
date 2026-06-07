@@ -15,7 +15,7 @@ const LABEL =
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { user, initialised, refresh } = useAuth()
+  const { user, loading, initialised, refresh } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -41,6 +41,16 @@ export default function LoginPage() {
       setError('Email or password is incorrect.')
       setSubmitting(false)
     }
+  }
+
+  // While the initial /auth/me probe is in flight, show the same spinner the
+  // guard uses rather than flashing the form (which then redirects away).
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-paper-100 dark:bg-pitch-800">
+        <Spinner size={28} />
+      </div>
+    )
   }
 
   return (

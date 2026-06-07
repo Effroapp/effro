@@ -19,6 +19,12 @@ SESSION_EXPIRY_DAYS = 30
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
+# A fixed Argon2 hash of random input. Login verifies the submitted password
+# against this when the account is missing / passwordless / inactive, so every
+# failure path pays the same hashing cost and timing can't reveal whether an
+# account exists (user-enumeration oracle).
+DUMMY_PASSWORD_HASH = pwd_context.hash(secrets.token_hex(16))
+
 
 def hash_password(plain: str) -> str:
     """Return an Argon2 hash for a plaintext password."""

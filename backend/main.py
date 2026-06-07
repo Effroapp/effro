@@ -330,10 +330,14 @@ def _has_valid_session(token) -> bool:
         return False
     db = SessionLocal()
     try:
-        return db.query(models.UserSession).filter(
+        # Join User and require it active too: a suspended / GDPR-deleted user
+        # (User.is_active=False) must not pass the gate on a session that has not
+        # yet expired. Mirrors the same check in dependencies.get_current_user.
+        return db.query(models.UserSession).join(models.User).filter(
             models.UserSession.id == token,
             models.UserSession.is_active == True,  # noqa: E712
             models.UserSession.expires_at > _dt.utcnow(),
+            models.User.is_active == True,  # noqa: E712
         ).first() is not None
     finally:
         db.close()

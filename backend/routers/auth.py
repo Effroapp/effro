@@ -17,12 +17,14 @@ from typing import Optional
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from database import get_db
 from dependencies import get_current_user
 from models import User, UserSession
 from auth_utils import (
+    DUMMY_PASSWORD_HASH,
     SESSION_COOKIE,
     SESSION_EXPIRY_DAYS,
     generate_session_token,
@@ -99,7 +101,14 @@ def setup(body: SetupIn, request: Request, response: Response, db: Session = Dep
         is_active=True,
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Lost a concurrent first-run race (the email UNIQUE constraint fired),
+        # or the instance was initialised between the count() check and here.
+        # Either way it is already set up - return 409, not a raw 500.
+        db.rollback()
+        raise HTTPException(status_code=409, detail="This instance is already set up.")
     db.refresh(user)
     _issue_session(db, user, request, response)
     return {"user_id": user.id, "display_name": user.display_name, "role": user.role}
@@ -116,13 +125,13 @@ def setup_status(db: Session = Depends(get_db)):
 def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_db)):
     email = _normalise_email(body.email)
     user = db.query(User).filter(func.lower(User.email) == email).first()
-    # One combined check, one generic message: don't leak which part failed.
-    if (
-        not user
-        or not user.password_hash
-        or not user.is_active
-        or not verify_password(body.password, user.password_hash)
-    ):
+    # Always run exactly one argon2 verify - against a dummy hash when the
+    # account is missing / passwordless / inactive - so response time can't be
+    # used to enumerate which emails are registered (timing oracle).
+    hashed = user.password_hash if (user and user.password_hash) else DUMMY_PASSWORD_HASH
+    password_ok = verify_password(body.password, hashed)
+    # One generic message: don't leak which part failed.
+    if not user or not user.password_hash or not user.is_active or not password_ok:
         raise HTTPException(status_code=401, detail="Email or password is incorrect.")
     _issue_session(db, user, request, response)
     return {"user_id": user.id, "display_name": user.display_name, "role": user.role}

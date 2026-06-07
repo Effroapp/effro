@@ -15,7 +15,7 @@ const LABEL =
 
 export default function SetupPage() {
   const navigate = useNavigate()
-  const { user, initialised, refresh } = useAuth()
+  const { user, loading, initialised, refresh } = useAuth()
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -51,6 +51,15 @@ export default function SetupPage() {
       }
       setSubmitting(false)
     }
+  }
+
+  // Avoid flashing the form during the initial /auth/me probe.
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-paper-100 dark:bg-pitch-800">
+        <Spinner size={28} />
+      </div>
+    )
   }
 
   return (
