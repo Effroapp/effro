@@ -15,15 +15,19 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  // null = unknown; true once a user exists; false on a fresh instance (drives
+  // setup-vs-login routing). Irrelevant when auth is off (user is always set).
+  const [initialised, setInitialised] = useState(null)
 
   const refresh = useCallback(async () => {
-    try {
-      setUser(await authApi.me())
-    } catch {
-      setUser(null)
-    } finally {
-      setLoading(false)
-    }
+    const [meRes, statusRes] = await Promise.allSettled([
+      authApi.me(),
+      authApi.setupStatus(),
+    ])
+    setUser(meRes.status === 'fulfilled' ? meRes.value : null)
+    // On error assume initialised (safer: route to /login, not /setup).
+    setInitialised(statusRes.status === 'fulfilled' ? !!statusRes.value.initialised : true)
+    setLoading(false)
   }, [])
 
   useEffect(() => { refresh() }, [refresh])
@@ -41,7 +45,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, setUser, refresh, logout }}>
+    <AuthContext.Provider value={{ user, loading, initialised, setUser, refresh, logout }}>
       {children}
     </AuthContext.Provider>
   )

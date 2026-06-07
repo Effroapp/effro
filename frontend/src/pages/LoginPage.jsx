@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 import Spinner from '../components/Spinner'
@@ -15,11 +15,18 @@ const LABEL =
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { refresh } = useAuth()
+  const { user, initialised, refresh } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  // Already signed in (incl. the desktop local admin), or a fresh instance that
+  // needs setup first - send them where they belong.
+  useEffect(() => {
+    if (user) navigate('/', { replace: true })
+    else if (initialised === false) navigate('/setup', { replace: true })
+  }, [user, initialised, navigate])
 
   const onSubmit = async (e) => {
     e.preventDefault()

@@ -27,6 +27,7 @@ import LogView from './pages/LogView'
 import ProcessView from './pages/ProcessView'
 import SystemSettings from './pages/SystemSettings'
 import LoginPage from './pages/LoginPage'
+import SetupPage from './pages/SetupPage'
 import { areasApi } from './api/client'
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
@@ -84,6 +85,7 @@ export default function App() {
           <Routes>
             {/* Public auth routes - no chrome, no gated API calls */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/setup" element={<SetupPage />} />
 
             {/* Everything else is gated. When auth is off (desktop) the guard
                 always passes; when on (hosted) it redirects to /login. */}

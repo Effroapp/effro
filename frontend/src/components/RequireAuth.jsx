@@ -9,7 +9,7 @@ import Spinner from './Spinner'
  * synthetic local admin, so this always passes and no login is ever shown.
  */
 export default function RequireAuth() {
-  const { user, loading } = useAuth()
+  const { user, loading, initialised } = useAuth()
 
   if (loading) {
     return (
@@ -18,6 +18,7 @@ export default function RequireAuth() {
       </div>
     )
   }
-  if (!user) return <Navigate to="/login" replace />
+  // A fresh instance (no users yet) goes to first-run setup; otherwise login.
+  if (!user) return <Navigate to={initialised === false ? '/setup' : '/login'} replace />
   return <Outlet />
 }
