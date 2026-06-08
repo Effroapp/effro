@@ -433,12 +433,12 @@ function SourceBadge({ source, kind }) {
     return <JiraIssueType kind={kind} />
   }
   const labels = {
-    microsoft: { label: 'Outlook', color: 'text-[#0078D4] bg-[#0078D4]/10 border-[#0078D4]/20' },
-    'google:meeting': { label: 'Google Calendar', color: 'text-[#1a73e8] bg-[#1a73e8]/10 border-[#1a73e8]/20' },
-    'google:email': { label: 'Gmail', color: 'text-[#ea4335] bg-[#ea4335]/10 border-[#ea4335]/20' },
+    microsoft: { label: 'Outlook', color: 'text-source-outlook bg-source-outlook/10 border-source-outlook/20' },
+    'google:meeting': { label: 'Google Calendar', color: 'text-source-gcal bg-source-gcal/10 border-source-gcal/20' },
+    'google:email': { label: 'Gmail', color: 'text-source-gmail bg-source-gmail/10 border-source-gmail/20' },
     'icloud:meeting': { label: 'iCloud Calendar', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
     'icloud:email': { label: 'Apple Mail', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
-    'github:pr': { label: 'GitHub PR', color: 'text-[#8957e5] bg-[#8957e5]/10 border-[#8957e5]/20' },
+    'github:pr': { label: 'GitHub PR', color: 'text-source-github bg-source-github/10 border-source-github/20' },
     'github:issue': { label: 'GitHub Issue', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
   }
   let key = source
