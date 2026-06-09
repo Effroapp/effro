@@ -115,12 +115,15 @@ baked-in public key**, then parse the JSON. Any failure -> invalid (section 6).
   "edition": "enterprise",         // "pro" | "enterprise"
   "seats": 25,                     // max active users; null/absent = unlimited
   "issued_at": "2026-06-01",       // ISO date (UTC)
-  "expires_at": "2027-06-01"       // ISO date (UTC), contract end
+  "expires_at": "2027-06-01",      // ISO date (UTC), contract end
+  "grace_days": 30                 // optional; read-only kicks in this many days after expiry (default 30)
 }
 ```
 - Unknown future claims are ignored (forward-compat).
 - `seats`: a positive integer, or `null`/absent for unlimited.
 - `edition`: anything other than `enterprise` is treated as `pro` (safe default).
+- `grace_days`: optional non-negative integer; **defaults to 30** when absent.
+  Drives the grace window length (section 7).
 - Dates are date-only UTC; comparisons use end-of-day semantics (expiry is
   inclusive of `expires_at`).
 
@@ -194,14 +197,14 @@ everything user-controllable.
 
 | Capability | Pro | Enterprise | Enforcement |
 |---|---|---|---|
-| **AI provider / endpoint** | User-configurable (BYOK), changeable in Settings | **Locked** to the admin-set endpoint; non-admins cannot view/change it; optionally pinned via env so even admins can't change at runtime | Backend rejects AI-config writes from non-admin (Enterprise); read of the key hidden |
+| **AI provider / endpoint** | User-configurable (BYOK), changeable in Settings | **Locked**. Resolution: the `EFFRO_AI_ENDPOINT` env var **takes precedence** (pinned at deploy, not changeable in-app even by an admin); if unset, the admin sets it **once** and it then locks. Non-admins never change it. | AI-config writes refused when env-pinned; admin set-once then locked; key hidden from non-admins |
 | **Personal connectors** (per-user M365 / Google / Jira / GitHub / iCloud) | Available to each user | **Disabled** (or admin-managed only); the per-user OAuth connect flows are refused | Integration `config/auth/sync` endpoints return 403 by edition |
 | **SSO (Entra OIDC)** | Optional; password login always available | **Required**: once SSO is configured, **password login is disabled** (login/setup password paths refuse); only `/auth/oidc/*` admits users | `login` + `set-password` gated; setup still password-based for the first admin |
 | **Audit log** | On | **Always-on, non-disable**; retention not user-clearable | No "disable audit" control offered in Enterprise |
 | **Domain allowlist** (SSO auto-provision) | n/a (SSO optional) | **Enforced**: SSO auto-provision only for emails in the admin-set allowed-domains list; others are refused | OIDC callback checks email domain before creating a user |
-| **Controlled update channel** | Auto-update to latest (desktop) | **Controlled**: admin-pinned channel; no silent auto-update; updates are deliberate | Updater respects an edition/admin-set channel; hosted = manual |
+| **Controlled update channel** | Auto-update to latest (desktop) | **v1: auto-update simply disabled** (no separate release feed). Updates are deliberate/manual; no silent auto-update | Updater is a no-op in Enterprise; a separate channel/feed is deferred past v1 |
 | **Self-service signup / user mgmt** | Self + admin | **Admin-only**: no self-signup; admin provisions everyone | Already admin-gated; Enterprise removes any self-signup affordance |
-| **Data export** | Available | Available, but **admin-controllable** (admin may restrict member self-export) | Export endpoint consults an edition/admin policy |
+| **Member self-export** | **On** by default | **Off** by default, admin-toggleable (a cap: `member_self_export`) | Export endpoint checks the cap; default on in Pro, off in Enterprise; admins always export |
 | **Browser-tab launch path** | Allowed (dev convenience) | **Disabled** (`launch.vbs`/tab path not a product path) | Not shipped/enabled in Enterprise packaging |
 | **Seat limit** | Per licence | Per licence | Section 8 |
 
@@ -224,7 +227,8 @@ issued_at .............. expires_at .......... expires_at + 30d ........>
    full function             | full function + banner | writes blocked
 ```
 - **VALID**: `now <= expires_at`. Full function (subject to edition + seats).
-- **GRACE**: `expires_at < now <= expires_at + GRACE_DAYS` (GRACE_DAYS = 30).
+- **GRACE**: `expires_at < now <= expires_at + grace_days` (the `grace_days`
+  licence claim, **default 30** when absent; see 4.2).
   Full function, plus a persistent, calm **renewal banner** ("Your licence
   expired on <date>. Renew within N days to avoid read-only mode."). This is the
   only "expired but still writable" window.
@@ -410,10 +414,18 @@ For a provisioned enterprise instance, the admin account must be claimable
 - Enable per deployment by setting `EFFRO_LICENCE_REQUIRED=true` (+ a licence
   source) in the enterprise Dockerfile/compose, next to `EFFRO_AUTH_ENABLED=true`.
 
-## 14. Open questions (decide before implementation)
-- Edition source of truth for the "locked AI endpoint": pin via env
-  (`EFFRO_AI_ENDPOINT`) so not even an admin can change it, vs admin-set-once?
-- Should member self-export be off by default in Enterprise, or admin-toggled?
-- Controlled-update-channel mechanics for the desktop updater (out of band vs a
-  channel claim in the licence?).
-- Grace length (30d proposed) and whether to make it a licence claim.
+## 14. Decisions (locked 2026-06-09; previously open)
+1. **Locked AI endpoint**: `EFFRO_AI_ENDPOINT` env var **takes precedence** (pinned
+   at deploy, unchangeable in-app); if unset, the admin sets it **once** and it
+   then locks. (Reflected in section 6.)
+2. **Member self-export**: **off by default in Enterprise, on by default in Pro**,
+   exposed as an admin-toggleable capability (`member_self_export`). Admins can
+   always export. (Reflected in section 6.)
+3. **Controlled update channel (v1)**: **auto-update is simply disabled in
+   Enterprise** - no separate release feed/channel in v1; the updater is a no-op
+   and updates are deliberate. A dedicated channel is deferred past v1.
+   (Reflected in section 6.)
+4. **Grace length**: a licence claim **`grace_days`, defaulting to 30** when
+   absent. (Reflected in sections 4.2 and 7.)
+
+These four are settled; implementation on `main` proceeds against them.
