@@ -21,6 +21,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+import licence_manager
 import oidc_client
 from database import get_db
 from dependencies import auth_enabled, get_current_user
@@ -343,6 +344,9 @@ def oidc_callback(
         User.sso_provider == claims["iss"],
     ).first()
     if user is None:
+        # Seat check before provisioning a brand-new SSO user.
+        if not licence_manager.seat_available(licence_manager.current(db), db):
+            return RedirectResponse(url="/login?error=no_seats")
         # First SSO sign-in: provision a member account (no password). If the
         # email already belongs to an active account, link the SSO identity to it
         # (same IdP owns the org's addresses, so this is expected for enterprise).

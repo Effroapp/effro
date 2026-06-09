@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import email_client
+import licence_manager
 import oidc_client
 from database import get_db
 from dependencies import require_admin
@@ -140,6 +141,13 @@ def create_user(
     role = body.role if body.role in _ROLES else "member"
     if db.query(User).filter(func.lower(User.email) == email).first():
         raise HTTPException(status_code=409, detail="A user with that email already exists.")
+    _ctx = licence_manager.current(db)
+    if not licence_manager.seat_available(_ctx, db):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Seat limit reached ({licence_manager.seats_used(db)} of {_ctx.seats}). "
+                   "Add seats or deactivate a user first.",
+        )
 
     user = User(
         email=email,
@@ -189,6 +197,15 @@ def update_user(
             raise HTTPException(status_code=400, detail="Invalid role.")
         user.role = body.role
     if body.is_active is not None:
+        if body.is_active and not user.is_active:
+            # Reactivating consumes a seat.
+            _ctx = licence_manager.current(db)
+            if not licence_manager.seat_available(_ctx, db):
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Seat limit reached ({licence_manager.seats_used(db)} of {_ctx.seats}). "
+                           "Add seats or deactivate a user first.",
+                )
         user.is_active = body.is_active
         if body.is_active is False:
             # Immediate revocation: kill the user's live sessions now, don't wait
