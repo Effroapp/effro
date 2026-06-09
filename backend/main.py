@@ -74,6 +74,7 @@ import models
 from database import engine, SessionLocal
 from auth_utils import SESSION_COOKIE
 from dependencies import auth_enabled
+import licence_manager
 from routers import (
     auth as auth_router,
     account as account_router,
@@ -350,6 +351,41 @@ def _has_valid_session(token) -> bool:
         ).first() is not None
     finally:
         db.close()
+
+
+# ── Licence gate (flag-gated; read-only on expiry / invalid / missing) ───────
+# When EFFRO_LICENCE_REQUIRED is on and the licence is in the read-only state
+# (over-grace, invalid signature, or required-but-missing), block mutating /api
+# requests with 402 - while keeping reads, data export, the auth flows, and
+# licence renewal open, so the customer can always reach + export their data and
+# paste a new key. Defined BEFORE auth_gate so it is INNER to it: auth's 401
+# takes precedence over the licence 402. No-op when the flag is off (desktop).
+def _licence_write_allowed(path: str) -> bool:
+    # Auth flows (login / logout / set-password / sessions) and pasting a
+    # renewal key must work even in read-only.
+    return path.startswith("/api/auth/") or path == "/api/admin/licence"
+
+
+@app.middleware("http")
+async def licence_gate(request, call_next):
+    if licence_manager.licence_required() and request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        path = request.url.path
+        if path.startswith("/api/") and not _licence_write_allowed(path):
+            db = SessionLocal()
+            try:
+                read_only = licence_manager.state(licence_manager.current(db)) == "read_only"
+            finally:
+                db.close()
+            if read_only:
+                return JSONResponse(
+                    {
+                        "detail": "This workspace is read-only because the licence has "
+                                  "expired or is invalid. An admin can renew it in Settings.",
+                        "code": "licence_read_only",
+                    },
+                    status_code=402,
+                )
+    return await call_next(request)
 
 
 @app.middleware("http")
