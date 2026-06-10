@@ -422,11 +422,24 @@ def _licence_write_allowed(path: str) -> bool:
     return path.startswith("/api/auth/") or path == "/api/admin/licence"
 
 
+def _is_connector_get_write(path: str, method: str) -> bool:
+    # The integration OAuth /auth/login (mints a state row) and /auth/callback
+    # (stores tokens) are GET handlers that WRITE, so the verb-based check below
+    # would let them run in read-only. Treat them as writes for the gate.
+    if method != "GET":
+        return False
+    if not (path.endswith("/auth/login") or path.endswith("/auth/callback")):
+        return False
+    return any(path.startswith(f"/api/{n}/") for n in _CONNECTOR_INTEGRATIONS)
+
+
 @app.middleware("http")
 async def licence_gate(request, call_next):
-    if licence_manager.licence_required() and request.method in ("POST", "PUT", "PATCH", "DELETE"):
+    if licence_manager.licence_required():
         path = request.url.path
-        if path.startswith("/api/") and not _licence_write_allowed(path):
+        method = request.method
+        mutating = method in ("POST", "PUT", "PATCH", "DELETE") or _is_connector_get_write(path, method)
+        if mutating and path.startswith("/api/") and not _licence_write_allowed(path):
             db = SessionLocal()
             try:
                 read_only = licence_manager.state(licence_manager.current(db)) == "read_only"

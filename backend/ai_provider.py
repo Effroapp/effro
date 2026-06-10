@@ -144,14 +144,21 @@ class AIProvider(ABC):
 class AnthropicProvider(AIProvider):
     """Claude via the official `anthropic` SDK."""
 
-    def __init__(self, api_key: str, model: str = "claude-sonnet-4-6"):
+    def __init__(self, api_key: str, model: str = "claude-sonnet-4-6", base_url: Optional[str] = None):
         self._api_key = api_key
         self._model = model
+        self._base_url = base_url
 
     def complete(self, system: str, messages: list[dict], max_tokens: int = 1000) -> str:
         try:
             from anthropic import Anthropic
-            client = Anthropic(api_key=self._api_key)
+            # Honour a deploy-pinned endpoint (EFFRO_AI_ENDPOINT) for Claude too,
+            # not just OpenAI-compatible providers, so the pin actually routes
+            # traffic through the approved gateway.
+            kwargs = {"api_key": self._api_key}
+            if self._base_url:
+                kwargs["base_url"] = self._base_url
+            client = Anthropic(**kwargs)
             response = client.messages.create(
                 model=self._model,
                 max_tokens=max_tokens,
@@ -247,7 +254,7 @@ def _build_provider(config: dict) -> AIProvider:
             return _UnconfiguredProvider(
                 "No Anthropic API key set. Open Settings → AI Engine to configure."
             )
-        return AnthropicProvider(api_key=api_key, model=model or "claude-sonnet-4-6")
+        return AnthropicProvider(api_key=api_key, model=model or "claude-sonnet-4-6", base_url=base_url)
 
     # OpenAI-compatible: check required fields per preset
     if preset.get("needs_key") and not api_key:

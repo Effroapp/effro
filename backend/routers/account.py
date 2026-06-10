@@ -51,6 +51,12 @@ def export_data(
     # Member self-export can be capped by edition (off by default in Enterprise,
     # admin-toggleable). Admins always export; in read-only the licence_gate still
     # allows GET /account/export so a customer can always get their data out.
+    #
+    # SCOPE: this cap gates the bulk JSON *download* only. It is NOT a content
+    # confidentiality boundary - there is no per-user ownership yet (single
+    # tenant; see the module SCOPE NOTE), so a member can already read all
+    # content through the normal area/thread/entry read API and the UI. Real
+    # per-user data confinement is a Phase-3 ownership concern, not this toggle.
     ctx = licence_manager.current(db)
     if current_user.role != "admin" and not licence_manager.member_self_export_allowed(ctx, db):
         raise HTTPException(

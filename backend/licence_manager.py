@@ -25,6 +25,7 @@ import models
 
 _PREFIX = "effro-lic-v1"
 _DEFAULT_GRACE_DAYS = 30
+_MAX_GRACE_DAYS = 3650          # 10y ceiling: keeps date math in state() from overflowing
 _CONFIG_KEY = "licence_key"
 
 # Baked-in Ed25519 public key(s), base64 of the raw 32 bytes. The matching
@@ -167,13 +168,19 @@ def current(db) -> LicenceContext:
     claims = parse_and_verify(token)
     if not claims:
         return _invalid("invalid")         # supplied but bad signature/format
+    # Claims are signature-verified but otherwise untrusted: normalise defensively
+    # so a malformed value can't silently unlock or crash the gate. (bool is an
+    # int subclass, so exclude it explicitly.)
     seats = claims.get("seats")
-    seats = int(seats) if isinstance(seats, int) and seats >= 0 else None
+    seats = int(seats) if isinstance(seats, int) and not isinstance(seats, bool) and seats >= 0 else None
     grace = claims.get("grace_days")
-    grace = int(grace) if isinstance(grace, int) and grace >= 0 else _DEFAULT_GRACE_DAYS
+    grace = (min(int(grace), _MAX_GRACE_DAYS)
+             if isinstance(grace, int) and not isinstance(grace, bool) and grace >= 0
+             else _DEFAULT_GRACE_DAYS)
+    edition = "enterprise" if str(claims.get("edition", "")).strip().lower() == "enterprise" else "pro"
     return LicenceContext(
         present=True,
-        edition="enterprise" if claims.get("edition") == "enterprise" else "pro",
+        edition=edition,
         seats=seats,
         customer_id=claims.get("customer_id"),
         customer_name=claims.get("customer_name"),
@@ -217,7 +224,15 @@ def seat_state(ctx: LicenceContext, db) -> str:
 
 
 def seat_available(ctx: LicenceContext, db) -> bool:
-    """True if one more active user fits within the seat limit."""
+    """True if one more active user fits within the seat limit.
+
+    Note: this is a check-then-insert (TOCTOU) - two concurrent creations /
+    SSO provisions can both pass and overshoot the cap by one. That is an
+    accepted limitation of the soft seat model: `over_seat` is non-hostile (it
+    only pauses further growth, never locks anyone out) and the next creation is
+    refused once the count exceeds seats, so a one-off race self-corrects. Hard
+    serialisation (a SELECT ... FOR UPDATE on a seat-counter row) belongs with
+    the Postgres migration; on today's single-writer SQLite it is moot."""
     if ctx.seats is None:
         return True
     return seats_used(db) < ctx.seats
@@ -362,23 +377,30 @@ def ensure_setup_token(db) -> Optional[str]:
 
 def setup_token_required(db) -> bool:
     """True when /auth/setup must present the one-time token: a licence is
-    required AND a token is stored (absent on migrated/legacy instances, so
-    those are never locked out of setup)."""
-    return licence_required() and bool(_get_setting(db, _SETUP_TOKEN_KEY))
+    required AND the instance is not yet initialised. Fail-CLOSED: a licensed,
+    user-less instance always requires the token, even if boot-time seeding
+    failed (a restart re-seeds it) - so a seeding failure cannot reopen the
+    'anyone can claim a fresh instance' hole. An already-initialised instance
+    returns False here but is independently blocked by the user-count 409."""
+    return licence_required() and db.query(models.User).count() == 0
 
 
 def verify_setup_token(db, supplied: Optional[str]) -> bool:
+    if not licence_required():
+        return True                     # desktop / Pro: no token, zero-friction
     stored = _get_setting(db, _SETUP_TOKEN_KEY)
     if not stored:
-        return True                     # nothing to enforce
+        return False                    # required but unseeded -> refuse (fail-closed)
     return secrets.compare_digest(stored, (supplied or "").strip())
 
 
-def consume_setup_token(db) -> None:
-    """Delete the token WITHOUT committing - the caller commits it in the same
-    transaction as the first-admin insert, which is what makes setup single-use
-    and race-safe (only the first commit wins; the rest see it gone)."""
-    db.query(models.AppSettings).filter(
+def consume_setup_token(db) -> int:
+    """Delete the token WITHOUT committing; returns the rows removed (0 or 1).
+    The caller requires exactly 1 before committing the first-admin insert: two
+    concurrent setups with DIFFERENT emails both pass the email-UNIQUE check, so
+    the atomic single-row delete is what actually makes setup single-use (the
+    loser deletes 0 rows, rolls back, and 409s)."""
+    return db.query(models.AppSettings).filter(
         models.AppSettings.key == _SETUP_TOKEN_KEY
     ).delete(synchronize_session=False)
 

@@ -51,6 +51,10 @@ ENV FRONTEND_DIST=/app/frontend/dist
 # Tauri desktop build leaves this unset, so it stays login-free. First run on a
 # fresh Docker volume shows the setup page to create the admin account.
 ENV EFFRO_AUTH_ENABLED=true
+# The enterprise licence flag (EFFRO_LICENCE_REQUIRED) is intentionally NOT set
+# here: the base image is the unlicensed self-host / Pro path, so existing
+# deployments are never forced into read-only by an upgrade. Enterprise
+# instances opt in per deployment (see docker-compose.yml) with a licence key.
 
 EXPOSE 8000
 

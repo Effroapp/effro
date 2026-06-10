@@ -118,7 +118,8 @@ def setup(body: SetupIn, request: Request, response: Response, db: Session = Dep
     concurrent setup attempts cannot both succeed."""
     if db.query(User).count() > 0:
         raise HTTPException(status_code=409, detail="This instance is already set up.")
-    if licence_manager.setup_token_required(db) and not licence_manager.verify_setup_token(db, body.setup_token):
+    token_required = licence_manager.setup_token_required(db)
+    if token_required and not licence_manager.verify_setup_token(db, body.setup_token):
         raise HTTPException(
             status_code=403,
             detail="A valid setup token is required. It was shown when this instance was provisioned.",
@@ -134,7 +135,14 @@ def setup(body: SetupIn, request: Request, response: Response, db: Session = Dep
         is_active=True,
     )
     db.add(user)
-    licence_manager.consume_setup_token(db)   # same transaction as the insert
+    if token_required:
+        # Atomic single-use: only the transaction that actually removes the
+        # token (exactly one row) may create the admin. A concurrent setup with
+        # a different email deletes 0 rows here and is rejected, so two admins
+        # can never be co-provisioned from one token.
+        if licence_manager.consume_setup_token(db) != 1:
+            db.rollback()
+            raise HTTPException(status_code=409, detail="This instance is already set up.")
     try:
         db.commit()
     except IntegrityError:

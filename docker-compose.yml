@@ -22,6 +22,18 @@ services:
       - FRONTEND_DIST=/app/frontend/dist
       # Hosted deployment -> authentication enforced (first run = setup page).
       - EFFRO_AUTH_ENABLED=true
+      # ── Enterprise licence (OPT-IN) ──────────────────────────────────────
+      # Leave OFF for self-hosted / Pro: the base image stays unlicensed and
+      # fully writable. Enabling it WITHOUT a valid key puts the workspace in
+      # read-only, so only switch it on for a provisioned enterprise instance.
+      # Uncomment both, and supply the key via .env (EFFRO_LICENCE_KEY=...) or
+      # mount a licence file and point EFFRO_LICENCE_FILE at it:
+      #   - EFFRO_LICENCE_REQUIRED=true
+      #   - EFFRO_LICENCE_KEY=${EFFRO_LICENCE_KEY}
+      # Optionally pin the AI endpoint so it cannot be changed in-app:
+      #   - EFFRO_AI_ENDPOINT=https://your-ai-gateway/v1
+      # On first boot the one-time setup token is printed to the container
+      # logs (docker logs department-log) - it is needed to create the admin.
     restart: unless-stopped
     healthcheck:
       # Use the public health probe: /api/areas now returns 401 under auth and

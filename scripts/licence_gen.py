@@ -78,6 +78,14 @@ def mint(args):
         priv = serialization.load_pem_private_key(f.read(), password=None)
     if not isinstance(priv, Ed25519PrivateKey):
         sys.exit("private key is not Ed25519")
+    # Guard against fat-finger claims that would mis-enforce or (for grace) crash
+    # the date math in the client's state machine.
+    if args.seats is not None and args.seats < 0:
+        sys.exit("--seats must be >= 0 (omit for unlimited)")
+    if args.grace_days < 0 or args.grace_days > 3650:
+        sys.exit("--grace-days must be between 0 and 3650")
+    if args.edition not in ("pro", "enterprise"):
+        sys.exit("--edition must be 'pro' or 'enterprise'")
     claims = {
         "v": 1,
         "key_id": args.key_id or f"lic_{args.customer_id}",
