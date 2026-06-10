@@ -95,6 +95,13 @@ export const adminApi = {
   getSmtpConfig: () => request('/admin/smtp-config'),
   saveSmtpConfig: (payload) => request('/admin/smtp-config', { method: 'PUT', body: payload }),
   testSmtp: (to) => request('/admin/smtp-config/test', { method: 'POST', body: { to } }),
+  // Load (or reload) the showcase demo dataset. Guarded server-side to empty or
+  // already-demo instances, so it can never overwrite real work.
+  loadDemoData: () => request('/admin/demo/seed', { method: 'POST' }),
+  // Licence: status (never the raw key) + paste-a-renewal-key. Both remain
+  // reachable in the read-only state so an expired instance can be renewed.
+  getLicence: () => request('/admin/licence'),
+  saveLicence: (key) => request('/admin/licence', { method: 'PUT', body: { key } }),
 }
 
 // ─── Areas ────────────────────────────────────────────────────────────────────

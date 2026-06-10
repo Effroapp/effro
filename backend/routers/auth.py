@@ -21,6 +21,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+import demo_seed
 import licence_manager
 import oidc_client
 from database import get_db
@@ -47,6 +48,9 @@ class SetupIn(BaseModel):
     email: str
     display_name: Optional[str] = None
     password: str
+    # One-time provisioning token; required only when EFFRO_LICENCE_REQUIRED is
+    # on and a token was seeded at boot (see licence_manager.ensure_setup_token).
+    setup_token: Optional[str] = None
 
 
 class LoginIn(BaseModel):
@@ -107,9 +111,19 @@ def _issue_session(db: Session, user: User, request: Request, response: Response
 
 @router.post("/setup")
 def setup(body: SetupIn, request: Request, response: Response, db: Session = Depends(get_db)):
-    """Create the first admin account. Only works while no users exist."""
+    """Create the first admin account. Only works while no users exist. When a
+    licence is required, the operator's one-time setup token must be presented;
+    it is consumed in the same transaction as the admin insert (single-use), so
+    a provisioned instance is claimable only by the purchasing customer and
+    concurrent setup attempts cannot both succeed."""
     if db.query(User).count() > 0:
         raise HTTPException(status_code=409, detail="This instance is already set up.")
+    token_required = licence_manager.setup_token_required(db)
+    if token_required and not licence_manager.verify_setup_token(db, body.setup_token):
+        raise HTTPException(
+            status_code=403,
+            detail="A valid setup token is required. It was shown when this instance was provisioned.",
+        )
     email = _normalise_email(body.email)
     if not email or not body.password:
         raise HTTPException(status_code=400, detail="Email and password are required.")
@@ -121,6 +135,14 @@ def setup(body: SetupIn, request: Request, response: Response, db: Session = Dep
         is_active=True,
     )
     db.add(user)
+    if token_required:
+        # Atomic single-use: only the transaction that actually removes the
+        # token (exactly one row) may create the admin. A concurrent setup with
+        # a different email deletes 0 rows here and is rejected, so two admins
+        # can never be co-provisioned from one token.
+        if licence_manager.consume_setup_token(db) != 1:
+            db.rollback()
+            raise HTTPException(status_code=409, detail="This instance is already set up.")
     try:
         db.commit()
     except IntegrityError:
@@ -137,12 +159,46 @@ def setup(body: SetupIn, request: Request, response: Response, db: Session = Dep
 @router.get("/setup/status")
 def setup_status(db: Session = Depends(get_db)):
     """Public. True once at least one user exists; the frontend uses this to
-    choose between the setup page and the login page."""
-    return {"initialised": db.query(User).count() > 0}
+    choose between the setup page and the login page. setup_token_required tells
+    the setup page to show a token field (the token itself is never returned)."""
+    return {
+        "initialised": db.query(User).count() > 0,
+        "setup_token_required": licence_manager.setup_token_required(db),
+    }
+
+
+def _password_login_disabled(db: Session) -> bool:
+    """Enterprise forced-SSO: once OIDC is fully configured, password sign-in and
+    set-password are disabled (only /auth/oidc/* admits users). First-admin setup
+    is unaffected. No-op unless a licence is required and its edition forces SSO."""
+    if not licence_manager.licence_required():
+        return False
+    if not licence_manager.edition_caps(licence_manager.current(db)).forced_sso:
+        return False
+    return oidc_client.is_enabled(db)
+
+
+def _sso_domain_allowed(db: Session, email: str) -> bool:
+    """Enterprise domain allowlist for SSO auto-provisioning. When the edition
+    enforces it AND the admin has configured a non-empty list, only those email
+    domains may auto-provision. An empty/unset list means 'not configured' -> no
+    restriction, so enabling SSO never locks the org out by accident."""
+    if not licence_manager.edition_caps(licence_manager.current(db)).domain_allowlist_enforced:
+        return True
+    domains = [d.strip().lower() for d in (oidc_client.get_config(db).get("sso_allowed_domains") or []) if d.strip()]
+    if not domains:
+        return True
+    dom = email.rsplit("@", 1)[-1].lower() if "@" in email else ""
+    return dom in domains
 
 
 @router.post("/login")
 def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_db)):
+    if _password_login_disabled(db):
+        raise HTTPException(
+            status_code=403,
+            detail="Password sign-in is disabled on this licence. Please use single sign-on.",
+        )
     email = _normalise_email(body.email)
     user = db.query(User).filter(func.lower(User.email) == email).first()
     # Always run exactly one argon2 verify - against a dummy hash when the
@@ -173,9 +229,15 @@ def logout(
 
 
 @router.get("/me")
-def me(current_user: User = Depends(get_current_user)):
+def me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Return the signed-in user. When EFFRO_AUTH_ENABLED is off this is the
     synthetic local admin (see dependencies.get_current_user)."""
+    # Offer the "Load demo data" button only to an admin on an instance that is
+    # empty or already a demo - so it can never appear where it could clobber
+    # real work (see routers/admin.load_demo_data for the matching guard).
+    demo_available = current_user.role == "admin" and (
+        demo_seed.area_count(db) == 0 or demo_seed.is_demo(db)
+    )
     return {
         "id": current_user.id,
         "email": current_user.email,
@@ -185,6 +247,11 @@ def me(current_user: User = Depends(get_current_user)):
         # Lets the frontend tell desktop (gate open, synthetic admin) from a real
         # hosted session, e.g. to show the admin Users tab only when auth is on.
         "auth_enabled": auth_enabled(),
+        "demo_available": demo_available,
+        # Edition + licence state + effective capabilities, so the frontend can
+        # mirror enforcement (hide the password form under forced-SSO, disable the
+        # member export button, skip auto-update, show the read-only banner).
+        "licence": licence_manager.public_status(licence_manager.current(db), db),
     }
 
 
@@ -306,9 +373,14 @@ def _oidc_redirect_uri(request: Request) -> str:
 
 @router.get("/oidc/config")
 def oidc_config(db: Session = Depends(get_db)):
-    """Public. Lets the login page decide whether to show the SSO button."""
+    """Public. Lets the login page decide whether to show the SSO button, and
+    whether to hide the password form entirely (Enterprise forced-SSO)."""
     cfg = oidc_client.get_config(db)
-    return {"enabled": oidc_client.is_enabled(db), "provider_name": cfg["provider_name"]}
+    return {
+        "enabled": oidc_client.is_enabled(db),
+        "provider_name": cfg["provider_name"],
+        "password_login_disabled": _password_login_disabled(db),
+    }
 
 
 @router.get("/oidc/login")
@@ -344,13 +416,17 @@ def oidc_callback(
         User.sso_provider == claims["iss"],
     ).first()
     if user is None:
-        # Seat check before provisioning a brand-new SSO user.
-        if not licence_manager.seat_available(licence_manager.current(db), db):
-            return RedirectResponse(url="/login?error=no_seats")
         # First SSO sign-in: provision a member account (no password). If the
         # email already belongs to an active account, link the SSO identity to it
         # (same IdP owns the org's addresses, so this is expected for enterprise).
         email = (claims.get("email") or f"{claims['sub']}@sso.local").strip().lower()
+        # Enterprise domain allowlist takes precedence over the seat check, so an
+        # off-domain address is refused even when seats remain.
+        if not _sso_domain_allowed(db, email):
+            return RedirectResponse(url="/login?error=domain_not_allowed")
+        # Seat check before provisioning a brand-new SSO user.
+        if not licence_manager.seat_available(licence_manager.current(db), db):
+            return RedirectResponse(url="/login?error=no_seats")
         user = User(
             email=email,
             display_name=claims.get("name"),
@@ -423,6 +499,11 @@ def set_password(
     db: Session = Depends(get_db),
 ):
     """Public. Consume a single-use token, set the password, and sign in."""
+    if _password_login_disabled(db):
+        raise HTTPException(
+            status_code=403,
+            detail="Password sign-in is disabled on this licence. Please use single sign-on.",
+        )
     prt = _valid_reset_token(db, body.token)
     if not prt:
         raise HTTPException(status_code=400, detail="This link is invalid or has expired.")

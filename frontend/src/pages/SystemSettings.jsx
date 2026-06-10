@@ -4,7 +4,7 @@ import {
   Settings as SettingsIcon, ArrowLeft, Cpu, FolderOpen, RefreshCw,
   AlertCircle, Download, Zap, ChevronRight, ChevronLeft,
   CheckCircle2, XCircle, Loader2, ExternalLink,
-  Database, CloudOff, Plug, Info, Users, ShieldCheck,
+  Database, CloudOff, Plug, Info, Users, ShieldCheck, Sparkles, KeyRound,
 } from 'lucide-react'
 import {
   isTauri,
@@ -25,6 +25,8 @@ import ProviderLogo from '../components/ProviderLogos'
 import { useAppVersion } from '../hooks/useAppVersion'
 import { notifyAIConfigChanged } from '../hooks/useAIConfigured'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../components/Toast'
+import { adminApi } from '../api/client'
 import UsersSection from '../components/UsersSection'
 import AccountSection from '../components/AccountSection'
 
@@ -95,15 +97,24 @@ const ACCOUNT_TAB = {
   intro: 'Your password, active sessions, and your data.',
 }
 
+// Licence status + renewal, shown to admins only when a licence is required
+// (hosted enterprise deployments) - never on the desktop build.
+const LICENCE_TAB = {
+  key: 'licence', label: 'Licence', Icon: KeyRound,
+  intro: 'Your edition, seats, expiry, and renewal. Admins only.',
+}
+
 export default function SystemSettings({ updater }) {
   const { user } = useAuth()
   const showUsers = user?.role === 'admin' && user?.auth_enabled
   const showAccount = !!user?.auth_enabled
-  // Keep About last; slot Users (admin) and Account before it.
+  const showLicence = user?.role === 'admin' && !!user?.licence?.licence_required
+  // Keep About last; slot Users (admin), Account, then Licence before it.
   const tabs = [
     ...SETTINGS_TABS.filter((t) => t.key !== 'about'),
     ...(showUsers ? [USERS_TAB] : []),
     ...(showAccount ? [ACCOUNT_TAB] : []),
+    ...(showLicence ? [LICENCE_TAB] : []),
     ...SETTINGS_TABS.filter((t) => t.key === 'about'),
   ]
   const [tab, setTab] = useState('ai')
@@ -158,9 +169,11 @@ export default function SystemSettings({ updater }) {
           {tab === 'integrations' && <IntegrationsPanel />}
           {tab === 'users' && <UsersSection />}
           {tab === 'account' && <AccountSection />}
+          {tab === 'licence' && <LicenceSection />}
           {tab === 'about' && (
             <>
               {isTauri() && <UpdateSection updater={updater} />}
+              {user?.demo_available && <DemoDataSection />}
               <AboutSection />
             </>
           )}
@@ -1084,6 +1097,214 @@ function StorageSection({ id }) {
         />
       )}
     </>
+  )
+}
+
+// ─── Licence (admins, licence-required deployments only) ─────────────────────
+
+function LicenceSection() {
+  const toast = useToast()
+  const [lic, setLic] = useState(null)
+  const [key, setKey] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const load = () => adminApi.getLicence().then(setLic).catch(() => {})
+  useEffect(() => { load() }, [])
+
+  const apply = async () => {
+    if (!key.trim()) return
+    setSaving(true)
+    setError('')
+    try {
+      const next = await adminApi.saveLicence(key.trim())
+      setLic(next)
+      setKey('')
+      toast('Licence updated.')
+      // The capabilities on /auth/me changed too; a reload picks them up app-wide.
+      setTimeout(() => window.location.reload(), 700)
+    } catch (e) {
+      setError(e.message || 'That key could not be applied.')
+      setSaving(false)
+    }
+  }
+
+  const stateCopy = {
+    valid: 'Active',
+    grace: 'Expired, in the renewal window',
+    read_only: 'Read-only (expired or invalid)',
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        icon={KeyRound}
+        title="Licence"
+        subtitle="Your edition, seats and expiry. Paste a renewal key to update in place."
+      />
+      {lic ? (
+        <dl className="space-y-2 text-sm mb-5">
+          <Row label="Edition" value={lic.edition === 'enterprise' ? 'Enterprise' : 'Pro'} />
+          {lic.customer_name && <Row label="Licensed to" value={lic.customer_name} />}
+          <Row
+            label="Seats"
+            value={lic.seats == null ? 'Unlimited' : `${lic.seats_used} of ${lic.seats} in use`}
+          />
+          <Row
+            label="Expires"
+            value={
+              lic.expires_at
+                ? `${lic.expires_at}${lic.days_remaining != null && lic.days_remaining >= 0 ? ` (${lic.days_remaining} days)` : ''}`
+                : 'No expiry'
+            }
+          />
+          <Row label="Status" value={stateCopy[lic.state] || lic.state} />
+        </dl>
+      ) : (
+        <p className="text-sm text-paper-500 dark:text-paper-600 mb-5">Loading licence…</p>
+      )}
+
+      {lic?.state === 'grace' && (
+        <div className="rounded-lg p-3 mb-4 bg-amber-muted/10 border border-amber-muted/40 text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
+          The licence has expired but everything still works. Renew soon to avoid
+          the workspace becoming read-only.
+        </div>
+      )}
+      {lic?.state === 'read_only' && (
+        <div className="rounded-lg p-3 mb-4 bg-terracotta/10 border border-terracotta/40 text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
+          The workspace is read-only. Paste a renewal key below and it returns to
+          normal immediately. Reading and exporting your data always works.
+        </div>
+      )}
+      {lic?.seat_state === 'over_seat' && (
+        <div className="rounded-lg p-3 mb-4 bg-amber-muted/10 border border-amber-muted/40 text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
+          There are more active users ({lic.seats_used}) than seats ({lic.seats}).
+          Everyone keeps working; adding or reactivating people is paused until you
+          deactivate {lic.seats_used - lic.seats} {lic.seats_used - lic.seats === 1 ? 'person' : 'people'} or renew with more seats.
+        </div>
+      )}
+
+      <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+        Renewal key
+      </label>
+      <textarea
+        value={key}
+        onChange={(e) => setKey(e.target.value)}
+        rows={3}
+        placeholder="effro-lic-v1."
+        spellCheck={false}
+        className="
+          w-full px-3 py-2 text-xs font-mono rounded-lg resize-y
+          bg-paper-100 dark:bg-pitch-800
+          border border-paper-300 dark:border-pitch-500
+          text-pitch-800 dark:text-white
+          placeholder:text-paper-400 dark:placeholder:text-paper-700
+          focus:outline-none focus:ring-2 focus:ring-mint-500
+        "
+      />
+      {error && (
+        <p className="text-sm text-terracotta mt-2" role="alert">{error}</p>
+      )}
+      <button
+        onClick={apply}
+        disabled={saving || !key.trim()}
+        className="
+          mt-3 flex items-center justify-center gap-2
+          px-4 py-2.5 rounded-lg text-sm font-semibold
+          bg-mint-700 hover:bg-mint-800 text-white
+          disabled:opacity-40 disabled:cursor-not-allowed transition-colors
+        "
+      >
+        {saving ? (<><Loader2 size={14} className="animate-spin" /> Applying…</>) : 'Apply key'}
+      </button>
+    </Card>
+  )
+}
+
+// ─── Demo data (showcase only) ────────────────────────────────────────────────
+// Only rendered when /auth/me reports demo_available (admin on an empty or
+// already-demo instance), so it can never appear where it could clobber real
+// work. The matching server guard lives in routers/admin.load_demo_data.
+
+function DemoDataSection() {
+  const toast = useToast()
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const load = async () => {
+    setBusy(true)
+    try {
+      const r = await adminApi.loadDemoData()
+      toast(`Demo data loaded (${r.areas} areas, ${r.entries} entries). Refreshing…`)
+      setTimeout(() => window.location.reload(), 700)
+    } catch (e) {
+      toast(e.message || 'Could not load the demo data', 'error')
+      setBusy(false)
+      setConfirming(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        icon={Sparkles}
+        title="Demo data"
+        subtitle="Fill this instance with a realistic sample workspace for showing Effro to others."
+      />
+      <p className="text-sm text-paper-600 dark:text-paper-400 mb-4 leading-relaxed">
+        Loads one coherent example: a few areas, threads, to-dos, meetings, signals to triage and a
+        working rhythm, all dated around today so Insights looks alive. It only appears on an empty
+        or demo instance, so it cannot overwrite real work, and it leaves users, settings and
+        sign-in untouched. Run it again any time to refresh the dates.
+      </p>
+      {!confirming ? (
+        <button
+          onClick={() => setConfirming(true)}
+          className="
+            flex items-center justify-center gap-2
+            px-4 py-2.5 rounded-lg text-sm font-semibold
+            bg-mint-700 hover:bg-mint-800 text-white transition-colors
+          "
+        >
+          <Sparkles size={14} />
+          Load demo data
+        </button>
+      ) : (
+        <div className="rounded-lg p-4 bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500">
+          <p className="text-sm text-pitch-700 dark:text-paper-300 mb-3 leading-relaxed">
+            This replaces everything currently in this instance with the demo dataset. Continue?
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={load}
+              disabled={busy}
+              className="
+                flex items-center justify-center gap-2
+                px-4 py-2.5 rounded-lg text-sm font-semibold
+                bg-mint-700 hover:bg-mint-800 text-white
+                disabled:opacity-40 disabled:cursor-not-allowed transition-colors
+              "
+            >
+              {busy
+                ? (<><Loader2 size={14} className="animate-spin" /> Loading…</>)
+                : 'Yes, load demo data'}
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              disabled={busy}
+              className="
+                px-4 py-2.5 rounded-lg text-sm
+                text-paper-700 dark:text-paper-300
+                hover:bg-paper-200 dark:hover:bg-pitch-700
+                disabled:opacity-40 transition-colors
+              "
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </Card>
   )
 }
 

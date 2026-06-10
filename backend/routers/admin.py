@@ -12,6 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+import demo_seed
 import email_client
 import licence_manager
 import oidc_client
@@ -63,6 +64,8 @@ class OidcConfigIn(BaseModel):
     discovery_url: str = ""
     # Write-only; blank means keep the stored secret.
     client_secret: Optional[str] = None
+    # Enterprise SSO auto-provision allowlist. None = leave unchanged; [] clears.
+    sso_allowed_domains: Optional[list[str]] = None
 
 
 def _public(u: User) -> dict:
@@ -239,6 +242,63 @@ def revoke_user_sessions(
     return {"revoked": len(rows)}
 
 
+# ── Licence (admin) ───────────────────────────────────────────────────────────
+# Both endpoints stay reachable in the read-only state (the licence_gate
+# allowlists /api/admin/licence) so an expired instance can be renewed in place.
+
+class LicenceKeyIn(BaseModel):
+    key: str
+
+
+@router.get("/licence")
+def get_licence(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Current licence status (edition, seats, expiry, state). Never the raw key."""
+    return licence_manager.admin_status(licence_manager.current(db), db)
+
+
+@router.put("/licence")
+def put_licence(
+    body: LicenceKeyIn,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Paste a new (renewal) key. Verified before anything is stored; an invalid
+    key changes nothing. On success it is stored to app_settings - the
+    highest-precedence source - and takes effect immediately, no redeploy."""
+    token = (body.key or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="Paste a licence key.")
+    if licence_manager.parse_and_verify(token) is None:
+        raise HTTPException(
+            status_code=400,
+            detail="That key is not valid (wrong format or signature). The stored licence is unchanged.",
+        )
+    licence_manager.store_key(db, token)
+    return licence_manager.admin_status(licence_manager.current(db), db)
+
+
+# ── Demo data (admin; showcase only) ──────────────────────────────────────────
+
+@router.post("/demo/seed")
+def load_demo_data(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Load (or reload) the showcase demo dataset.
+
+    Guarded so it can NEVER destroy real work: it only runs on an instance that
+    is empty (no areas) or one that has already been seeded with demo data.
+    On a populated real instance it refuses with 409. It wipes content tables
+    only - users, sessions, settings and the licence are left untouched - and
+    re-centres all dates on today, so reloading mid-demo gives fresh data.
+    """
+    if demo_seed.area_count(db) > 0 and not demo_seed.is_demo(db):
+        raise HTTPException(
+            status_code=409,
+            detail="This instance already has data. Loading demo data is only available on an "
+                   "empty or demo instance, so it cannot overwrite real work.",
+        )
+    counts = demo_seed.reset_and_seed(db)
+    return {"ok": True, **counts}
+
+
 # ── OIDC SSO configuration (admin) ────────────────────────────────────────────
 
 @router.get("/oidc-config")
@@ -260,6 +320,7 @@ def put_oidc_config(
         client_id=body.client_id,
         discovery_url=body.discovery_url,
         client_secret=body.client_secret,
+        sso_allowed_domains=body.sso_allowed_domains,
     )
 
 

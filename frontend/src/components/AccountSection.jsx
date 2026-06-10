@@ -121,11 +121,16 @@ function Sessions() {
 
 function DangerZone() {
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
   const toast = useToast()
   const [confirming, setConfirming] = useState(false)
   const [pw, setPw] = useState('')
   const [busy, setBusy] = useState(false)
+  // Member self-export can be capped by the licence edition (admins always
+  // export). Mirror the server gate; default open when no licence info.
+  const canExport =
+    user?.role === 'admin' ||
+    user?.licence?.capabilities?.member_self_export_allowed !== false
 
   const del = async () => {
     if (!pw) return
@@ -144,10 +149,16 @@ function DangerZone() {
     <div className={`${CARD} border-terracotta/40`}>
       <h3 className={H3}><AlertTriangle size={15} className="text-terracotta" /> Your data</h3>
       <div className="flex flex-wrap items-center gap-3">
-        <a href={accountApi.exportUrl}
-           className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md bg-paper-200 hover:bg-paper-300 dark:bg-pitch-600 dark:hover:bg-pitch-500 text-pitch-800 dark:text-pitch-50 transition-colors">
-          <Download size={14} /> Export my data
-        </a>
+        {canExport ? (
+          <a href={accountApi.exportUrl}
+             className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md bg-paper-200 hover:bg-paper-300 dark:bg-pitch-600 dark:hover:bg-pitch-500 text-pitch-800 dark:text-pitch-50 transition-colors">
+            <Download size={14} /> Export my data
+          </a>
+        ) : (
+          <p className="text-sm text-paper-600 dark:text-paper-400">
+            Data export is managed by your administrator on this workspace.
+          </p>
+        )}
         {!confirming && (
           <button onClick={() => setConfirming(true)}
                   className="px-4 py-2 text-sm font-medium rounded-md text-terracotta hover:bg-terracotta/10 transition-colors">

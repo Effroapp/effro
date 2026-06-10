@@ -146,6 +146,10 @@ a = Analysis(
         'dependencies',
         'oidc_client',
         'email_client',
+        'demo_seed',
+        # Licence/edition layer. cryptography (Ed25519) is already bundled via
+        # Fernet; this is the pure-Python module that uses it.
+        'licence_manager',
         'routers.auth',
         'routers.account',
         'routers.admin',

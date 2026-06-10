@@ -23,6 +23,7 @@ Adding a new provider:
 from __future__ import annotations
 import json
 import logging
+import os
 from abc import ABC, abstractmethod
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -143,14 +144,21 @@ class AIProvider(ABC):
 class AnthropicProvider(AIProvider):
     """Claude via the official `anthropic` SDK."""
 
-    def __init__(self, api_key: str, model: str = "claude-sonnet-4-6"):
+    def __init__(self, api_key: str, model: str = "claude-sonnet-4-6", base_url: Optional[str] = None):
         self._api_key = api_key
         self._model = model
+        self._base_url = base_url
 
     def complete(self, system: str, messages: list[dict], max_tokens: int = 1000) -> str:
         try:
             from anthropic import Anthropic
-            client = Anthropic(api_key=self._api_key)
+            # Honour a deploy-pinned endpoint (EFFRO_AI_ENDPOINT) for Claude too,
+            # not just OpenAI-compatible providers, so the pin actually routes
+            # traffic through the approved gateway.
+            kwargs = {"api_key": self._api_key}
+            if self._base_url:
+                kwargs["base_url"] = self._base_url
+            client = Anthropic(**kwargs)
             response = client.messages.create(
                 model=self._model,
                 max_tokens=max_tokens,
@@ -246,7 +254,7 @@ def _build_provider(config: dict) -> AIProvider:
             return _UnconfiguredProvider(
                 "No Anthropic API key set. Open Settings → AI Engine to configure."
             )
-        return AnthropicProvider(api_key=api_key, model=model or "claude-sonnet-4-6")
+        return AnthropicProvider(api_key=api_key, model=model or "claude-sonnet-4-6", base_url=base_url)
 
     # OpenAI-compatible: check required fields per preset
     if preset.get("needs_key") and not api_key:
@@ -289,15 +297,23 @@ _AI_CONFIG_KEY = "ai_config"
 
 
 def _read_config(db: Session) -> dict:
-    """Read AI config from app_settings. Returns empty dict if not set."""
+    """Read AI config from app_settings. Returns empty dict if not set.
+
+    A deploy-pinned endpoint (EFFRO_AI_ENDPOINT, the Enterprise lock) takes
+    precedence over the stored base_url so the pin is effective at runtime, not
+    just refused at the write path (see routers/settings.update_ai_config)."""
     from models import AppSettings
     row = db.query(AppSettings).filter(AppSettings.key == _AI_CONFIG_KEY).first()
-    if not row or not row.value:
-        return {}
-    try:
-        return json.loads(row.value)
-    except Exception:
-        return {}
+    config = {}
+    if row and row.value:
+        try:
+            config = json.loads(row.value)
+        except Exception:
+            config = {}
+    pinned = os.environ.get("EFFRO_AI_ENDPOINT")
+    if pinned and pinned.strip():
+        config["base_url"] = pinned.strip()
+    return config
 
 
 def write_config(db: Session, config: dict) -> None:

@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 import schemas
 from database import get_db
+from dependencies import require_admin
 from storage_backend import (
     get_storage_backend,
     build_storage_backend,
@@ -27,7 +28,13 @@ from storage_backend import (
     encrypt_secret,
 )
 
-router = APIRouter(tags=["storage"])
+# Admin-only: the storage backend is the instance's backup destination, and
+# /backup/run snapshots the WHOLE database (incl. users + secrets). Without this
+# gate a non-admin member could repoint backups at a server they control and
+# exfiltrate everything, bypassing the member self-export cap. On the desktop
+# build (auth off) the synthetic local admin satisfies require_admin, so the
+# single-user flow is unchanged.
+router = APIRouter(tags=["storage"], dependencies=[Depends(require_admin)])
 log = logging.getLogger("effro.storage.router")
 
 
