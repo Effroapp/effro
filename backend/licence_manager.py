@@ -13,6 +13,7 @@ scripts/licence_gen.py; the private key never lives here.
 import base64
 import json
 import os
+import secrets
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Optional
@@ -298,6 +299,88 @@ def member_self_export_allowed(ctx: LicenceContext, db) -> bool:
 def set_member_self_export(db, allowed: bool) -> None:
     _set_setting(db, _MEMBER_EXPORT_KEY, "1" if allowed else "0")
     db.commit()
+
+
+# ── Admin status + renewal ────────────────────────────────────────────────────
+
+def admin_status(ctx: LicenceContext, db, now: Optional[date] = None) -> dict:
+    """Full licence view for GET /admin/licence (never includes the raw key)."""
+    if now is None:
+        now = datetime.utcnow().date()
+    days_remaining = (ctx.expires_at - now).days if ctx.expires_at else None
+    return {
+        "required": licence_required(),
+        "edition": ctx.edition,
+        "customer_id": ctx.customer_id,
+        "customer_name": ctx.customer_name,
+        "seats": ctx.seats,
+        "seats_used": seats_used(db),
+        "expires_at": ctx.expires_at.isoformat() if ctx.expires_at else None,
+        "days_remaining": days_remaining,
+        "grace_days": ctx.grace_days,
+        "state": state(ctx, now),
+        "seat_state": seat_state(ctx, db),
+        "valid_signature": ctx.signature_valid,
+        "source": ctx.source,
+        "key_id": ctx.key_id,
+    }
+
+
+def store_key(db, token: str) -> None:
+    """Persist an admin-uploaded key to app_settings (highest-precedence source).
+    Caller must have verified it first (parse_and_verify)."""
+    _set_setting(db, _CONFIG_KEY, token.strip())
+    db.commit()
+
+
+# ── Setup token (closes the claimable-instance + setup-race holes) ────────────
+# Provisioning seeds a one-time token when a licence is required and no users
+# exist; /auth/setup must present it. Consumed atomically with the first-admin
+# insert, so concurrent setups can't both succeed. Desktop / licence-off: no
+# token, zero-friction first run, exactly as before.
+
+_SETUP_TOKEN_KEY = "setup_token"
+
+
+def ensure_setup_token(db) -> Optional[str]:
+    """On boot: when a licence is required and the instance has no users yet,
+    make sure a setup token exists and return it so the operator can read it
+    from the logs. Returns None when not applicable (already set up, or flag
+    off). Idempotent: an existing un-consumed token is returned, not rotated."""
+    if not licence_required():
+        return None
+    if db.query(models.User).count() > 0:
+        return None
+    existing = _get_setting(db, _SETUP_TOKEN_KEY)
+    if existing:
+        return existing
+    token = secrets.token_urlsafe(32)
+    _set_setting(db, _SETUP_TOKEN_KEY, token)
+    db.commit()
+    return token
+
+
+def setup_token_required(db) -> bool:
+    """True when /auth/setup must present the one-time token: a licence is
+    required AND a token is stored (absent on migrated/legacy instances, so
+    those are never locked out of setup)."""
+    return licence_required() and bool(_get_setting(db, _SETUP_TOKEN_KEY))
+
+
+def verify_setup_token(db, supplied: Optional[str]) -> bool:
+    stored = _get_setting(db, _SETUP_TOKEN_KEY)
+    if not stored:
+        return True                     # nothing to enforce
+    return secrets.compare_digest(stored, (supplied or "").strip())
+
+
+def consume_setup_token(db) -> None:
+    """Delete the token WITHOUT committing - the caller commits it in the same
+    transaction as the first-admin insert, which is what makes setup single-use
+    and race-safe (only the first commit wins; the rest see it gone)."""
+    db.query(models.AppSettings).filter(
+        models.AppSettings.key == _SETUP_TOKEN_KEY
+    ).delete(synchronize_session=False)
 
 
 def public_status(ctx: LicenceContext, db, now: Optional[date] = None) -> dict:

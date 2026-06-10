@@ -272,6 +272,21 @@ def _init_db():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _init_db()
+    # Licence-required provisioning: seed (or re-surface) the one-time setup
+    # token while no users exist, and print it to the container logs - the only
+    # place it is ever shown. /auth/setup requires it; it is consumed atomically
+    # by the first admin's creation. No-op on desktop / licence-off.
+    try:
+        _db = SessionLocal()
+        try:
+            _tok = licence_manager.ensure_setup_token(_db)
+        finally:
+            _db.close()
+        if _tok:
+            print(f"[effro] First-run setup token (required by /setup): {_tok}", flush=True)
+    except Exception as e:
+        import logging
+        logging.getLogger("effro").warning("Setup-token seeding failed: %s", e)
     try:
         import scheduler
         scheduler.start()

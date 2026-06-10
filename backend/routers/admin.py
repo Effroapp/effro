@@ -242,6 +242,41 @@ def revoke_user_sessions(
     return {"revoked": len(rows)}
 
 
+# ── Licence (admin) ───────────────────────────────────────────────────────────
+# Both endpoints stay reachable in the read-only state (the licence_gate
+# allowlists /api/admin/licence) so an expired instance can be renewed in place.
+
+class LicenceKeyIn(BaseModel):
+    key: str
+
+
+@router.get("/licence")
+def get_licence(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Current licence status (edition, seats, expiry, state). Never the raw key."""
+    return licence_manager.admin_status(licence_manager.current(db), db)
+
+
+@router.put("/licence")
+def put_licence(
+    body: LicenceKeyIn,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Paste a new (renewal) key. Verified before anything is stored; an invalid
+    key changes nothing. On success it is stored to app_settings - the
+    highest-precedence source - and takes effect immediately, no redeploy."""
+    token = (body.key or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="Paste a licence key.")
+    if licence_manager.parse_and_verify(token) is None:
+        raise HTTPException(
+            status_code=400,
+            detail="That key is not valid (wrong format or signature). The stored licence is unchanged.",
+        )
+    licence_manager.store_key(db, token)
+    return licence_manager.admin_status(licence_manager.current(db), db)
+
+
 # ── Demo data (admin; showcase only) ──────────────────────────────────────────
 
 @router.post("/demo/seed")

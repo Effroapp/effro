@@ -48,6 +48,9 @@ class SetupIn(BaseModel):
     email: str
     display_name: Optional[str] = None
     password: str
+    # One-time provisioning token; required only when EFFRO_LICENCE_REQUIRED is
+    # on and a token was seeded at boot (see licence_manager.ensure_setup_token).
+    setup_token: Optional[str] = None
 
 
 class LoginIn(BaseModel):
@@ -108,9 +111,18 @@ def _issue_session(db: Session, user: User, request: Request, response: Response
 
 @router.post("/setup")
 def setup(body: SetupIn, request: Request, response: Response, db: Session = Depends(get_db)):
-    """Create the first admin account. Only works while no users exist."""
+    """Create the first admin account. Only works while no users exist. When a
+    licence is required, the operator's one-time setup token must be presented;
+    it is consumed in the same transaction as the admin insert (single-use), so
+    a provisioned instance is claimable only by the purchasing customer and
+    concurrent setup attempts cannot both succeed."""
     if db.query(User).count() > 0:
         raise HTTPException(status_code=409, detail="This instance is already set up.")
+    if licence_manager.setup_token_required(db) and not licence_manager.verify_setup_token(db, body.setup_token):
+        raise HTTPException(
+            status_code=403,
+            detail="A valid setup token is required. It was shown when this instance was provisioned.",
+        )
     email = _normalise_email(body.email)
     if not email or not body.password:
         raise HTTPException(status_code=400, detail="Email and password are required.")
@@ -122,6 +134,7 @@ def setup(body: SetupIn, request: Request, response: Response, db: Session = Dep
         is_active=True,
     )
     db.add(user)
+    licence_manager.consume_setup_token(db)   # same transaction as the insert
     try:
         db.commit()
     except IntegrityError:
@@ -138,8 +151,12 @@ def setup(body: SetupIn, request: Request, response: Response, db: Session = Dep
 @router.get("/setup/status")
 def setup_status(db: Session = Depends(get_db)):
     """Public. True once at least one user exists; the frontend uses this to
-    choose between the setup page and the login page."""
-    return {"initialised": db.query(User).count() > 0}
+    choose between the setup page and the login page. setup_token_required tells
+    the setup page to show a token field (the token itself is never returned)."""
+    return {
+        "initialised": db.query(User).count() > 0,
+        "setup_token_required": licence_manager.setup_token_required(db),
+    }
 
 
 def _password_login_disabled(db: Session) -> bool:
