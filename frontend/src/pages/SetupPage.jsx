@@ -19,6 +19,8 @@ export default function SetupPage() {
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [setupToken, setSetupToken] = useState('')
+  const [tokenRequired, setTokenRequired] = useState(false)
   const [error, setError] = useState('')
   const [alreadySetUp, setAlreadySetUp] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -30,6 +32,15 @@ export default function SetupPage() {
     else if (initialised === true) navigate('/login', { replace: true })
   }, [user, initialised, navigate])
 
+  // Licensed (provisioned) instances require the one-time setup token that was
+  // shown to the operator at provisioning; the status endpoint only hints that
+  // a token is needed, never the token itself.
+  useEffect(() => {
+    authApi.setupStatus()
+      .then((s) => setTokenRequired(!!s.setup_token_required))
+      .catch(() => {})
+  }, [])
+
   const onSubmit = async (e) => {
     e.preventDefault()
     if (!email.trim() || !password) return
@@ -40,12 +51,16 @@ export default function SetupPage() {
         email: email.trim(),
         display_name: displayName.trim(),
         password,
+        setup_token: tokenRequired ? setupToken.trim() : undefined,
       })
       await refresh()
       navigate('/', { replace: true })
     } catch (err) {
-      if (String(err.message || '').toLowerCase().includes('already')) {
+      const msg = String(err.message || '').toLowerCase()
+      if (msg.includes('already')) {
         setAlreadySetUp(true)
+      } else if (msg.includes('setup token')) {
+        setError('That setup token is not valid. It was shown when this workspace was provisioned.')
       } else {
         setError('Could not create the account. Please try again.')
       }
@@ -126,6 +141,23 @@ export default function SetupPage() {
                   className={FIELD}
                 />
               </div>
+              {tokenRequired && (
+                <div>
+                  <label className={LABEL}>Setup token</label>
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    value={setupToken}
+                    onChange={(e) => setSetupToken(e.target.value)}
+                    placeholder="Paste the token from provisioning"
+                    className={FIELD}
+                  />
+                  <p className="font-lexend text-2xs text-paper-500 dark:text-pitch-200 mt-1.5 leading-relaxed">
+                    This workspace was provisioned with a one-time setup token. It
+                    was shown to whoever installed it, and is used once, here.
+                  </p>
+                </div>
+              )}
 
               {error && (
                 <p className="text-sm text-terracotta" role="alert">
@@ -135,7 +167,7 @@ export default function SetupPage() {
 
               <button
                 type="submit"
-                disabled={submitting || !email.trim() || !password}
+                disabled={submitting || !email.trim() || !password || (tokenRequired && !setupToken.trim())}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
               >
                 {submitting ? <Spinner size={16} className="text-white" /> : 'Create admin account'}

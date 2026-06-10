@@ -387,11 +387,18 @@ def public_status(ctx: LicenceContext, db, now: Optional[date] = None) -> dict:
     """Compact, non-secret licence view for /auth/me and the licence panel, so the
     frontend can mirror the edition + state (read-only banner, hidden controls)."""
     caps = edition_caps(ctx)
+    if now is None:
+        now = datetime.utcnow().date()
+    grace_days_left = None
+    if ctx.expires_at and state(ctx, now) == "grace":
+        grace_days_left = (ctx.expires_at + timedelta(days=ctx.grace_days) - now).days
     return {
         "edition": ctx.edition,
         "licence_required": licence_required(),
         "state": state(ctx, now),
         "seat_state": seat_state(ctx, db),
+        "expires_at": ctx.expires_at.isoformat() if ctx.expires_at else None,
+        "grace_days_left": grace_days_left,
         "capabilities": {
             "ai_endpoint_locked": ai_config_locked(ctx, db),
             "personal_connectors_allowed": caps.personal_connectors_allowed,

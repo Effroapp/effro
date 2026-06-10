@@ -37,6 +37,8 @@ export default function LoginPage() {
     else if (err === 'invalid_state') setError('Sign-in failed. Please try again.')
     else if (err === 'sso_failed') setError('Single sign-on failed. Please try again.')
     else if (err === 'sso_unavailable') setError('Single sign-on is not available right now.')
+    else if (err === 'no_seats') setError('No seats are available on this workspace. Contact your administrator.')
+    else if (err === 'domain_not_allowed') setError('Your email domain is not allowed on this workspace. Contact your administrator.')
   }, [])
 
   const onSubmit = async (e) => {
@@ -48,8 +50,11 @@ export default function LoginPage() {
       await authApi.login(email.trim(), password)
       await refresh()
       navigate('/', { replace: true })
-    } catch {
-      setError('Email or password is incorrect.')
+    } catch (err) {
+      // Forced SSO (and similar policy refusals) come back as a 403 with a
+      // clear message - show it rather than the generic wrong-password line.
+      const msg = String(err.message || '')
+      setError(msg.toLowerCase().includes('single sign-on') ? msg : 'Email or password is incorrect.')
       setSubmitting(false)
     }
   }
@@ -83,7 +88,7 @@ export default function LoginPage() {
           </p>
 
           {oidc.enabled && (
-            <div className="mb-4">
+            <div className={oidc.password_login_disabled ? '' : 'mb-4'}>
               <button
                 type="button"
                 onClick={() => { window.location.href = '/api/auth/oidc/login' }}
@@ -91,14 +96,30 @@ export default function LoginPage() {
               >
                 Sign in with {oidc.provider_name || 'SSO'}
               </button>
-              <div className="flex items-center gap-3 mt-4">
-                <div className="flex-1 h-px bg-paper-300 dark:bg-pitch-600" />
-                <span className="text-2xs text-paper-500 dark:text-pitch-300">or</span>
-                <div className="flex-1 h-px bg-paper-300 dark:bg-pitch-600" />
-              </div>
+              {!oidc.password_login_disabled && (
+                <div className="flex items-center gap-3 mt-4">
+                  <div className="flex-1 h-px bg-paper-300 dark:bg-pitch-600" />
+                  <span className="text-2xs text-paper-500 dark:text-pitch-300">or</span>
+                  <div className="flex-1 h-px bg-paper-300 dark:bg-pitch-600" />
+                </div>
+              )}
             </div>
           )}
 
+          {/* Enterprise forced-SSO: the workspace signs in with SSO only, so the
+              password form is hidden (the backend refuses it regardless). */}
+          {oidc.password_login_disabled ? (
+            <div className="mt-4">
+              {error && (
+                <p className="text-sm text-terracotta" role="alert">
+                  {error}
+                </p>
+              )}
+              <p className="font-lexend text-2xs text-paper-500 dark:text-pitch-200 mt-3 leading-relaxed">
+                This workspace signs in with single sign-on only.
+              </p>
+            </div>
+          ) : (
           <div className="space-y-4">
             <div>
               <label className={LABEL}>Email</label>
@@ -137,6 +158,7 @@ export default function LoginPage() {
               {submitting ? <Spinner size={16} className="text-white" /> : 'Sign in'}
             </button>
           </div>
+          )}
         </form>
 
         <p className="text-center mt-5">

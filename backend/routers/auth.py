@@ -365,9 +365,14 @@ def _oidc_redirect_uri(request: Request) -> str:
 
 @router.get("/oidc/config")
 def oidc_config(db: Session = Depends(get_db)):
-    """Public. Lets the login page decide whether to show the SSO button."""
+    """Public. Lets the login page decide whether to show the SSO button, and
+    whether to hide the password form entirely (Enterprise forced-SSO)."""
     cfg = oidc_client.get_config(db)
-    return {"enabled": oidc_client.is_enabled(db), "provider_name": cfg["provider_name"]}
+    return {
+        "enabled": oidc_client.is_enabled(db),
+        "provider_name": cfg["provider_name"],
+        "password_login_disabled": _password_login_disabled(db),
+    }
 
 
 @router.get("/oidc/login")

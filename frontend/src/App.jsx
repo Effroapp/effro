@@ -18,6 +18,7 @@ import SplashScreen from './components/SplashScreen'
 import OnboardingWizard, { useOnboarding } from './components/OnboardingWizard'
 import Sidebar from './components/Sidebar'
 import RequireAuth from './components/RequireAuth'
+import LicenceBanner from './components/LicenceBanner'
 import { useHeartbeat } from './hooks/useHeartbeat'
 import Dashboard from './pages/Dashboard'
 import Insights from './pages/Insights'
@@ -171,6 +172,8 @@ function AuthedChrome({
         textSize={textSize}
         onChangeTextSize={setTextSize}
       />
+      {/* Licence notices (read-only / grace / over-seat) - hosted only. */}
+      <LicenceBanner />
       {/* Update prompt - appears once per detected new version, then
           collapses into the cog badge until installed. */}
       <UpdateToast updater={updater} />
