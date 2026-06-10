@@ -154,6 +154,8 @@ a = Analysis(
         'routers.account',
         'routers.admin',
         'routers.folio',
+        'folio_capture',
+        'folio_vision',
     ],
     hookspath=[],
     hooksconfig={},

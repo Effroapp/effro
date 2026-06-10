@@ -19,20 +19,29 @@ Routes (under /api):
 """
 import json
 import logging
+import os
+import uuid
+from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+import folio_capture
+import folio_vision
 import models
 from database import get_db
 from dependencies import require_folio_enabled
 
 log = logging.getLogger("effro.folio")
 router = APIRouter(tags=["folio"], dependencies=[Depends(require_folio_enabled)])
+
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "./data/uploads")
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".heic", ".heif"}
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -218,4 +227,122 @@ def delete_folio(folio_id: int, db: Session = Depends(get_db)):
     db.delete(folio)
     db.commit()
     _unindex_folio(db, folio_id)
+    return {"ok": True}
+
+
+# ── Captures ──────────────────────────────────────────────────────────────────
+
+class CaptureIn(BaseModel):
+    type: str                      # note | link
+    text: Optional[str] = None     # for note
+    url: Optional[str] = None      # for link
+
+
+def _capture_out(c: "models.Capture") -> dict:
+    return {
+        "id": c.id,
+        "type": c.type,
+        "raw_content": c.raw_content,
+        "extracted_text": c.extracted_text,
+        "source_meta": json.loads(c.source_meta) if c.source_meta else None,
+        "created_at": c.created_at,
+    }
+
+
+def _require_folio(db: Session, folio_id: int) -> "models.Folio":
+    folio = db.query(models.Folio).filter(models.Folio.id == folio_id).first()
+    if not folio:
+        raise HTTPException(status_code=404, detail="Folio not found.")
+    return folio
+
+
+def _add_capture(db: Session, folio: "models.Folio", *, type: str,
+                 raw_content: str, extracted_text: str, source_meta: Optional[dict]):
+    cap = models.Capture(
+        folio_id=folio.id, type=type,
+        raw_content=raw_content or "", extracted_text=extracted_text or "",
+        source_meta=json.dumps(source_meta) if source_meta else None,
+    )
+    db.add(cap)
+    folio.updated_at = datetime.utcnow()    # a new capture is fresh activity
+    db.commit()
+    db.refresh(cap)
+    db.refresh(folio)
+    reindex_folio(db, folio)
+    return cap
+
+
+@router.post("/folios/{folio_id}/captures")
+def add_capture(folio_id: int, body: CaptureIn, db: Session = Depends(get_db)):
+    """Add a note or a link. Files and images use /captures/upload."""
+    folio = _require_folio(db, folio_id)
+    kind = (body.type or "").strip().lower()
+    if kind == "note":
+        txt = (body.text or "").strip()
+        if not txt:
+            raise HTTPException(status_code=400, detail="A note needs some text.")
+        cap = _add_capture(db, folio, type="note", raw_content=txt, extracted_text=txt, source_meta=None)
+    elif kind == "link":
+        url = (body.url or "").strip()
+        if not url:
+            raise HTTPException(status_code=400, detail="Paste a link to capture.")
+        try:
+            data = folio_capture.fetch_readable(url)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        cap = _add_capture(
+            db, folio, type="link", raw_content=url,
+            extracted_text=data.get("extracted_text", ""),
+            source_meta={k: data.get(k) for k in ("domain", "title", "favicon_url", "error") if data.get(k)},
+        )
+    else:
+        raise HTTPException(status_code=400, detail="Capture type must be note or link.")
+    return _capture_out(cap)
+
+
+@router.post("/folios/{folio_id}/captures/upload")
+async def upload_capture(folio_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """Add a file or an image. Documents are text-extracted; images are read by
+    the vision model (best-effort - see folio_vision)."""
+    folio = _require_folio(db, folio_id)
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=422, detail="That file is empty.")
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="That file is too large (25 MB max).")
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    original = file.filename or "capture"
+    ext = os.path.splitext(original)[1].lower()
+    stored_name = f"{uuid.uuid4().hex}{ext}"
+    with open(os.path.join(UPLOAD_DIR, stored_name), "wb") as fh:
+        fh.write(content)
+
+    is_image = (file.content_type or "").startswith("image/") or ext in _IMAGE_EXTS
+    if is_image:
+        read_text, vmeta = folio_vision.read_image_text(db, content, ext)
+        meta = {"original_name": original, "size": len(content), **vmeta}
+        cap = _add_capture(db, folio, type="image", raw_content=stored_name,
+                           extracted_text=read_text, source_meta=meta)
+    else:
+        read_text = folio_capture.extract_file(original, content)
+        cap = _add_capture(db, folio, type="file", raw_content=stored_name,
+                           extracted_text=read_text,
+                           source_meta={"original_name": original, "size": len(content)})
+    return _capture_out(cap)
+
+
+@router.delete("/folios/{folio_id}/captures/{capture_id}")
+def delete_capture(folio_id: int, capture_id: int, db: Session = Depends(get_db)):
+    folio = _require_folio(db, folio_id)
+    cap = db.query(models.Capture).filter(
+        models.Capture.id == capture_id, models.Capture.folio_id == folio_id
+    ).first()
+    if not cap:
+        raise HTTPException(status_code=404, detail="Capture not found.")
+    db.delete(cap)
+    folio.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(folio)
+    reindex_folio(db, folio)
     return {"ok": True}
