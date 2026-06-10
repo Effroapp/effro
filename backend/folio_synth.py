@@ -131,7 +131,17 @@ def synthesize(provider, captures: list[dict], prior: dict | None = None,
                new_capture_ids: list[int] | None = None) -> dict:
     """Call the AI provider and return a parsed digest dict
     {summary, key_points, sources, open_threads}. Raises RuntimeError (provider
-    failure) or ValueError (unparseable) for the caller to surface."""
+    failure) or ValueError (unparseable) for the caller to surface.
+
+    GROUNDING IS PROMPT-ENFORCED, NOT VERIFIED. The system prompt instructs the
+    model to use only the captures, but nothing here checks the output against
+    them at runtime (there is no reliable non-LLM way to do that). Grounding is
+    therefore only as strong as the configured model's instruction-following, so
+    point Folio at a capable provider. The blast radius is contained: the digest
+    is the user's own private summary of their own captures, shown only to them,
+    rendered as escaped text, and every refresh keeps the prior version so a poor
+    result is undoable. The 'open threads' section is the escape hatch for
+    anything the captures leave uncertain."""
     if prior and new_capture_ids is not None:
         feed = [c for c in captures if c["id"] in set(new_capture_ids)]
         prior_json = json.dumps({

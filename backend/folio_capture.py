@@ -135,13 +135,23 @@ def fetch_readable(url: str) -> dict:
     try:
         with httpx.Client(timeout=10.0, follow_redirects=True,
                           headers={"User-Agent": _UA, "Accept": "text/html,*/*"}) as client:
-            r = client.get(url)
-            r.raise_for_status()
-            ctype = r.headers.get("content-type", "")
-            raw = r.content[:_MAX_FETCH_BYTES]
+            # Stream and stop at the byte cap, so a huge (or maliciously large)
+            # response cannot be buffered whole into memory before we slice it.
+            with client.stream("GET", url) as r:
+                r.raise_for_status()
+                ctype = r.headers.get("content-type", "")
+                chunks, total = [], 0
+                for chunk in r.iter_bytes():
+                    chunks.append(chunk)
+                    total += len(chunk)
+                    if total >= _MAX_FETCH_BYTES:
+                        break
+                raw = b"".join(chunks)[:_MAX_FETCH_BYTES]
+                encoding = r.encoding or "utf-8"
+                final_url = str(r.url)
             if "html" in ctype or raw[:512].lstrip().lower().startswith((b"<!doctype", b"<html")):
-                html = raw.decode(r.encoding or "utf-8", errors="ignore")
-                out = extract_html(html, str(r.url))
+                html = raw.decode(encoding, errors="ignore")
+                out = extract_html(html, final_url)
             else:
                 # Non-HTML (e.g. a plain-text page): keep the body as text.
                 out = {"title": "", "extracted_text": raw.decode("utf-8", errors="ignore").strip(),

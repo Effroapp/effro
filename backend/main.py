@@ -200,6 +200,10 @@ def _init_db():
             # stored for lookup but not tokenised. No-ops harmlessly (try/except
             # below) if a build's SQLite lacks FTS5 - search just returns nothing.
             "CREATE VIRTUAL TABLE IF NOT EXISTS folio_fts USING fts5(folio_id UNINDEXED, title, body)",
+            # At most one current digest per folio. A partial unique index makes
+            # this a DB-level invariant, so two concurrent pull-togethers cannot
+            # both leave is_current=1 (the second insert is rejected and retried).
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_digests_one_current ON digests(folio_id) WHERE is_current = 1",
         ]:
             try:
                 conn.execute(text(sql))

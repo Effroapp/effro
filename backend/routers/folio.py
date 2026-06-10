@@ -426,6 +426,10 @@ class DigestEdit(BaseModel):
     open_threads: Optional[list[str]] = None
 
 
+class DigestRestore(BaseModel):
+    version: int
+
+
 def _digest_out(d: "models.Digest") -> dict:
     return {
         "id": d.id, "version": d.version, "is_current": d.is_current,
@@ -480,20 +484,35 @@ def pull_together(folio_id: int, db: Session = Depends(get_db)):
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
-    next_version = max((d.version for d in folio.digests), default=0) + 1
-    for d in folio.digests:
-        d.is_current = False
-    digest = models.Digest(
-        folio_id=folio.id, version=next_version, is_current=True,
-        summary=result["summary"],
-        key_points=json.dumps(result["key_points"]),
-        sources=json.dumps(result["sources"]),
-        open_threads=json.dumps(result["open_threads"]),
-        based_on_capture_ids=json.dumps([c["id"] for c in cap_dicts]),
-    )
-    db.add(digest)
-    folio.updated_at = datetime.utcnow()
-    db.commit()
+    # Write a new current version. The partial unique index idx_digests_one_current
+    # guarantees at most one is_current per folio: if a concurrent pull-together
+    # committed between our read and write, our insert violates the index, so we
+    # roll back, re-read the latest state, and retry once (last write wins, one
+    # current). The AI call above is not repeated.
+    based_on = json.dumps([c["id"] for c in cap_dicts])
+    for attempt in range(2):
+        try:
+            db.refresh(folio)
+            next_version = max((d.version for d in folio.digests), default=0) + 1
+            for d in folio.digests:
+                d.is_current = False
+            db.flush()    # write the clears before inserting the new current row
+            digest = models.Digest(
+                folio_id=folio.id, version=next_version, is_current=True,
+                summary=result["summary"],
+                key_points=json.dumps(result["key_points"]),
+                sources=json.dumps(result["sources"]),
+                open_threads=json.dumps(result["open_threads"]),
+                based_on_capture_ids=based_on,
+            )
+            db.add(digest)
+            folio.updated_at = datetime.utcnow()
+            db.commit()
+            break
+        except IntegrityError:
+            db.rollback()
+            if attempt == 1:
+                raise HTTPException(status_code=409, detail="A pull-together just ran. Please refresh and try again.")
     db.refresh(digest)
     db.refresh(folio)
     reindex_folio(db, folio)
@@ -532,16 +551,20 @@ def list_digest_versions(folio_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/folios/{folio_id}/digest/restore")
-def restore_digest_version(folio_id: int, body: dict, db: Session = Depends(get_db)):
+def restore_digest_version(folio_id: int, body: DigestRestore, db: Session = Depends(get_db)):
     """Undo a refresh by making an earlier version current again. Nothing is
     deleted - it just flips which version is shown."""
     folio = _require_folio(db, folio_id)
-    target = body.get("version")
+    target = body.version
     match = next((d for d in folio.digests if d.version == target), None)
     if not match:
         raise HTTPException(status_code=404, detail="That version does not exist.")
+    # Clear all, flush, then set the target current - so the one-current unique
+    # index never sees two current rows mid-transaction.
     for d in folio.digests:
-        d.is_current = (d.version == target)
+        d.is_current = False
+    db.flush()
+    match.is_current = True
     folio.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(match)

@@ -300,7 +300,7 @@ function Section({ title, count, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="border-t border-paper-300 dark:border-pitch-400 max-w-[62ch]">
-      <button onClick={() => setOpen((o) => !o)}
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
         className="w-full flex items-center gap-2.5 py-3.5 px-0.5 font-mono text-2xs uppercase tracking-[0.1em]
                    text-pitch-800 dark:text-pitch-50">
         <ChevronRight size={14} className={`text-paper-500 dark:text-pitch-200 transition-transform motion-reduce:transition-none ${open ? 'rotate-90' : ''}`} />
@@ -472,11 +472,16 @@ function CapturesView({ folio, onReload, onPull, pulling, noteRef }) {
 
       {/* Drop zone */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Add a file or image: choose a file, or drop one here"
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); upload(e.dataTransfer.files) }}
         onClick={() => fileRef.current?.click()}
-        className={`rounded-xl border border-dashed p-5 text-center cursor-pointer mb-3 transition-colors ${
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileRef.current?.click() } }}
+        className={`rounded-xl border border-dashed p-5 text-center cursor-pointer mb-3 transition-colors
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-mint-500 ${
           dragOver ? 'border-mint bg-mint/5' : 'border-paper-400 dark:border-pitch-400 bg-paper-200 dark:bg-pitch-700 hover:bg-paper-300/60 dark:hover:bg-pitch-600'
         }`}
       >
