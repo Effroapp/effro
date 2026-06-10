@@ -142,8 +142,38 @@ def setup_status(db: Session = Depends(get_db)):
     return {"initialised": db.query(User).count() > 0}
 
 
+def _password_login_disabled(db: Session) -> bool:
+    """Enterprise forced-SSO: once OIDC is fully configured, password sign-in and
+    set-password are disabled (only /auth/oidc/* admits users). First-admin setup
+    is unaffected. No-op unless a licence is required and its edition forces SSO."""
+    if not licence_manager.licence_required():
+        return False
+    if not licence_manager.edition_caps(licence_manager.current(db)).forced_sso:
+        return False
+    return oidc_client.is_enabled(db)
+
+
+def _sso_domain_allowed(db: Session, email: str) -> bool:
+    """Enterprise domain allowlist for SSO auto-provisioning. When the edition
+    enforces it AND the admin has configured a non-empty list, only those email
+    domains may auto-provision. An empty/unset list means 'not configured' -> no
+    restriction, so enabling SSO never locks the org out by accident."""
+    if not licence_manager.edition_caps(licence_manager.current(db)).domain_allowlist_enforced:
+        return True
+    domains = [d.strip().lower() for d in (oidc_client.get_config(db).get("sso_allowed_domains") or []) if d.strip()]
+    if not domains:
+        return True
+    dom = email.rsplit("@", 1)[-1].lower() if "@" in email else ""
+    return dom in domains
+
+
 @router.post("/login")
 def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_db)):
+    if _password_login_disabled(db):
+        raise HTTPException(
+            status_code=403,
+            detail="Password sign-in is disabled on this licence. Please use single sign-on.",
+        )
     email = _normalise_email(body.email)
     user = db.query(User).filter(func.lower(User.email) == email).first()
     # Always run exactly one argon2 verify - against a dummy hash when the
@@ -193,6 +223,10 @@ def me(current_user: User = Depends(get_current_user), db: Session = Depends(get
         # hosted session, e.g. to show the admin Users tab only when auth is on.
         "auth_enabled": auth_enabled(),
         "demo_available": demo_available,
+        # Edition + licence state + effective capabilities, so the frontend can
+        # mirror enforcement (hide the password form under forced-SSO, disable the
+        # member export button, skip auto-update, show the read-only banner).
+        "licence": licence_manager.public_status(licence_manager.current(db), db),
     }
 
 
@@ -352,13 +386,17 @@ def oidc_callback(
         User.sso_provider == claims["iss"],
     ).first()
     if user is None:
-        # Seat check before provisioning a brand-new SSO user.
-        if not licence_manager.seat_available(licence_manager.current(db), db):
-            return RedirectResponse(url="/login?error=no_seats")
         # First SSO sign-in: provision a member account (no password). If the
         # email already belongs to an active account, link the SSO identity to it
         # (same IdP owns the org's addresses, so this is expected for enterprise).
         email = (claims.get("email") or f"{claims['sub']}@sso.local").strip().lower()
+        # Enterprise domain allowlist takes precedence over the seat check, so an
+        # off-domain address is refused even when seats remain.
+        if not _sso_domain_allowed(db, email):
+            return RedirectResponse(url="/login?error=domain_not_allowed")
+        # Seat check before provisioning a brand-new SSO user.
+        if not licence_manager.seat_available(licence_manager.current(db), db):
+            return RedirectResponse(url="/login?error=no_seats")
         user = User(
             email=email,
             display_name=claims.get("name"),
@@ -431,6 +469,11 @@ def set_password(
     db: Session = Depends(get_db),
 ):
     """Public. Consume a single-use token, set the password, and sign in."""
+    if _password_login_disabled(db):
+        raise HTTPException(
+            status_code=403,
+            detail="Password sign-in is disabled on this licence. Please use single sign-on.",
+        )
     prt = _valid_reset_token(db, body.token)
     if not prt:
         raise HTTPException(status_code=400, detail="This link is invalid or has expired.")

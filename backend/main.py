@@ -353,6 +353,47 @@ def _has_valid_session(token) -> bool:
         db.close()
 
 
+# ── Connector gate (flag-gated; Enterprise disables per-user connectors) ─────
+# When a licence is required and its edition disallows personal connectors
+# (Enterprise), the per-user integration connect/config/test/sync endpoints are
+# refused with 403. The public OAuth *callbacks* (provider hits, no cookie) and
+# plain GET reads (so the UI can show "managed by your admin") are left alone.
+# Defined BEFORE licence_gate so it is INNER to both it and auth_gate: 401
+# (not signed in) then 402 (read-only) then 403 (connector) is the precedence.
+_CONNECTOR_INTEGRATIONS = ("microsoft", "google", "jira", "github", "icloud", "dropbox")
+
+
+def _is_connector_action(path: str, method: str) -> bool:
+    for name in _CONNECTOR_INTEGRATIONS:
+        if path.startswith(f"/api/{name}/"):
+            if path.endswith("/auth/callback"):
+                return False                 # public provider redirect - never block
+            if path.endswith("/auth/login"):
+                return True                  # initiating a personal connection (GET redirect)
+            return method in ("POST", "PUT", "PATCH", "DELETE")  # config/exchange/test/sync/disconnect
+    return False
+
+
+@app.middleware("http")
+async def connector_gate(request, call_next):
+    if licence_manager.licence_required() and _is_connector_action(request.url.path, request.method):
+        db = SessionLocal()
+        try:
+            allowed = licence_manager.edition_caps(licence_manager.current(db)).personal_connectors_allowed
+        finally:
+            db.close()
+        if not allowed:
+            return JSONResponse(
+                {
+                    "detail": "Personal integrations are disabled on this licence. "
+                              "Your administrator manages connections.",
+                    "code": "connectors_disabled",
+                },
+                status_code=403,
+            )
+    return await call_next(request)
+
+
 # ── Licence gate (flag-gated; read-only on expiry / invalid / missing) ───────
 # When EFFRO_LICENCE_REQUIRED is on and the licence is in the read-only state
 # (over-grace, invalid signature, or required-but-missing), block mutating /api

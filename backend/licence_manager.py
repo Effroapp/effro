@@ -236,3 +236,86 @@ def edition_caps(ctx: LicenceContext) -> Capabilities:
         auto_update_enabled=not ent,
         member_self_export_default=not ent,
     )
+
+
+# ── Effective capabilities (edition default + admin config + env) ──────────────
+# The matrix is "derived from edition + admin config in one place" (spec §6).
+# edition_caps() above gives the edition DEFAULTS; the helpers below resolve the
+# few capabilities that an admin can set or that an env var pins at deploy.
+
+_AI_PIN_KEY = "ai_endpoint_pinned"          # "1" once an enterprise admin has set AI config
+_MEMBER_EXPORT_KEY = "member_self_export"   # admin override "1"/"0"; absent -> edition default
+
+
+def _get_setting(db, key) -> Optional[str]:
+    row = db.query(models.AppSettings).filter(models.AppSettings.key == key).first()
+    return row.value if row else None
+
+
+def _set_setting(db, key, value) -> None:
+    row = db.query(models.AppSettings).filter(models.AppSettings.key == key).first()
+    if row:
+        row.value = value
+    else:
+        db.add(models.AppSettings(key=key, value=value))
+
+
+def ai_endpoint_env() -> Optional[str]:
+    """A deploy-pinned AI endpoint (highest precedence; unchangeable in-app)."""
+    v = os.environ.get("EFFRO_AI_ENDPOINT")
+    return v.strip() if v and v.strip() else None
+
+
+def ai_pinned(db) -> bool:
+    return _get_setting(db, _AI_PIN_KEY) == "1"
+
+
+def mark_ai_pinned(db) -> None:
+    """Record that the AI config has been set once (Enterprise locks it after)."""
+    _set_setting(db, _AI_PIN_KEY, "1")
+    db.commit()
+
+
+def ai_config_locked(ctx: LicenceContext, db) -> bool:
+    """True when the AI provider/endpoint must NOT be changed in-app by anyone
+    (env-pinned, or Enterprise after the admin's one-time set)."""
+    if ai_endpoint_env():
+        return True
+    if not edition_caps(ctx).ai_endpoint_locked:
+        return False                        # Pro / desktop: freely configurable
+    return ai_pinned(db)                    # Enterprise: locked once set
+
+
+def member_self_export_allowed(ctx: LicenceContext, db) -> bool:
+    """Whether non-admin members may self-export (admins always may; caller checks
+    role). Admin override wins; otherwise the edition default (on Pro / off Ent)."""
+    override = _get_setting(db, _MEMBER_EXPORT_KEY)
+    if override in ("0", "1"):
+        return override == "1"
+    return edition_caps(ctx).member_self_export_default
+
+
+def set_member_self_export(db, allowed: bool) -> None:
+    _set_setting(db, _MEMBER_EXPORT_KEY, "1" if allowed else "0")
+    db.commit()
+
+
+def public_status(ctx: LicenceContext, db, now: Optional[date] = None) -> dict:
+    """Compact, non-secret licence view for /auth/me and the licence panel, so the
+    frontend can mirror the edition + state (read-only banner, hidden controls)."""
+    caps = edition_caps(ctx)
+    return {
+        "edition": ctx.edition,
+        "licence_required": licence_required(),
+        "state": state(ctx, now),
+        "seat_state": seat_state(ctx, db),
+        "capabilities": {
+            "ai_endpoint_locked": ai_config_locked(ctx, db),
+            "personal_connectors_allowed": caps.personal_connectors_allowed,
+            "forced_sso": caps.forced_sso,
+            "audit_always_on": caps.audit_always_on,
+            "domain_allowlist_enforced": caps.domain_allowlist_enforced,
+            "auto_update_enabled": caps.auto_update_enabled,
+            "member_self_export_allowed": member_self_export_allowed(ctx, db),
+        },
+    }

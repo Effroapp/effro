@@ -68,10 +68,13 @@ def get_config(db) -> dict:
         "client_id": cfg.get("client_id", ""),
         "discovery_url": cfg.get("discovery_url", ""),
         "has_secret": bool(cfg.get("client_secret_enc")),
+        # Enterprise SSO auto-provision allowlist (empty = no restriction).
+        "sso_allowed_domains": cfg.get("sso_allowed_domains") or [],
     }
 
 
-def save_config(db, *, enabled, provider_name, client_id, discovery_url, client_secret=None) -> dict:
+def save_config(db, *, enabled, provider_name, client_id, discovery_url,
+                client_secret=None, sso_allowed_domains=None) -> dict:
     cfg = _raw_config(db) or {}
     cfg["enabled"] = bool(enabled)
     cfg["provider_name"] = (provider_name or "").strip() or None
@@ -81,6 +84,11 @@ def save_config(db, *, enabled, provider_name, client_id, discovery_url, client_
     # leaves the password field blank keeps the existing secret).
     if client_secret:
         cfg["client_secret_enc"] = encrypt_secret(client_secret, db)
+    # None = leave the existing list untouched; a list (incl. []) replaces it.
+    if sso_allowed_domains is not None:
+        cfg["sso_allowed_domains"] = [
+            d.strip().lower() for d in sso_allowed_domains if isinstance(d, str) and d.strip()
+        ]
     _set(db, _CONFIG_KEY, json.dumps(cfg))
     return get_config(db)
 

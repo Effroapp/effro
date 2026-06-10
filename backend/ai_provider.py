@@ -23,6 +23,7 @@ Adding a new provider:
 from __future__ import annotations
 import json
 import logging
+import os
 from abc import ABC, abstractmethod
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -289,15 +290,23 @@ _AI_CONFIG_KEY = "ai_config"
 
 
 def _read_config(db: Session) -> dict:
-    """Read AI config from app_settings. Returns empty dict if not set."""
+    """Read AI config from app_settings. Returns empty dict if not set.
+
+    A deploy-pinned endpoint (EFFRO_AI_ENDPOINT, the Enterprise lock) takes
+    precedence over the stored base_url so the pin is effective at runtime, not
+    just refused at the write path (see routers/settings.update_ai_config)."""
     from models import AppSettings
     row = db.query(AppSettings).filter(AppSettings.key == _AI_CONFIG_KEY).first()
-    if not row or not row.value:
-        return {}
-    try:
-        return json.loads(row.value)
-    except Exception:
-        return {}
+    config = {}
+    if row and row.value:
+        try:
+            config = json.loads(row.value)
+        except Exception:
+            config = {}
+    pinned = os.environ.get("EFFRO_AI_ENDPOINT")
+    if pinned and pinned.strip():
+        config["base_url"] = pinned.strip()
+    return config
 
 
 def write_config(db: Session, config: dict) -> None:

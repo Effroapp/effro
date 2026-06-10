@@ -54,7 +54,7 @@ function saveDismissed(set) {
   }
 }
 
-export function useUpdater() {
+export function useUpdater({ enabled = true } = {}) {
   const [status, setStatus] = useState('idle')
   const [available, setAvailable] = useState(null)
   const [progress, setProgress] = useState(null)
@@ -63,6 +63,10 @@ export function useUpdater() {
 
   useEffect(() => {
     if (!isTauri()) return
+    // Enterprise licences disable auto-update (v1: no silent updates, no feed).
+    // The 1-hour debounce below means re-evaluating when `enabled` flips (e.g.
+    // once /auth/me loads) costs at most one extra check.
+    if (!enabled) return
 
     const now = Date.now()
     if (now - _lastCheckedAt < RECHECK_INTERVAL_MS) return
@@ -90,12 +94,11 @@ export function useUpdater() {
       })
 
     return () => { cancelled = true }
-    // We deliberately don't depend on `dismissed` here - the initial check
-    // should only run once per session-window, and re-runs of the effect
-    // when dismissed changes would re-trigger the network call. Subsequent
-    // dismissals are handled by the dismiss() callback below.
+    // Depend only on `enabled` (not `dismissed`): the initial check should run
+    // once per session-window; the module-scope debounce guards repeats if
+    // `enabled` toggles. Subsequent dismissals are handled by dismiss() below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [enabled])
 
   /** Persist dismissal of THIS version. Toast hides; badge persists. */
   const dismiss = useCallback(() => {

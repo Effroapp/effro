@@ -21,6 +21,7 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+import licence_manager
 from database import get_db
 from dependencies import get_current_user
 from auth_utils import SESSION_COOKIE, verify_password
@@ -47,6 +48,15 @@ def export_data(
     db: Session = Depends(get_db),
 ):
     """Return everything held for the user as a JSON download (data portability)."""
+    # Member self-export can be capped by edition (off by default in Enterprise,
+    # admin-toggleable). Admins always export; in read-only the licence_gate still
+    # allows GET /account/export so a customer can always get their data out.
+    ctx = licence_manager.current(db)
+    if current_user.role != "admin" and not licence_manager.member_self_export_allowed(ctx, db):
+        raise HTTPException(
+            status_code=403,
+            detail="Data export is managed by your administrator on this licence.",
+        )
     user = db.query(User).filter(User.id == current_user.id).first()
     user_data = None
     if user:

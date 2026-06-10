@@ -64,6 +64,8 @@ class OidcConfigIn(BaseModel):
     discovery_url: str = ""
     # Write-only; blank means keep the stored secret.
     client_secret: Optional[str] = None
+    # Enterprise SSO auto-provision allowlist. None = leave unchanged; [] clears.
+    sso_allowed_domains: Optional[list[str]] = None
 
 
 def _public(u: User) -> dict:
@@ -283,6 +285,7 @@ def put_oidc_config(
         client_id=body.client_id,
         discovery_url=body.discovery_url,
         client_secret=body.client_secret,
+        sso_allowed_domains=body.sso_allowed_domains,
     )
 
 

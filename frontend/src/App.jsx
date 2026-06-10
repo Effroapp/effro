@@ -7,6 +7,7 @@ import { useDisplayName } from './hooks/useDisplayName'
 import { useTextSize } from './hooks/useTextSize'
 import { useAvatar } from './hooks/useAvatar'
 import { useUpdater } from './hooks/useUpdater'
+import { useAuth } from './contexts/AuthContext'
 import SettingsMenu from './components/SettingsMenu'
 import UpdateToast from './components/UpdateToast'
 import { ToastProvider } from './components/Toast'
@@ -39,7 +40,12 @@ export default function App() {
   const { displayName, setDisplayName } = useDisplayName()
   const { textSize, setTextSize } = useTextSize()
   const { avatar, setAvatar } = useAvatar()
-  const updater = useUpdater()    // no-op outside Tauri
+  const { user } = useAuth()
+  // Enterprise licences disable auto-update (v1: updater is a no-op). Default to
+  // enabled until /auth/me loads or when no licence info is present (Pro/desktop).
+  const updater = useUpdater({
+    enabled: user?.licence?.capabilities?.auto_update_enabled !== false,
+  })    // no-op outside Tauri
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const [newAreaOpen, setNewAreaOpen] = useState(false)
   const [booting, setBooting] = useState(true)
