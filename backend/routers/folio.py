@@ -31,8 +31,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import folio_capture
+import folio_synth
 import folio_vision
 import models
+from ai_provider import get_provider
 from database import get_db
 from dependencies import require_folio_enabled
 
@@ -181,8 +183,16 @@ def get_folio(folio_id: int, db: Session = Depends(get_db)):
     if not folio:
         raise HTTPException(status_code=404, detail="Folio not found.")
     cur = next((d for d in folio.digests if d.is_current), None)
+    # Staleness: captures added since the current digest was pulled together.
+    # Drives the quiet "N new since this was pulled together" refresh nudge.
+    if cur:
+        seen = set(json.loads(cur.based_on_capture_ids or "[]"))
+        new_capture_count = sum(1 for c in folio.captures if c.id not in seen)
+    else:
+        new_capture_count = 0
     return {
         **_folio_summary(folio),
+        "new_capture_count": new_capture_count,
         "captures": [
             {
                 "id": c.id, "type": c.type, "raw_content": c.raw_content,
@@ -346,3 +356,135 @@ def delete_capture(folio_id: int, capture_id: int, db: Session = Depends(get_db)
     db.refresh(folio)
     reindex_folio(db, folio)
     return {"ok": True}
+
+
+# ── Digest: pull-it-together, edit, version history ───────────────────────────
+
+class DigestEdit(BaseModel):
+    summary: Optional[str] = None
+    key_points: Optional[list[str]] = None
+    sources: Optional[list[str]] = None
+    open_threads: Optional[list[str]] = None
+
+
+def _digest_out(d: "models.Digest") -> dict:
+    return {
+        "id": d.id, "version": d.version, "is_current": d.is_current,
+        "summary": d.summary,
+        "key_points": json.loads(d.key_points or "[]"),
+        "sources": json.loads(d.sources or "[]"),
+        "open_threads": json.loads(d.open_threads or "[]"),
+        "based_on_capture_ids": json.loads(d.based_on_capture_ids or "[]"),
+        "generated_at": d.generated_at,
+    }
+
+
+def _digest_dict(d: "models.Digest") -> dict:
+    return {
+        "summary": d.summary,
+        "key_points": json.loads(d.key_points or "[]"),
+        "sources": json.loads(d.sources or "[]"),
+        "open_threads": json.loads(d.open_threads or "[]"),
+    }
+
+
+@router.post("/folios/{folio_id}/pull-together")
+def pull_together(folio_id: int, db: Session = Depends(get_db)):
+    """Turn the captures into a grounded digest. On a folio that already has a
+    digest, the current one (with the user's edits) is fed back as the settled
+    base and only the new captures are folded in. Always writes a NEW version
+    and keeps the previous, so a refresh can be undone."""
+    folio = _require_folio(db, folio_id)
+    caps = sorted(folio.captures, key=lambda c: c.id)
+    cap_dicts = [{
+        "id": c.id, "type": c.type, "extracted_text": c.extracted_text,
+        "source_meta": json.loads(c.source_meta) if c.source_meta else {},
+    } for c in caps]
+    if not any((c["extracted_text"] or "").strip() for c in cap_dicts):
+        raise HTTPException(status_code=400, detail="Add a capture with some readable text first.")
+
+    prior = next((d for d in folio.digests if d.is_current), None)
+    provider = get_provider(db)
+    try:
+        if prior:
+            prior_ids = set(json.loads(prior.based_on_capture_ids or "[]"))
+            new_ids = [c["id"] for c in cap_dicts if c["id"] not in prior_ids]
+            if new_ids:
+                result = folio_synth.synthesize(provider, cap_dicts, prior=_digest_dict(prior), new_capture_ids=new_ids)
+            else:
+                # Nothing new - a full re-pull from all captures (a deliberate redo).
+                result = folio_synth.synthesize(provider, cap_dicts)
+        else:
+            result = folio_synth.synthesize(provider, cap_dicts)
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    next_version = max((d.version for d in folio.digests), default=0) + 1
+    for d in folio.digests:
+        d.is_current = False
+    digest = models.Digest(
+        folio_id=folio.id, version=next_version, is_current=True,
+        summary=result["summary"],
+        key_points=json.dumps(result["key_points"]),
+        sources=json.dumps(result["sources"]),
+        open_threads=json.dumps(result["open_threads"]),
+        based_on_capture_ids=json.dumps([c["id"] for c in cap_dicts]),
+    )
+    db.add(digest)
+    folio.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(digest)
+    db.refresh(folio)
+    reindex_folio(db, folio)
+    return _digest_out(digest)
+
+
+@router.patch("/folios/{folio_id}/digest")
+def edit_digest(folio_id: int, body: DigestEdit, db: Session = Depends(get_db)):
+    """Edit the current digest in place. Edits live on the current version and
+    are fed back as the settled base on the next pull-together, so a refresh
+    never rewrites lines the person crafted."""
+    folio = _require_folio(db, folio_id)
+    cur = next((d for d in folio.digests if d.is_current), None)
+    if not cur:
+        raise HTTPException(status_code=404, detail="There is no digest yet. Pull it together first.")
+    if body.summary is not None:
+        cur.summary = body.summary
+    if body.key_points is not None:
+        cur.key_points = json.dumps([s for s in body.key_points if isinstance(s, str)])
+    if body.sources is not None:
+        cur.sources = json.dumps([s for s in body.sources if isinstance(s, str)])
+    if body.open_threads is not None:
+        cur.open_threads = json.dumps([s for s in body.open_threads if isinstance(s, str)])
+    db.commit()
+    db.refresh(cur)
+    reindex_folio(db, folio)
+    return _digest_out(cur)
+
+
+@router.get("/folios/{folio_id}/digest/versions")
+def list_digest_versions(folio_id: int, db: Session = Depends(get_db)):
+    folio = _require_folio(db, folio_id)
+    versions = sorted(folio.digests, key=lambda d: d.version, reverse=True)
+    return [{"version": d.version, "is_current": d.is_current, "generated_at": d.generated_at}
+            for d in versions]
+
+
+@router.post("/folios/{folio_id}/digest/restore")
+def restore_digest_version(folio_id: int, body: dict, db: Session = Depends(get_db)):
+    """Undo a refresh by making an earlier version current again. Nothing is
+    deleted - it just flips which version is shown."""
+    folio = _require_folio(db, folio_id)
+    target = body.get("version")
+    match = next((d for d in folio.digests if d.version == target), None)
+    if not match:
+        raise HTTPException(status_code=404, detail="That version does not exist.")
+    for d in folio.digests:
+        d.is_current = (d.version == target)
+    folio.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(match)
+    reindex_folio(db, folio)
+    return _digest_out(match)

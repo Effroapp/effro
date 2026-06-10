@@ -156,6 +156,7 @@ a = Analysis(
         'routers.folio',
         'folio_capture',
         'folio_vision',
+        'folio_synth',
     ],
     hookspath=[],
     hooksconfig={},
