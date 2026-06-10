@@ -107,13 +107,33 @@ export const adminApi = {
 // ─── Folio (deep-research capture -> digest; gated by EFFRO_FOLIO_ENABLED) ────
 
 export const folioApi = {
-  list: () => request('/folios'),
+  list: (q) => request(`/folios${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   create: (payload) => request('/folios', { method: 'POST', body: payload }),
   get: (id) => request(`/folios/${id}`),
   update: (id, payload) => request(`/folios/${id}`, { method: 'PATCH', body: payload }),
   remove: (id) => request(`/folios/${id}`, { method: 'DELETE' }),
   listTopics: () => request('/folios/topics'),
   createTopic: (name) => request('/folios/topics', { method: 'POST', body: { name } }),
+  // Captures
+  addCapture: (id, payload) => request(`/folios/${id}/captures`, { method: 'POST', body: payload }),
+  uploadCapture: async (id, file) => {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch(`/api/folios/${id}/captures/upload`, { method: 'POST', body: form, credentials: 'include' })
+    if (!res.ok) {
+      if (res.status === 401) window.dispatchEvent(new Event('effro:unauthorized'))
+      let msg = `HTTP ${res.status}`
+      try { msg = (await res.json()).detail || msg } catch { /* ignore */ }
+      throw new Error(msg)
+    }
+    return res.json()
+  },
+  deleteCapture: (id, captureId) => request(`/folios/${id}/captures/${captureId}`, { method: 'DELETE' }),
+  // Digest: pull together, edit in place, version history
+  pullTogether: (id) => request(`/folios/${id}/pull-together`, { method: 'POST' }),
+  editDigest: (id, payload) => request(`/folios/${id}/digest`, { method: 'PATCH', body: payload }),
+  digestVersions: (id) => request(`/folios/${id}/digest/versions`),
+  restoreDigest: (id, version) => request(`/folios/${id}/digest/restore`, { method: 'POST', body: { version } }),
 }
 
 // ─── Areas ────────────────────────────────────────────────────────────────────

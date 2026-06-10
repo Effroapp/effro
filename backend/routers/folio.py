@@ -20,6 +20,7 @@ Routes (under /api):
 import json
 import logging
 import os
+import re
 import uuid
 from datetime import datetime
 from typing import Optional
@@ -111,17 +112,65 @@ def _topic_out(t: "models.Topic") -> dict:
 
 
 def _folio_summary(f: "models.Folio") -> dict:
-    """List-row shape: enough for the index without loading every capture body."""
+    """Index-row shape: the faces of what is inside a dive (capture source
+    favicons + a thumbnail), a short snippet, plus counts and recency."""
+    caps = sorted(f.captures, key=lambda c: c.id)
+    cur = next((d for d in f.digests if d.is_current), None)
+
+    # Snippet: prefer the digest summary, else the first capture's text.
+    snippet = ""
+    if cur and cur.summary:
+        snippet = cur.summary
+    elif caps:
+        snippet = caps[0].extracted_text or caps[0].raw_content or ""
+    snippet = " ".join(snippet.split())[:240]
+
+    # Faces: real favicons for links, a type marker otherwise (up to 6).
+    faces = []
+    for c in caps:
+        meta = json.loads(c.source_meta) if c.source_meta else {}
+        if c.type == "link":
+            faces.append({"type": "link", "favicon_url": meta.get("favicon_url"), "domain": meta.get("domain")})
+        else:
+            faces.append({"type": c.type})
+        if len(faces) >= 6:
+            break
+
+    # Thumbnail: the first image capture, served from /uploads.
+    thumb_url = next((f"/uploads/{c.raw_content}" for c in caps if c.type == "image" and c.raw_content), None)
+
     return {
         "id": f.id,
         "title": f.title,
         "area_id": f.area_id,
-        "capture_count": len(f.captures),
-        "has_digest": any(d.is_current for d in f.digests),
+        "capture_count": len(caps),
+        "has_digest": cur is not None,
+        "snippet": snippet,
+        "faces": faces,
+        "thumb_url": thumb_url,
         "topics": [_topic_out(t) for t in f.topics],
         "created_at": f.created_at,
         "updated_at": f.updated_at,
     }
+
+
+def _search_ids(db: Session, q: str) -> list[int]:
+    """FTS5 search over folio titles + capture text + digest content. Tokens are
+    reduced to alphanumerics and turned into prefix queries (forgiving), so a
+    raw user string can never inject FTS5 query syntax."""
+    tokens = re.findall(r"[A-Za-z0-9]+", q or "")
+    if not tokens:
+        return []
+    match = " OR ".join(f"{t}*" for t in tokens)
+    try:
+        rows = db.execute(
+            text("SELECT folio_id FROM folio_fts WHERE folio_fts MATCH :m ORDER BY rank"),
+            {"m": match},
+        ).fetchall()
+        return [r[0] for r in rows]
+    except Exception as e:
+        log.warning("folio search failed: %s", e)
+        return []
 
 
 # ── Topics ──────────────────────────────────────────────────────────────────--
@@ -160,8 +209,18 @@ def _apply_topics(db: Session, folio: "models.Folio", topic_ids: Optional[list[i
 
 
 @router.get("/folios")
-def list_folios(db: Session = Depends(get_db)):
-    folios = db.query(models.Folio).order_by(models.Folio.updated_at.desc()).all()
+def list_folios(q: Optional[str] = None, db: Session = Depends(get_db)):
+    """List folios, most-recently-touched first. With ?q=, return FTS matches
+    in rank order instead (search is the primary way back to a quiet folio)."""
+    if q and q.strip():
+        ids = _search_ids(db, q)
+        if not ids:
+            return []
+        folios = db.query(models.Folio).filter(models.Folio.id.in_(ids)).all()
+        order = {fid: i for i, fid in enumerate(ids)}
+        folios.sort(key=lambda f: order.get(f.id, 1_000_000))
+    else:
+        folios = db.query(models.Folio).order_by(models.Folio.updated_at.desc()).all()
     return [_folio_summary(f) for f in folios]
 
 
