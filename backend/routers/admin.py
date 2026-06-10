@@ -12,6 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+import demo_seed
 import email_client
 import licence_manager
 import oidc_client
@@ -237,6 +238,28 @@ def revoke_user_sessions(
         s.is_active = False
     db.commit()
     return {"revoked": len(rows)}
+
+
+# ── Demo data (admin; showcase only) ──────────────────────────────────────────
+
+@router.post("/demo/seed")
+def load_demo_data(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Load (or reload) the showcase demo dataset.
+
+    Guarded so it can NEVER destroy real work: it only runs on an instance that
+    is empty (no areas) or one that has already been seeded with demo data.
+    On a populated real instance it refuses with 409. It wipes content tables
+    only - users, sessions, settings and the licence are left untouched - and
+    re-centres all dates on today, so reloading mid-demo gives fresh data.
+    """
+    if demo_seed.area_count(db) > 0 and not demo_seed.is_demo(db):
+        raise HTTPException(
+            status_code=409,
+            detail="This instance already has data. Loading demo data is only available on an "
+                   "empty or demo instance, so it cannot overwrite real work.",
+        )
+    counts = demo_seed.reset_and_seed(db)
+    return {"ok": True, **counts}
 
 
 # ── OIDC SSO configuration (admin) ────────────────────────────────────────────

@@ -21,6 +21,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+import demo_seed
 import licence_manager
 import oidc_client
 from database import get_db
@@ -173,9 +174,15 @@ def logout(
 
 
 @router.get("/me")
-def me(current_user: User = Depends(get_current_user)):
+def me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Return the signed-in user. When EFFRO_AUTH_ENABLED is off this is the
     synthetic local admin (see dependencies.get_current_user)."""
+    # Offer the "Load demo data" button only to an admin on an instance that is
+    # empty or already a demo - so it can never appear where it could clobber
+    # real work (see routers/admin.load_demo_data for the matching guard).
+    demo_available = current_user.role == "admin" and (
+        demo_seed.area_count(db) == 0 or demo_seed.is_demo(db)
+    )
     return {
         "id": current_user.id,
         "email": current_user.email,
@@ -185,6 +192,7 @@ def me(current_user: User = Depends(get_current_user)):
         # Lets the frontend tell desktop (gate open, synthetic admin) from a real
         # hosted session, e.g. to show the admin Users tab only when auth is on.
         "auth_enabled": auth_enabled(),
+        "demo_available": demo_available,
     }
 
 

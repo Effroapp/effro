@@ -4,7 +4,7 @@ import {
   Settings as SettingsIcon, ArrowLeft, Cpu, FolderOpen, RefreshCw,
   AlertCircle, Download, Zap, ChevronRight, ChevronLeft,
   CheckCircle2, XCircle, Loader2, ExternalLink,
-  Database, CloudOff, Plug, Info, Users, ShieldCheck,
+  Database, CloudOff, Plug, Info, Users, ShieldCheck, Sparkles,
 } from 'lucide-react'
 import {
   isTauri,
@@ -25,6 +25,8 @@ import ProviderLogo from '../components/ProviderLogos'
 import { useAppVersion } from '../hooks/useAppVersion'
 import { notifyAIConfigChanged } from '../hooks/useAIConfigured'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../components/Toast'
+import { adminApi } from '../api/client'
 import UsersSection from '../components/UsersSection'
 import AccountSection from '../components/AccountSection'
 
@@ -161,6 +163,7 @@ export default function SystemSettings({ updater }) {
           {tab === 'about' && (
             <>
               {isTauri() && <UpdateSection updater={updater} />}
+              {user?.demo_available && <DemoDataSection />}
               <AboutSection />
             </>
           )}
@@ -1084,6 +1087,93 @@ function StorageSection({ id }) {
         />
       )}
     </>
+  )
+}
+
+// ─── Demo data (showcase only) ────────────────────────────────────────────────
+// Only rendered when /auth/me reports demo_available (admin on an empty or
+// already-demo instance), so it can never appear where it could clobber real
+// work. The matching server guard lives in routers/admin.load_demo_data.
+
+function DemoDataSection() {
+  const toast = useToast()
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const load = async () => {
+    setBusy(true)
+    try {
+      const r = await adminApi.loadDemoData()
+      toast(`Demo data loaded (${r.areas} areas, ${r.entries} entries). Refreshing…`)
+      setTimeout(() => window.location.reload(), 700)
+    } catch (e) {
+      toast(e.message || 'Could not load the demo data', 'error')
+      setBusy(false)
+      setConfirming(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        icon={Sparkles}
+        title="Demo data"
+        subtitle="Fill this instance with a realistic sample workspace for showing Effro to others."
+      />
+      <p className="text-sm text-paper-600 dark:text-paper-400 mb-4 leading-relaxed">
+        Loads one coherent example: a few areas, threads, to-dos, meetings, signals to triage and a
+        working rhythm, all dated around today so Insights looks alive. It only appears on an empty
+        or demo instance, so it cannot overwrite real work, and it leaves users, settings and
+        sign-in untouched. Run it again any time to refresh the dates.
+      </p>
+      {!confirming ? (
+        <button
+          onClick={() => setConfirming(true)}
+          className="
+            flex items-center justify-center gap-2
+            px-4 py-2.5 rounded-lg text-sm font-semibold
+            bg-mint-700 hover:bg-mint-800 text-white transition-colors
+          "
+        >
+          <Sparkles size={14} />
+          Load demo data
+        </button>
+      ) : (
+        <div className="rounded-lg p-4 bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500">
+          <p className="text-sm text-pitch-700 dark:text-paper-300 mb-3 leading-relaxed">
+            This replaces everything currently in this instance with the demo dataset. Continue?
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={load}
+              disabled={busy}
+              className="
+                flex items-center justify-center gap-2
+                px-4 py-2.5 rounded-lg text-sm font-semibold
+                bg-mint-700 hover:bg-mint-800 text-white
+                disabled:opacity-40 disabled:cursor-not-allowed transition-colors
+              "
+            >
+              {busy
+                ? (<><Loader2 size={14} className="animate-spin" /> Loading…</>)
+                : 'Yes, load demo data'}
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              disabled={busy}
+              className="
+                px-4 py-2.5 rounded-lg text-sm
+                text-paper-700 dark:text-paper-300
+                hover:bg-paper-200 dark:hover:bg-pitch-700
+                disabled:opacity-40 transition-colors
+              "
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </Card>
   )
 }
 

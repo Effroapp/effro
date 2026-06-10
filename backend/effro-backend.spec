@@ -146,6 +146,7 @@ a = Analysis(
         'dependencies',
         'oidc_client',
         'email_client',
+        'demo_seed',
         'routers.auth',
         'routers.account',
         'routers.admin',
