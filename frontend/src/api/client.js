@@ -104,6 +104,18 @@ export const adminApi = {
   saveLicence: (key) => request('/admin/licence', { method: 'PUT', body: { key } }),
 }
 
+// ─── Folio (deep-research capture -> digest; gated by EFFRO_FOLIO_ENABLED) ────
+
+export const folioApi = {
+  list: () => request('/folios'),
+  create: (payload) => request('/folios', { method: 'POST', body: payload }),
+  get: (id) => request(`/folios/${id}`),
+  update: (id, payload) => request(`/folios/${id}`, { method: 'PATCH', body: payload }),
+  remove: (id) => request(`/folios/${id}`, { method: 'DELETE' }),
+  listTopics: () => request('/folios/topics'),
+  createTopic: (name) => request('/folios/topics', { method: 'POST', body: { name } }),
+}
+
 // ─── Areas ────────────────────────────────────────────────────────────────────
 
 export const areasApi = {

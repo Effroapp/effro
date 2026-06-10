@@ -25,7 +25,7 @@ import demo_seed
 import licence_manager
 import oidc_client
 from database import get_db
-from dependencies import auth_enabled, get_current_user
+from dependencies import auth_enabled, folio_enabled, get_current_user
 from models import User, UserSession, PasswordResetToken
 from auth_utils import (
     DUMMY_PASSWORD_HASH,
@@ -252,6 +252,8 @@ def me(current_user: User = Depends(get_current_user), db: Session = Depends(get
         # mirror enforcement (hide the password form under forced-SSO, disable the
         # member export button, skip auto-update, show the read-only banner).
         "licence": licence_manager.public_status(licence_manager.current(db), db),
+        # Gates the Folios nav item / routes in the frontend.
+        "folio_enabled": folio_enabled(),
     }
 
 

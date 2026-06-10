@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Boolean, Date
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Boolean, Date, Table
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import func
 from database import Base
@@ -543,3 +543,87 @@ class DeletionLog(Base):
     email_hash = Column(String(64), nullable=False)  # sha256 hex of the email
     deleted_at = Column(DateTime, server_default=func.now())
     reason = Column(String(200), nullable=True)
+
+
+# ── Folio (deep-research capture -> digest) ───────────────────────────────────
+# A folio holds the captures of one research dive and the digest pulled together
+# from them. Gated by EFFRO_FOLIO_ENABLED (see dependencies.folio_enabled). v1 is
+# deliberately minimal per the build spec: no status/sensitive/template fields,
+# recency is just updated_at. JSON-bearing fields are stored as TEXT and
+# json-encoded, matching the rest of the codebase (no JSON column type in use).
+
+folio_topics = Table(
+    "folio_topics",
+    Base.metadata,
+    Column("folio_id", Integer, ForeignKey("folios.id", ondelete="CASCADE"), primary_key=True),
+    Column("topic_id", Integer, ForeignKey("topics.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class Folio(Base):
+    __tablename__ = "folios"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(200), nullable=True)        # can be set later / auto-drafted
+    area_id = Column(Integer, ForeignKey("areas.id"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    # Recency (the index's "recent vs earlier" grouping) comes from updated_at.
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    area = relationship("Area")
+    captures = relationship("Capture", back_populates="folio", cascade="all, delete-orphan")
+    digests = relationship("Digest", back_populates="folio", cascade="all, delete-orphan")
+    topics = relationship("Topic", secondary=folio_topics, back_populates="folios")
+
+
+class Capture(Base):
+    __tablename__ = "captures"
+
+    id = Column(Integer, primary_key=True, index=True)
+    folio_id = Column(Integer, ForeignKey("folios.id", ondelete="CASCADE"), nullable=False)
+    # link | note | file | image
+    type = Column(String(20), nullable=False)
+    # The raw content: a URL (link), the text (note), or the stored file path
+    # (file/image).
+    raw_content = Column(Text, default="")
+    # Readable text pulled at capture time: article text, file text, or the
+    # vision-model read of an image. Feeds both search and synthesis.
+    extracted_text = Column(Text, default="")
+    # JSON: {"domain", "title", "favicon_url", ...} - varies by capture type.
+    source_meta = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    folio = relationship("Folio", back_populates="captures")
+
+
+class Digest(Base):
+    __tablename__ = "digests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    folio_id = Column(Integer, ForeignKey("folios.id", ondelete="CASCADE"), nullable=False)
+    # Monotonic per folio; each pull-together inserts a new row and flips the
+    # previous is_current to False. Nothing is ever overwritten.
+    version = Column(Integer, nullable=False, default=1)
+    is_current = Column(Boolean, nullable=False, default=True)
+    # Structured fields, kept separate so each section stays independently
+    # editable and grounding can be checked per claim. summary is prose;
+    # key_points / sources / open_threads / based_on_capture_ids are JSON lists.
+    summary = Column(Text, default="")
+    key_points = Column(Text, default="[]")
+    sources = Column(Text, default="[]")
+    open_threads = Column(Text, default="[]")
+    based_on_capture_ids = Column(Text, default="[]")
+    generated_at = Column(DateTime, server_default=func.now())
+
+    folio = relationship("Folio", back_populates="digests")
+
+
+class Topic(Base):
+    """Flat, manual tags for folios (no nesting, no AI suggestion in v1)."""
+    __tablename__ = "topics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    folios = relationship("Folio", secondary=folio_topics, back_populates="topics")

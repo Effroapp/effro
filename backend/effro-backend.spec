@@ -153,6 +153,7 @@ a = Analysis(
         'routers.auth',
         'routers.account',
         'routers.admin',
+        'routers.folio',
     ],
     hookspath=[],
     hooksconfig={},

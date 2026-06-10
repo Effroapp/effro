@@ -94,6 +94,7 @@ from routers import (
     icloud as icloud_router,
     github as github_router,
     presence as presence_router,
+    folio as folio_router,
 )
 
 # Effro. launches with no seeded areas - the user creates their own from the
@@ -191,6 +192,14 @@ def _init_db():
             "ALTER TABLE audit_logs ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL",
             # GDPR account-deletion tombstone
             "CREATE TABLE IF NOT EXISTS deletion_log (id INTEGER PRIMARY KEY, email_hash VARCHAR(64) NOT NULL, deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP, reason VARCHAR(200))",
+            # ── Folio (flag-gated via EFFRO_FOLIO_ENABLED) ──────────────────────
+            # The folios/captures/digests/topics tables are ORM models created by
+            # create_all above. This standalone FTS5 index is the only raw add:
+            # the folio router keeps it in sync per folio (title + every capture's
+            # extracted_text + the current digest). folio_id is UNINDEXED so it is
+            # stored for lookup but not tokenised. No-ops harmlessly (try/except
+            # below) if a build's SQLite lacks FTS5 - search just returns nothing.
+            "CREATE VIRTUAL TABLE IF NOT EXISTS folio_fts USING fts5(folio_id UNINDEXED, title, body)",
         ]:
             try:
                 conn.execute(text(sql))
@@ -515,6 +524,7 @@ app.include_router(dropbox_router.router, prefix="/api")
 app.include_router(icloud_router.router, prefix="/api")
 app.include_router(github_router.router, prefix="/api")
 app.include_router(presence_router.router, prefix="/api")
+app.include_router(folio_router.router, prefix="/api")
 
 # Serve uploaded files at /uploads/<stored_name>
 if os.path.exists(UPLOAD_DIR):
