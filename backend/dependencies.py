@@ -36,8 +36,9 @@ def auth_enabled() -> bool:
 
 def folio_enabled() -> bool:
     """True when the Folio feature is switched on (read at call time, like the
-    auth/licence flags). Off by default so Folio ships dark."""
-    return os.environ.get("EFFRO_FOLIO_ENABLED", "").strip().lower() in (
+    auth/licence flags). On by default now that Folio has shipped; set
+    EFFRO_FOLIO_ENABLED to a falsey value (0/false/no/off) to hide it again."""
+    return os.environ.get("EFFRO_FOLIO_ENABLED", "true").strip().lower() in (
         "1", "true", "yes", "on",
     )
 
