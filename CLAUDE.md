@@ -17,16 +17,19 @@ already use and pull the important bits into one place. Core ideas:
 - **Insights**: the flagship reflective page - Reflect (Today / This week),
   Ahead, Balance. Productivity metrics, grounded AI narratives, heartbeat-derived
   working window.
+- **Folio**: a deep-research workspace - capture a dive (links, notes, files,
+  images) into a folio, then "pull it together" into one grounded, reading-first
+  digest. Default-on; hideable via `EFFRO_FOLIO_ENABLED=false`.
 - Guiding principles: (1) **Accurate** above all; (2) **Calm & positive** -
   never overwhelm an ADHD reader; (3) **well-designed, consistent, descriptive**,
   with tasteful animation and give-the-user-control affordances (dismissible
   cards, hide toggles).
 
 ## Where it lives
-- GitHub: `github.com/Effroapp/effro`. Default branch `main`; active work branch
-  `feature/effro-rebrand`.
-- Current shipped version: **v0.11.0** (stable). Next: **v0.12.0 = "connectivity
-  & integrations"**.
+- GitHub: `github.com/Effroapp/effro`. Default branch `main`. Feature work lands
+  on short-lived `feature/*` branches via PR.
+- Latest full release: **v0.12.1**. In development: **v0.13.0** (release
+  candidates being cut). Next theme: **"connectivity & integrations"**.
 
 ## Architecture (three tiers)
 1. **Desktop shell** - Tauri v2 (Rust) in `src-tauri/`. Spawns the backend as a
@@ -48,7 +51,7 @@ already use and pull the important bits into one place. Core ideas:
 - `models.py` (SQLAlchemy models), `schemas.py` (Pydantic).
 - `routers/*.py` - areas, threads, entries, attachments, generate, ingest,
   settings, storage, subtasks, ai_features, nudges, insights, signals, presence,
-  and per-integration: microsoft, jira, google, dropbox, icloud, github.
+  folio, and per-integration: microsoft, jira, google, dropbox, icloud, github.
 - Integrations follow a repeatable pattern: `<name>_client.py` (API/OAuth client)
   + `services_<name>.py` (sync -> upserts into `signal_items`) +
   `routers/<name>.py` (config/profile/test/auth/sync-now).
@@ -150,11 +153,16 @@ already use and pull the important bits into one place. Core ideas:
   (Nextcloud, Google Drive, Dropbox, S3-compatible, WebDAV); tabbed Settings with
   ADHD-first intro cards + official icons + connected/Add; system-browser links;
   timeout-hardened installer.
-- **v0.12.0 (next) - connectivity & integrations**: inbound webhook + a small
-  cloud relay (so Zapier/Make/native automations can push work items to the
-  local app), then native integrations (Notion, Linear, Asana, Trello, Zoho,
-  GitLab, the Atlassian suite incl. Confluence, Azure DevOps, Monday, ClickUp);
-  telemetry (PostHog EU, opt-out); dead-code sweep + spec-doc sync.
+- **v0.12.x (shipped)**: Effro rebrand (Trace -> Effro); auth / sessions / GDPR
+  with optional Entra OIDC SSO (flag-gated, off on desktop); licensing + editions
+  (community / enterprise, Ed25519-signed keys); "Load demo data".
+- **v0.13.0 (in development)**: Folio - deep-research capture (link / note / file
+  / image) pulled together into one grounded digest. Shipping enabled by default.
+- **Next theme - connectivity & integrations**: inbound webhook + a small cloud
+  relay (so Zapier/Make/native automations can push work items to the local app),
+  then native integrations (Notion, Linear, Asana, Trello, Zoho, GitLab, the
+  Atlassian suite incl. Confluence, Azure DevOps, Monday, ClickUp); telemetry
+  (PostHog EU, opt-out); dead-code sweep + spec-doc sync.
 
 ## Authentication, sessions & GDPR (flag-gated)
 Effro carries a full auth layer that is **off by default** so the desktop app
