@@ -76,7 +76,7 @@ export default function FolioView() {
 
   return (
     <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
-      <div className="max-w-2xl mx-auto px-6 py-7">
+      <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
         {/* Back */}
         <button
           onClick={() => navigate('/folios')}
@@ -125,9 +125,14 @@ export default function FolioView() {
           </button>
         </div>
 
-        {view === 'read'
-          ? <ReadView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} onGoCaptures={focusAdd} />
-          : <CapturesView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} noteRef={noteRef} />}
+        {/* Reading / working column: comfortable measure inside the page-wide
+            chrome, so the digest stays readable and the captures area lines up
+            under the header rather than sprawling the full width. */}
+        <div className="max-w-4xl">
+          {view === 'read'
+            ? <ReadView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} onGoCaptures={focusAdd} />
+            : <CapturesView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} noteRef={noteRef} />}
+        </div>
       </div>
     </div>
   )
