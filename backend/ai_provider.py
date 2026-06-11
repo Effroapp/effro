@@ -30,6 +30,14 @@ from sqlalchemy.orm import Session
 
 log = logging.getLogger("effro.ai")
 
+# Prompt for Folio image capture. Plain, no commentary, so the result is clean
+# searchable text. British English to match the house voice.
+_OCR_PROMPT = (
+    "Read all of the text in this image exactly as it appears, including any "
+    "handwriting. Return only that text, with no commentary, headings or "
+    "description. If the image contains no readable text, return nothing."
+)
+
 
 # ─── Provider presets ─────────────────────────────────────────────────────────
 # Keyed by provider id. Each entry feeds:
@@ -120,6 +128,13 @@ class AIProvider(ABC):
         """
         ...
 
+    def read_image(self, image_bytes: bytes, media_type: str) -> str:
+        """Read all text in an image (incl. handwriting) and return it verbatim.
+        Used by Folio image capture. Default: not supported - subclasses that
+        can do vision override this. Callers treat any RuntimeError as 'could
+        not read', never a crash."""
+        raise RuntimeError("This AI engine does not support reading images.")
+
     def test(self) -> tuple[bool, str]:
         """
         Quick sanity-check used by the Settings → AI Engine "Test" button.
@@ -171,6 +186,29 @@ class AnthropicProvider(AIProvider):
         except Exception as e:
             raise RuntimeError(_friendly_error(e))
 
+    def read_image(self, image_bytes: bytes, media_type: str) -> str:
+        import base64
+        from anthropic import Anthropic
+        kwargs = {"api_key": self._api_key}
+        if self._base_url:
+            kwargs["base_url"] = self._base_url
+        client = Anthropic(**kwargs)
+        resp = client.messages.create(
+            model=self._model,
+            max_tokens=2000,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "image", "source": {
+                        "type": "base64", "media_type": media_type,
+                        "data": base64.b64encode(image_bytes).decode(),
+                    }},
+                    {"type": "text", "text": _OCR_PROMPT},
+                ],
+            }],
+        )
+        return resp.content[0].text
+
 
 # ─── OpenAI-compatible adapter ────────────────────────────────────────────────
 # One adapter, many providers - anything that speaks the OpenAI chat API
@@ -208,6 +246,27 @@ class OpenAICompatProvider(AIProvider):
             raise RuntimeError("openai package not installed. Run: pip install openai")
         except Exception as e:
             raise RuntimeError(_friendly_error(e))
+
+    def read_image(self, image_bytes: bytes, media_type: str) -> str:
+        import base64
+        from openai import OpenAI
+        kwargs = {"api_key": self._api_key}
+        if self._base_url:
+            kwargs["base_url"] = self._base_url
+        client = OpenAI(**kwargs)
+        data_uri = f"data:{media_type};base64,{base64.b64encode(image_bytes).decode()}"
+        resp = client.chat.completions.create(
+            model=self._model,
+            max_tokens=2000,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": _OCR_PROMPT},
+                    {"type": "image_url", "image_url": {"url": data_uri}},
+                ],
+            }],
+        )
+        return resp.choices[0].message.content
 
 
 # ─── Factory ──────────────────────────────────────────────────────────────────
@@ -285,6 +344,9 @@ class _UnconfiguredProvider(AIProvider):
         self._message = message
 
     def complete(self, system: str, messages: list[dict], max_tokens: int = 1000) -> str:
+        raise RuntimeError(self._message)
+
+    def read_image(self, image_bytes: bytes, media_type: str) -> str:
         raise RuntimeError(self._message)
 
     def test(self) -> tuple[bool, str]:

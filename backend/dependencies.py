@@ -34,6 +34,22 @@ def auth_enabled() -> bool:
     )
 
 
+def folio_enabled() -> bool:
+    """True when the Folio feature is switched on (read at call time, like the
+    auth/licence flags). On by default now that Folio has shipped; set
+    EFFRO_FOLIO_ENABLED to a falsey value (0/false/no/off) to hide it again."""
+    return os.environ.get("EFFRO_FOLIO_ENABLED", "true").strip().lower() in (
+        "1", "true", "yes", "on",
+    )
+
+
+def require_folio_enabled() -> None:
+    """Router dependency: 404 when Folio is off, so the feature is invisible
+    (not just forbidden) on instances that have not enabled it."""
+    if not folio_enabled():
+        raise HTTPException(status_code=404, detail="Not found")
+
+
 def _local_user() -> User:
     """A non-persisted stand-in returned when the gate is open.
 

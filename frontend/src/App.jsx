@@ -27,6 +27,8 @@ import AreaView from './pages/AreaView'
 import ThreadView from './pages/ThreadView'
 import LogView from './pages/LogView'
 import ProcessView from './pages/ProcessView'
+import FolioIndex from './pages/FolioIndex'
+import FolioView from './pages/FolioView'
 import SystemSettings from './pages/SystemSettings'
 import LoginPage from './pages/LoginPage'
 import SetupPage from './pages/SetupPage'
@@ -127,6 +129,8 @@ export default function App() {
                 <Route path="/thread/:threadId" element={<ThreadView />} />
                 <Route path="/log" element={<LogView />} />
                 <Route path="/process" element={<ProcessView />} />
+                <Route path="/folios" element={<FolioIndex />} />
+                <Route path="/folios/:folioId" element={<FolioView />} />
                 <Route path="/settings" element={<SystemSettings updater={updater} />} />
               </Route>
             </Route>

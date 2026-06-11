@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useParams, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, History, BrainCircuit, Search, Plus,
-  ChevronLeft, ChevronRight, Settings, Keyboard, Telescope, Radar,
+  ChevronLeft, ChevronRight, Settings, Keyboard, Telescope, Radar, Library,
 } from 'lucide-react'
 import { getAreaStatus } from '../utils/status'
 import { MOD_KEY } from '../utils/platform'
 import { AreaIcon } from './IconPicker'
 import { listSignals } from '../api/signals'
+import { useAuth } from '../contexts/AuthContext'
 import Logo from './Logo'
 
 const MIN_WIDTH = 200
@@ -30,6 +31,7 @@ export default function Sidebar({
   // Poll every 60s so the badge updates without a refresh after the
   // scheduler's 30-min sync drops new pending items. Cheap query - just a
   // count, no payload. Failures (e.g. backend down at boot) are swallowed.
+  const { user } = useAuth()
   const [signalsPending, setSignalsPending] = useState(0)
   useEffect(() => {
     let cancelled = false
@@ -205,6 +207,9 @@ export default function Sidebar({
         <div data-onboarding="smart-gen-nav">
           <NavLink to="/process" icon={BrainCircuit} label="Smart Generate" active={location.pathname === '/process'} collapsed={collapsed} />
         </div>
+        {user?.folio_enabled && (
+          <NavLink to="/folios" icon={Library} label="Folios" active={location.pathname.startsWith('/folio')} collapsed={collapsed} />
+        )}
       </div>
 
       {/* Areas section header (hidden when collapsed - icons alone provide the hierarchy) */}
