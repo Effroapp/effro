@@ -61,23 +61,20 @@ export function useUpdater({ enabled = true } = {}) {
   const [error, setError] = useState('')
   const [dismissed, setDismissed] = useState(() => loadDismissed())
 
-  useEffect(() => {
+  const runCheck = useCallback((force = false) => {
     if (!isTauri()) return
     // Enterprise licences disable auto-update (v1: no silent updates, no feed).
-    // The 1-hour debounce below means re-evaluating when `enabled` flips (e.g.
-    // once /auth/me loads) costs at most one extra check.
     if (!enabled) return
 
     const now = Date.now()
-    if (now - _lastCheckedAt < RECHECK_INTERVAL_MS) return
+    if (!force && now - _lastCheckedAt < RECHECK_INTERVAL_MS) return
     _lastCheckedAt = now
 
-    let cancelled = false
+    setError('')
     setStatus('checking')
 
     checkForUpdate()
       .then((result) => {
-        if (cancelled) return
         if (!result) return setStatus('idle')           // not in Tauri
         if (!result.available) return setStatus('none')
         setAvailable(result)
@@ -88,17 +85,22 @@ export function useUpdater({ enabled = true } = {}) {
         setStatus(isDismissed ? 'dismissed' : 'available')
       })
       .catch((err) => {
-        if (cancelled) return
         setError(typeof err === 'string' ? err : String(err))
         setStatus('error')
       })
-
-    return () => { cancelled = true }
-    // Depend only on `enabled` (not `dismissed`): the initial check should run
-    // once per session-window; the module-scope debounce guards repeats if
-    // `enabled` toggles. Subsequent dismissals are handled by dismiss() below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled])
+
+  useEffect(() => {
+    // Automatic check: once per session-window (the module-scope debounce
+    // guards repeats if `enabled` flips once /auth/me loads).
+    runCheck(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled])
+
+  /** Manual re-check from Settings - bypasses the hourly debounce, so a
+   *  person can actively verify "am I up to date / does checking work". */
+  const checkNow = useCallback(() => runCheck(true), [runCheck])
 
   /** Persist dismissal of THIS version. Toast hides; badge persists. */
   const dismiss = useCallback(() => {
@@ -134,5 +136,5 @@ export function useUpdater({ enabled = true } = {}) {
     }
   }, [available])
 
-  return { status, available, progress, error, install, dismiss }
+  return { status, available, progress, error, install, dismiss, checkNow }
 }
