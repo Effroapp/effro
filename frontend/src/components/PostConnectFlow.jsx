@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, Loader2, ArrowRight, AlertCircle } from 'lucide-react'
+import { Check, ArrowRight, AlertCircle } from 'lucide-react'
 import Logo from './Logo'
 import ProviderLogo from './ProviderLogos'
 
@@ -56,14 +56,24 @@ export default function PostConnectFlow({
 
   const body = (
     <div className="text-center px-1 py-3">
-      {/* The two marks slide together; the tick pops between them. */}
+      {/* The two marks slide together. Between them: the tick (connected /
+          outcome), or - while syncing - a looped stream of dots flowing from
+          the provider into Effro, so the pull reads as motion, not a still. */}
       <div className="flex items-center justify-center mb-4" aria-hidden>
         <div className="pcf-slide-left w-14 h-14 rounded-2xl bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500 flex items-center justify-center text-pitch-800 dark:text-paper-100">
           <Logo size={30} spinOnHover={false} />
         </div>
-        <div className="pcf-tick z-10 -mx-2.5 w-9 h-9 rounded-full bg-mint-700 text-white flex items-center justify-center shadow-md">
-          <Check size={18} strokeWidth={3} />
-        </div>
+        {stage === 'syncing' ? (
+          <div className="relative z-10 -mx-2.5 w-9 h-9">
+            <span className="pcf-dot bg-mint-700 dark:bg-mint-300" />
+            <span className="pcf-dot bg-mint-700 dark:bg-mint-300" />
+            <span className="pcf-dot bg-mint-700 dark:bg-mint-300" />
+          </div>
+        ) : (
+          <div className="pcf-tick z-10 -mx-2.5 w-9 h-9 rounded-full bg-mint-700 text-white flex items-center justify-center shadow-md">
+            <Check size={18} strokeWidth={3} />
+          </div>
+        )}
         <div className="pcf-slide-right w-14 h-14 rounded-2xl bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500 flex items-center justify-center">
           <ProviderLogo provider={providerLogo} size={28} />
         </div>
@@ -91,8 +101,8 @@ export default function PostConnectFlow({
 
       {stage === 'syncing' && (
         <div className="animate-rise motion-reduce:animate-none py-2">
-          <Loader2 size={20} className="animate-spin mx-auto text-mint-700 dark:text-mint-300" />
-          <p className="mt-2 text-sm text-paper-600 dark:text-paper-300">Pulling from {providerName}…</p>
+          {/* The hero above carries the motion; one quiet line is enough here. */}
+          <p className="text-sm text-paper-600 dark:text-paper-300">Pulling from {providerName}…</p>
         </div>
       )}
 
