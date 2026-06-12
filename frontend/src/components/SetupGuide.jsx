@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, ExternalLink, Copy, Check, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { X, ExternalLink, Copy, Check, ChevronLeft, ChevronRight, Clock, Mail } from 'lucide-react'
 import { openExternal } from '../api/tauri'
 
 /**
@@ -36,7 +36,7 @@ export default function SetupGuide({ guide, open, onClose }) {
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold text-pitch-800 dark:text-white leading-tight">{guide.title}</h2>
             <p className="flex items-center gap-1.5 text-2xs font-mono text-paper-500 dark:text-paper-600 mt-1">
-              <Clock size={11} /> About {guide.estMinutes} minutes, one time only
+              <Clock size={11} /> About {guide.estMinutes} minute{guide.estMinutes === 1 ? '' : 's'}, one time only
             </p>
           </div>
           <button
@@ -400,6 +400,86 @@ export const GITHUB_GUIDE = {
       title: 'Paste into Effro',
       body: (
         <p>Copy the token (shown once, starts with <b>ghp_</b>) and paste it below, then click <b>Connect</b>. Your review requests, assignments and mentions will start arriving in Signals.</p>
+      ),
+    },
+  ],
+}
+
+const TelegramLogo = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="12" fill="#26A5E4" />
+    <path fill="#fff" d="M5.43 11.87 17.2 7.33c.55-.2 1.03.13.85.96l-2 9.45c-.15.67-.55.83-1.11.52l-3.05-2.25-1.47 1.42c-.16.16-.3.3-.61.3l.21-3.1 5.65-5.1c.25-.22-.05-.34-.38-.12l-6.98 4.39-3.01-.94c-.65-.2-.66-.65.13-.99Z" />
+  </svg>
+)
+
+const MailLogo = ({ size = 18 }) => (
+  <Mail size={size} aria-hidden="true" className="text-pitch-800 dark:text-paper-100" />
+)
+
+export const TELEGRAM_GUIDE = {
+  title: 'Connect Telegram',
+  logo: <TelegramLogo />,
+  accent: 'mint',
+  estMinutes: 1,
+  intro:
+    'Effro connects to Telegram through a personal bot you make once with @BotFather. Anything you message the bot (a thought, a link, a forwarded message) lands in Signals to triage. Effro polls Telegram for new messages, so nothing on your machine is exposed, and nothing is ever sent back.',
+  steps: [
+    {
+      title: 'Message @BotFather',
+      body: <p>Open Telegram and start a chat with <b>@BotFather</b> (the official bot with the blue tick). Send it <b>/newbot</b>.</p>,
+      link: { label: 'Open @BotFather', href: 'https://t.me/BotFather' },
+    },
+    {
+      title: 'Name your bot',
+      body: (
+        <>
+          <p>BotFather asks for a display name (for example <b>My Effro inbox</b>), then a username ending in <b>bot</b> (for example <b>maya_effro_bot</b>).</p>
+          <p>When it is done, BotFather replies with the bot's <b>token</b>.</p>
+        </>
+      ),
+    },
+    {
+      title: 'Paste into Effro',
+      body: (
+        <>
+          <p>Copy the token (looks like <b>123456789:AA…</b>) and paste it below, then click <b>Connect</b>. Open a chat with your new bot and send it anything. It arrives in Signals within a couple of minutes.</p>
+          <p>One thing to know: bot usernames are public, so keep yours unguessable. Effro only listens to the first chat that messages the bot (yours), and ignores everyone else.</p>
+        </>
+      ),
+    },
+  ],
+}
+
+export const MAIL_GUIDE = {
+  title: 'Connect a mailbox (IMAP)',
+  logo: <MailLogo />,
+  accent: 'mint',
+  estMinutes: 3,
+  intro:
+    'Effro connects to any mailbox over IMAP with an app password (a one-off password just for Effro, not your main sign-in). It reads flagged mail only: star or flag an email in any mail app and it lands in Signals. Read-only, nothing in your mailbox is changed.',
+  steps: [
+    {
+      title: 'Create an app password',
+      body: (
+        <>
+          <p>In your mail provider's security settings, create an <b>app password</b> for Effro.</p>
+          <p>Gmail calls these App passwords (2-step verification must be on). Fastmail has them in Settings under Privacy &amp; Security. iCloud users can use the dedicated iCloud integration instead.</p>
+        </>
+      ),
+    },
+    {
+      title: 'Find your IMAP server',
+      body: (
+        <>
+          <p>Common ones: <b>imap.gmail.com</b> (Gmail) and <b>imap.fastmail.com</b> (Fastmail). Your provider's help pages list it under IMAP settings.</p>
+          <p>Microsoft mailboxes (Outlook.com, Microsoft 365) no longer allow app passwords for IMAP. Connect them through the <b>Microsoft 365</b> integration instead.</p>
+        </>
+      ),
+    },
+    {
+      title: 'Connect and flag something',
+      body: (
+        <p>Enter the server, your email address and the app password below, then click <b>Connect</b>. Flag or star any email and press <b>Sync now</b>. It appears in Signals.</p>
       ),
     },
   ],

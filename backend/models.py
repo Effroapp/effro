@@ -425,11 +425,42 @@ class SignalItem(Base):
     # entry if the upstream event moves.
     assigned_entry_id = Column(Integer, ForeignKey("entries.id", ondelete="SET NULL"), nullable=True)
 
+    # The AI's ORIGINAL area call, set once by the suggestion pass and never
+    # overwritten - accept and reassign both mutate suggested_area_id, so this
+    # is the only honest record of what the AI actually said. ai_suggested_at
+    # is stamped whenever the pass looks at the row, including when it abstains
+    # ('none'), so coverage can be measured. Plain id, no FK: log semantics.
+    ai_suggested_area_id = Column(Integer, nullable=True)
+    ai_suggested_at = Column(DateTime, nullable=True)
+
     # Original Graph payload (JSON) for debugging + forward-compat.
     raw_json = Column(Text, nullable=True)
 
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class SignalResolution(Base):
+    """Append-only corrections log: one row per user triage decision, written
+    the moment ground truth is born (accept or dismiss in the Signals UI -
+    never by auto-expiry, which is not a human judgement).
+
+    The suggester evaluation reads this table: ai_suggested_area_id is what
+    the AI originally said (None = it abstained or never ran), final_area_id
+    is where the person actually filed it. Raw ids on purpose, no FKs - the
+    log must survive areas being renamed or deleted."""
+    __tablename__ = "signal_resolutions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    signal_id = Column(Integer, nullable=False, index=True)
+    source = Column(String(30), nullable=False)
+    kind = Column(String(30), nullable=False)
+    ai_suggested_area_id = Column(Integer, nullable=True)
+    final_area_id = Column(Integer, nullable=True)        # None for dismissed
+    # accepted (AI right) | reassigned (AI wrong) | filed_unsuggested (AI
+    # abstained or unconfigured) | dismissed (not a correctness label)
+    outcome = Column(String(20), nullable=False, index=True)
+    resolved_at = Column(DateTime, server_default=func.now())
 
 
 class Nudge(Base):

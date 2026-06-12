@@ -143,105 +143,59 @@ def _refresh_thread(db, thread: models.Thread, provider) -> bool:
     return True
 
 
-def run_jira_signal_sync():
-    """Cron entry point - 30-min Jira Cloud pull into signal_items.
+# ── Signal syncs ──────────────────────────────────────────────────────────────
+# One cron entry point per connector, produced by a single factory: open a
+# session, skip if the workspace policy has the connector switched off (see
+# connectors.py - so disabling one also stops its background pull), run the
+# sync, log, close. Each runner returns {"skipped": bool, "added": int,
+# "updated": int, ...} and skips silently when not configured.
 
-    Runs three JQL queries (assigned + mentioned + sprint), upserts results,
-    and runs an AI suggestion pass. Skips silently if not connected.
-    """
+def _run_signal_sync(key: str, label: str) -> None:
     from database import SessionLocal
-    from services_jira import run_jira_sync
+    import connectors
+    runner = connectors.sync_runner(key)
+    if runner is None:
+        return
     db = SessionLocal()
     try:
-        result = run_jira_sync(db)
+        if not connectors.connector_enabled(db, key):
+            return
+        result = runner(db)
         if not result.get("skipped"):
-            log.info(
-                "Jira signal sync: +%d new, %d updated",
-                result.get("added", 0), result.get("updated", 0),
-            )
+            log.info("%s signal sync: +%d new, %d updated",
+                     label, result.get("added", 0), result.get("updated", 0))
     except Exception as e:
-        log.warning("Jira signal sync failed: %s", e)
+        log.warning("%s signal sync failed: %s", label, e)
     finally:
         db.close()
+
+
+def run_jira_signal_sync():
+    _run_signal_sync("jira", "Jira")
 
 
 def run_microsoft_signal_sync():
-    """Cron entry point - 30-min Microsoft 365 calendar pull into signal_items.
-
-    Skips silently if no MS account is connected or the token refresh fails;
-    delegates the real work to services_signals.run_microsoft_sync (which
-    also handles the on-demand /sync-now button via the microsoft router).
-    """
-    from database import SessionLocal
-    from services_signals import run_microsoft_sync
-    db = SessionLocal()
-    try:
-        result = run_microsoft_sync(db)
-        if not result.get("skipped"):
-            log.info(
-                "MS signal sync: +%d new, %d updated, %d dismissed, %d expired",
-                result.get("added", 0), result.get("updated", 0),
-                result.get("dismissed", 0), result.get("expired", 0),
-            )
-    except Exception as e:
-        log.warning("MS signal sync failed: %s", e)
-    finally:
-        db.close()
+    _run_signal_sync("microsoft", "MS")
 
 
 def run_google_signal_sync():
-    """Cron entry point - 30-min Google Calendar + starred Gmail pull into
-    signal_items. Skips silently if no Google account is connected."""
-    from database import SessionLocal
-    from services_google import run_google_sync
-    db = SessionLocal()
-    try:
-        result = run_google_sync(db)
-        if not result.get("skipped"):
-            log.info(
-                "Google signal sync: +%d new, %d updated",
-                result.get("added", 0), result.get("updated", 0),
-            )
-    except Exception as e:
-        log.warning("Google signal sync failed: %s", e)
-    finally:
-        db.close()
+    _run_signal_sync("google", "Google")
 
 
 def run_github_signal_sync():
-    """Cron entry point - 30-min GitHub pull (review requests / assigned /
-    mentions) into signal_items. Skips silently if no token is saved."""
-    from database import SessionLocal
-    from services_github import run_github_sync
-    db = SessionLocal()
-    try:
-        result = run_github_sync(db)
-        if not result.get("skipped"):
-            log.info("GitHub signal sync: +%d new, %d updated",
-                     result.get("added", 0), result.get("updated", 0))
-    except Exception as e:
-        log.warning("GitHub signal sync failed: %s", e)
-    finally:
-        db.close()
+    _run_signal_sync("github", "GitHub")
+
+
+def run_telegram_signal_sync():
+    _run_signal_sync("telegram", "Telegram")
+
+
+def run_mail_signal_sync():
+    _run_signal_sync("mail", "Mail")
 
 
 def run_icloud_signal_sync():
-    """Cron entry point - 30-min iCloud Calendar + flagged Mail pull into
-    signal_items. Skips silently if no iCloud credentials are saved."""
-    from database import SessionLocal
-    from services_icloud import run_icloud_sync
-    db = SessionLocal()
-    try:
-        result = run_icloud_sync(db)
-        if not result.get("skipped"):
-            log.info(
-                "iCloud signal sync: +%d new, %d updated",
-                result.get("added", 0), result.get("updated", 0),
-            )
-    except Exception as e:
-        log.warning("iCloud signal sync failed: %s", e)
-    finally:
-        db.close()
+    _run_signal_sync("icloud", "iCloud")
 
 
 def topup_nudges():
@@ -450,6 +404,26 @@ def start():
         run_github_signal_sync,
         CronTrigger(minute="*/30", timezone="Europe/Brussels"),
         id="github-signal-sync",
+        replace_existing=True,
+        misfire_grace_time=1800,
+    )
+    # Telegram bot messages -> signal_items. Every 2 minutes, not 30: messaging
+    # is conversational, so a captured thought should land while it's still
+    # fresh. An idle getUpdates poll is one tiny HTTP GET and skips silently
+    # when no bot is configured.
+    _scheduler.add_job(
+        run_telegram_signal_sync,
+        CronTrigger(minute="*/2", timezone="Europe/Brussels"),
+        id="telegram-signal-sync",
+        replace_existing=True,
+        misfire_grace_time=120,
+    )
+    # Flagged mail (generic IMAP) -> signal_items. Every 30 min; skips
+    # silently if no mailbox is configured.
+    _scheduler.add_job(
+        run_mail_signal_sync,
+        CronTrigger(minute="*/30", timezone="Europe/Brussels"),
+        id="mail-signal-sync",
         replace_existing=True,
         misfire_grace_time=1800,
     )

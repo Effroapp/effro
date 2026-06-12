@@ -782,6 +782,47 @@ class GithubProfileOut(BaseModel):
     last_synced: Optional[str] = None
 
 
+class TelegramConfigIn(BaseModel):
+    """Telegram bot token (BYO, made with @BotFather)."""
+    token: str
+
+
+class TelegramConfigOut(BaseModel):
+    token_masked: Optional[str] = None
+    bot_username: Optional[str] = None
+    is_configured: bool = False
+
+
+class TelegramProfileOut(BaseModel):
+    connected: bool
+    bot_username: Optional[str] = None
+    last_synced: Optional[str] = None
+
+
+class MailConfigIn(BaseModel):
+    """Generic IMAP mailbox: host + username + an app password. An omitted
+    port keeps the stored one (the client defaults new configs to 993)."""
+    host: str
+    username: str
+    password: str
+    port: Optional[int] = None
+
+
+class MailConfigOut(BaseModel):
+    host: Optional[str] = None
+    port: Optional[int] = None
+    username: Optional[str] = None
+    password_masked: Optional[str] = None
+    is_configured: bool = False
+
+
+class MailProfileOut(BaseModel):
+    connected: bool
+    username: Optional[str] = None
+    host: Optional[str] = None
+    last_synced: Optional[str] = None
+
+
 class SignalItemOut(BaseModel):
     """A pending/assigned Signal row, enriched with the AI suggestion's labels."""
     id: int
@@ -803,6 +844,11 @@ class SignalItemOut(BaseModel):
     # Deep link back to the item in its source app (Jira issue / Outlook event),
     # so the user can open the original in one click. Null if not resolvable.
     external_url: Optional[str] = None
+    # Accept-as affordances: the URL a Link attachment would use (deep link or
+    # one found in the captured text), and whether a downloadable file (a
+    # Telegram photo/document/voice...) rides on this signal.
+    link_url: Optional[str] = None
+    has_media: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -822,9 +868,11 @@ class SignalListOut(BaseModel):
 
 
 class SignalAcceptIn(BaseModel):
-    """User confirms a signal into an Entry. Either an existing thread,
-    or a new thread under an area. create_as picks how it lands:
-    'meeting' | 'todo' | 'note' (defaults by kind when omitted)."""
+    """User confirms a signal onto a thread - an existing one, or a new thread
+    under an area. create_as picks how it lands: an Entry ('meeting' | 'todo' |
+    'decision' | 'note'), a 'link' attachment (the item's URL or one found in
+    the captured text), or a 'file' attachment (Telegram media downloaded onto
+    the thread). Defaults by kind when omitted."""
     area_id: int
     thread_id: Optional[int] = None
     new_thread_title: Optional[str] = None

@@ -38,9 +38,16 @@ def run_icloud_sync(db: Session) -> dict:
         mail = []
 
     added = updated = 0
+    seen_batch: set = set()
 
     def _upsert(kind, ext_id, fields, raw):
         nonlocal added, updated
+        # In-batch dedupe: the session doesn't autoflush, so a repeated uid in
+        # ONE sync would pass the existence query twice and blow the
+        # (source, external_id) unique index at commit.
+        if ext_id in seen_batch:
+            return
+        seen_batch.add(ext_id)
         existing = (
             db.query(models.SignalItem)
             .filter(models.SignalItem.source == "icloud", models.SignalItem.external_id == ext_id)

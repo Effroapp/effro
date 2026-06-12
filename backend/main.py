@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+from typing import Optional
 
 # ── CLI args + path resolution (must run before importing database) ──────────
 # database.py reads DB_PATH at module-load time and uses it to construct the
@@ -70,6 +71,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
+import connectors
 import models
 from database import engine, SessionLocal
 from auth_utils import SESSION_COOKIE
@@ -95,6 +97,8 @@ from routers import (
     github as github_router,
     presence as presence_router,
     folio as folio_router,
+    telegram as telegram_router,
+    mail as mail_router,
 )
 
 # Effro. launches with no seeded areas - the user creates their own from the
@@ -204,6 +208,12 @@ def _init_db():
             # this a DB-level invariant, so two concurrent pull-togethers cannot
             # both leave is_current=1 (the second insert is rejected and retried).
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_digests_one_current ON digests(folio_id) WHERE is_current = 1",
+            # ── Suggester corrections log ───────────────────────────────────────
+            # The AI's original area call, preserved on the signal row (accept and
+            # reassign overwrite suggested_area_id, so this is the honest record).
+            # The signal_resolutions table itself is an ORM model (create_all).
+            "ALTER TABLE signal_items ADD COLUMN ai_suggested_area_id INTEGER",
+            "ALTER TABLE signal_items ADD COLUMN ai_suggested_at DATETIME",
         ]:
             try:
                 conn.execute(text(sql))
@@ -381,44 +391,47 @@ def _has_valid_session(token) -> bool:
         db.close()
 
 
-# ── Connector gate (flag-gated; Enterprise disables per-user connectors) ─────
-# When a licence is required and its edition disallows personal connectors
-# (Enterprise), the per-user integration connect/config/test/sync endpoints are
-# refused with 403. The public OAuth *callbacks* (provider hits, no cookie) and
-# plain GET reads (so the UI can show "managed by your admin") are left alone.
-# Defined BEFORE licence_gate so it is INNER to both it and auth_gate: 401
-# (not signed in) then 402 (read-only) then 403 (connector) is the precedence.
-_CONNECTOR_INTEGRATIONS = ("microsoft", "google", "jira", "github", "icloud", "dropbox")
+# ── Connector gate (per-connector workspace policy) ──────────────────────────
+# On a licensed workspace, each connector's availability is the edition default
+# (Pro: on, Enterprise: off) plus the admin's per-connector overrides - see
+# connectors.py, the single registry behind this gate, the admin policy API and
+# the scheduler. Blocked connect/config/test/sync actions get a 403; the public
+# OAuth *callbacks* (provider hits, no cookie) and plain GET reads (so the UI
+# can show "managed by your admin") are left alone. Defined BEFORE licence_gate
+# so it is INNER to both it and auth_gate: 401 (not signed in) then 402
+# (read-only) then 403 (connector) is the precedence.
 
-
-def _is_connector_action(path: str, method: str) -> bool:
-    for name in _CONNECTOR_INTEGRATIONS:
+def _connector_action_key(path: str, method: str) -> Optional[str]:
+    """The connector key when this request is a gateable connector action."""
+    for name in connectors.CONNECTOR_KEYS:
         if path.startswith(f"/api/{name}/"):
             if path.endswith("/auth/callback"):
-                return False                 # public provider redirect - never block
+                return None                  # public provider redirect - never block
             if path.endswith("/auth/login"):
-                return True                  # initiating a personal connection (GET redirect)
-            return method in ("POST", "PUT", "PATCH", "DELETE")  # config/exchange/test/sync/disconnect
-    return False
+                return name                  # initiating a personal connection (GET redirect)
+            return name if method in ("POST", "PUT", "PATCH", "DELETE") else None
+    return None
 
 
 @app.middleware("http")
 async def connector_gate(request, call_next):
-    if licence_manager.licence_required() and _is_connector_action(request.url.path, request.method):
-        db = SessionLocal()
-        try:
-            allowed = licence_manager.edition_caps(licence_manager.current(db)).personal_connectors_allowed
-        finally:
-            db.close()
-        if not allowed:
-            return JSONResponse(
-                {
-                    "detail": "Personal integrations are disabled on this licence. "
-                              "Your administrator manages connections.",
-                    "code": "connectors_disabled",
-                },
-                status_code=403,
-            )
+    if licence_manager.licence_required():
+        key = _connector_action_key(request.url.path, request.method)
+        if key is not None:
+            db = SessionLocal()
+            try:
+                allowed = connectors.connector_enabled(db, key)
+            finally:
+                db.close()
+            if not allowed:
+                return JSONResponse(
+                    {
+                        "detail": "This connection is turned off for this workspace. "
+                                  "Your administrator manages which connections are available.",
+                        "code": "connectors_disabled",
+                    },
+                    status_code=403,
+                )
     return await call_next(request)
 
 
@@ -443,7 +456,7 @@ def _is_connector_get_write(path: str, method: str) -> bool:
         return False
     if not (path.endswith("/auth/login") or path.endswith("/auth/callback")):
         return False
-    return any(path.startswith(f"/api/{n}/") for n in _CONNECTOR_INTEGRATIONS)
+    return any(path.startswith(f"/api/{n}/") for n in connectors.CONNECTOR_KEYS)
 
 
 @app.middleware("http")
@@ -529,6 +542,8 @@ app.include_router(icloud_router.router, prefix="/api")
 app.include_router(github_router.router, prefix="/api")
 app.include_router(presence_router.router, prefix="/api")
 app.include_router(folio_router.router, prefix="/api")
+app.include_router(telegram_router.router, prefix="/api")
+app.include_router(mail_router.router, prefix="/api")
 
 # Serve uploaded files at /uploads/<stored_name>
 if os.path.exists(UPLOAD_DIR):

@@ -21,7 +21,11 @@ import { getStorageConfig } from '../api/storage'
 import StorageSetupModal from '../components/StorageSetupModal'
 import IntroPanel, { Key } from '../components/IntroPanel'
 import IntegrationsPanel from '../components/IntegrationsPanel'
+import PostConnectFlow from '../components/PostConnectFlow'
 import ProviderLogo from '../components/ProviderLogos'
+import { syncNow as msSyncNow } from '../api/microsoft'
+import { syncNow as googleSyncNow } from '../api/google'
+import { jiraSyncNow } from '../api/jira'
 import { useAppVersion } from '../hooks/useAppVersion'
 import { notifyAIConfigChanged } from '../hooks/useAIConfigured'
 import { useAuth } from '../contexts/AuthContext'
@@ -118,19 +122,41 @@ export default function SystemSettings({ updater }) {
     ...SETTINGS_TABS.filter((t) => t.key === 'about'),
   ]
   const [tab, setTab] = useState('ai')
+  // A just-finished OAuth connection (provider redirected back) - drives the
+  // post-connect flow: celebration, first-sync invitation, go to Signals.
+  const [postConnect, setPostConnect] = useState(null)
   const active = tabs.find((t) => t.key === tab) || tabs[0]
 
-  // Land on the right tab after an OAuth round-trip back to /settings.
+  // Land on the right tab after an OAuth round-trip back to /settings, and
+  // greet a successful connection with the post-connect flow.
   useEffect(() => {
     const s = window.location.search
     const tabParam = new URLSearchParams(s).get('tab')
     if (tabParam) setTab(tabParam)
     else if (/dropbox_(connected|error)/.test(s)) setTab('storage')
     else if (/(google|ms|jira)_(connected|error)/.test(s)) setTab('integrations')
+    const m = s.match(/(google|ms|jira)_connected/)
+    if (m) {
+      const flows = {
+        google: { providerKey: 'google', providerName: 'Google', providerLogo: 'google', syncNow: googleSyncNow },
+        ms: { providerKey: 'microsoft', providerName: 'Microsoft 365', providerLogo: 'microsoft', syncNow: msSyncNow },
+        jira: { providerKey: 'jira', providerName: 'Jira', providerLogo: 'jira', syncNow: jiraSyncNow },
+      }
+      setPostConnect(flows[m[1]])
+    }
   }, [])
+
+  const closePostConnect = () => {
+    setPostConnect(null)
+    // Drop the ?x_connected param so a refresh doesn't re-celebrate.
+    window.history.replaceState({}, '', '/settings?tab=integrations')
+  }
 
   return (
     <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800">
+      {postConnect && (
+        <PostConnectFlow standalone {...postConnect} onClose={closePostConnect} />
+      )}
       <header className="
         sticky top-0 z-10 px-8 py-5
         bg-paper-100/90 dark:bg-pitch-800/90 backdrop-blur-md

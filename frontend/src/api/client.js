@@ -102,6 +102,10 @@ export const adminApi = {
   // reachable in the read-only state so an expired instance can be renewed.
   getLicence: () => request('/admin/licence'),
   saveLicence: (key) => request('/admin/licence', { method: 'PUT', body: { key } }),
+  // Workspace connections: per-connector availability (edition default +
+  // admin overrides). true/false pins a connector, null returns it to default.
+  getConnectors: () => request('/admin/connectors'),
+  saveConnectorOverrides: (overrides) => request('/admin/connectors', { method: 'PUT', body: { overrides } }),
 }
 
 // ─── Folio (deep-research capture -> digest; gated by EFFRO_FOLIO_ENABLED) ────

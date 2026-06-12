@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Radar, Check, X, Pencil, Loader2, AlertCircle, Calendar,
-  MapPin, User, ChevronRight, RefreshCw, ExternalLink, Clock,
+  Radar, Check, X, Pencil, Loader2, AlertCircle,
+  ChevronRight, RefreshCw, ExternalLink, Clock,
   CheckCircle2, ChevronDown, Plug, Inbox,
 } from 'lucide-react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
@@ -10,9 +10,7 @@ import PageHeader from '../components/PageHeader'
 import IntroPanel, { Key } from '../components/IntroPanel'
 import JiraIssueType from '../components/JiraIssueType'
 import ProviderLogo from '../components/ProviderLogos'
-import { listSignals, acceptSignal, reassignSignal, dismissSignal } from '../api/signals'
-import { syncNow } from '../api/microsoft'
-import { jiraSyncNow } from '../api/jira'
+import { listSignals, acceptSignal, reassignSignal, dismissSignal, syncAllSignals } from '../api/signals'
 import { areasApi } from '../api/client'
 import { openExternal } from '../api/tauri'
 import { BionicText } from '../utils/bionic.jsx'
@@ -34,13 +32,15 @@ import { BionicText } from '../utils/bionic.jsx'
 // ProviderLogo) and a short app label. Source-level, so each maps to one icon
 // (Google = Gmail + Calendar; iCloud = Apple Mail + Calendar).
 const SOURCE_META = {
-  microsoft: { label: 'Outlook', logo: 'microsoft' },
-  google:    { label: 'Google',  logo: 'google' },
-  icloud:    { label: 'iCloud',  logo: 'icloud' },
-  github:    { label: 'GitHub',  logo: 'github' },
-  jira:      { label: 'Jira',    logo: 'jira' },
+  microsoft: { label: 'Outlook',  logo: 'microsoft' },
+  google:    { label: 'Google',   logo: 'google' },
+  icloud:    { label: 'iCloud',   logo: 'icloud' },
+  github:    { label: 'GitHub',   logo: 'github' },
+  jira:      { label: 'Jira',     logo: 'jira' },
+  telegram:  { label: 'Telegram', logo: 'telegram' },
+  mail:      { label: 'Email',    logo: 'mail' },
 }
-const SOURCE_ORDER = ['microsoft', 'google', 'icloud', 'github', 'jira']
+const SOURCE_ORDER = ['microsoft', 'google', 'icloud', 'github', 'jira', 'telegram', 'mail']
 
 export default function Signals() {
   const navigate = useNavigate()
@@ -68,34 +68,43 @@ export default function Signals() {
 
   useEffect(() => { refresh() }, [refresh])
 
+  // Arriving via "Go to Signals" after connecting an integration lands the
+  // page focused on that source (?source=telegram etc.).
+  useEffect(() => {
+    const src = new URLSearchParams(window.location.search).get('source')
+    if (src && SOURCE_ORDER.includes(src)) setActiveSource(src)
+  }, [])
+
   const handleSyncNow = async () => {
     setIsSyncing(true)
     setError(null)
     setSyncNote(null)
     try {
-      // Sync all connected sources in parallel — a disconnected Jira shouldn't
-      // block an MS365 sync. Crucially, REPORT the Jira outcome: the sync
-      // returns {skipped, reason} as a *resolved* promise, so without this a
-      // token/endpoint problem (or a query that finds nothing) is invisible.
-      const [, jiraResult] = await Promise.allSettled([syncNow(), jiraSyncNow()])
-      const jira = jiraResult?.status === 'fulfilled' ? jiraResult.value : null
-      if (jiraResult?.status === 'rejected') {
-        setError(`Jira sync failed: ${jiraResult.reason?.message || 'unknown error'}`)
-      } else if (jira?.skipped) {
-        if (jira.reason === 'not_connected') {
-          setError('Jira: the saved login has expired. Reconnect in Settings → Integrations.')
-        } else if (jira.reason === 'api_error') {
-          setError(`Jira sync failed: ${jira.error || 'the Jira API rejected the request'}`)
+      // One call pulls every connected source (registry-driven server side),
+      // and the per-source results come back so problems are never invisible:
+      // a broken connector is reported while the rest still sync.
+      const { sources } = await syncAllSignals()
+      const ran = []
+      const problems = []
+      Object.entries(sources || {}).forEach(([key, r]) => {
+        const name = SOURCE_META[key]?.label || key
+        if (!r) return
+        if (r.skipped) {
+          // not_connected is normal (nothing set up for that source) - quiet.
+          if (r.reason && r.reason !== 'not_connected') {
+            problems.push(`${name}: ${r.error || r.reason}`)
+          }
+          return
         }
-      } else if (jira && !jira.skipped) {
-        const f = jira.fetched ?? 0
-        const n = jira.added ?? 0
-        setSyncNote(
-          f === 0
-            ? 'Jira: connected, but no matching issues found (assigned, watching, or in an open sprint, and not Done).'
-            : `Jira: ${f} issue${f === 1 ? '' : 's'} found${n ? `, ${n} new` : ' (already up to date)'}.`
-        )
-      }
+        const n = r.added ?? 0
+        ran.push(`${name}: ${n ? `${n} new` : 'up to date'}`)
+      })
+      if (problems.length) setError(problems.join(' · '))
+      setSyncNote(
+        ran.length
+          ? ran.join(' · ')
+          : 'No sources connected yet. Add one in Settings → Integrations.'
+      )
       await refresh()
     } catch (e) {
       setError(e.message || 'Sync failed')
@@ -390,13 +399,14 @@ function SignalCard({
       {/* Header row: title + status */}
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-0.5">
-            <SourceBadge source={signal.source} kind={signal.kind} />
-          </div>
-          <h3 className="font-display font-medium text-base text-pitch-800 dark:text-white leading-tight">
+          {/* One quiet line carries everything contextual - brand mark, where
+              it came from, when, who - so the title is the visual lead. */}
+          <SourceMetaLine signal={signal} />
+          {/* Clamped: meeting subjects are short, but a forwarded Telegram
+              message or email can be a wall of text - keep the card calm. */}
+          <h3 className="font-display font-medium text-base text-pitch-800 dark:text-white leading-tight line-clamp-3 break-words">
             <BionicText>{signal.title}</BionicText>
           </h3>
-          <MetaRow signal={signal} />
         </div>
         {isAssigned && (
           <button
@@ -426,67 +436,66 @@ function SignalCard({
   )
 }
 
-function SourceBadge({ source, kind }) {
-  // Jira items show their native issue-type tile (Epic/Story/Task/Sub-task/Bug)
-  // so they read exactly like they do inside Jira.
-  if (source === 'jira') {
-    return <JiraIssueType kind={kind} />
-  }
-  const labels = {
-    microsoft: { label: 'Outlook', color: 'text-source-outlook bg-source-outlook/10 border-source-outlook/20' },
-    'google:meeting': { label: 'Google Calendar', color: 'text-source-gcal bg-source-gcal/10 border-source-gcal/20' },
-    'google:email': { label: 'Gmail', color: 'text-source-gmail bg-source-gmail/10 border-source-gmail/20' },
-    'icloud:meeting': { label: 'iCloud Calendar', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
-    'icloud:email': { label: 'Apple Mail', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
-    'github:pr': { label: 'GitHub PR', color: 'text-source-github bg-source-github/10 border-source-github/20' },
-    'github:issue': { label: 'GitHub Issue', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
-  }
-  let key = source
-  if (source === 'google' || source === 'icloud') key = `${source}:${kind === 'email' ? 'email' : 'meeting'}`
-  else if (source === 'github') key = `github:${kind === 'pr' ? 'pr' : 'issue'}`
-  const { label, color } = labels[key] || { label: source, color: 'text-paper-500 dark:text-paper-600 bg-paper-100 dark:bg-pitch-700 border-stone' }
-  return (
-    <span className={`inline-flex items-center text-2xs font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${color}`}>
-      {label}
-    </span>
-  )
+// Where exactly this came from, one notch finer than the source: the app
+// surface (Gmail vs Google Calendar) or the item type (PR vs Issue).
+const BADGE_LABEL = {
+  microsoft: 'Outlook',
+  'google:meeting': 'Google Calendar',
+  'google:email': 'Gmail',
+  'icloud:meeting': 'iCloud Calendar',
+  'icloud:email': 'Apple Mail',
+  'github:pr': 'Pull request',
+  'github:issue': 'Issue',
+  telegram: 'Telegram',
+  mail: 'Email',
 }
 
-function MetaRow({ signal }) {
+function SourceMetaLine({ signal }) {
+  // The quiet meta line: brand mark + source surface, then when / who /
+  // where / open, separated by middle dots. No chip chrome - the logo
+  // carries the identity, the line stays one muted breath above the title.
+  // Jira keeps its native issue-type tile so issues read like they do in Jira.
+  const logo = SOURCE_META[signal.source]?.logo
+  const label = BADGE_LABEL[`${signal.source}:${signal.kind}`]
+    || BADGE_LABEL[signal.source] || SOURCE_META[signal.source]?.label || signal.source
+  const Dot = () => <span className="text-paper-400 dark:text-pitch-400" aria-hidden>·</span>
   return (
-    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-2xs text-paper-500 dark:text-paper-600">
+    <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mb-1.5 text-2xs text-paper-500 dark:text-paper-600">
+      <span className="inline-flex items-center gap-1.5" title={SOURCE_META[signal.source]?.label || signal.source}>
+        {logo && <ProviderLogo provider={logo} size={14} />}
+        {signal.source === 'jira'
+          ? <JiraIssueType kind={signal.kind} size={13} />
+          : <span className="font-medium text-paper-600 dark:text-paper-300">{label}</span>}
+      </span>
       {signal.starts_at && (
-        <span className="inline-flex items-center gap-1">
-          <Calendar size={11} />
-          {formatMeetingTime(signal.starts_at, signal.is_all_day)}
-        </span>
+        <>
+          <Dot />
+          <span>{formatMeetingTime(signal.starts_at, signal.is_all_day)}</span>
+        </>
       )}
       {signal.organizer && (
-        <span className="inline-flex items-center gap-1 truncate max-w-[200px]">
-          <User size={11} />
-          <span className="truncate">{signal.organizer}</span>
-        </span>
+        <>
+          <Dot />
+          <span className="truncate max-w-[220px]">{signal.organizer}</span>
+        </>
       )}
       {signal.location && (
-        <span className="inline-flex items-center gap-1 truncate max-w-[200px]">
-          <MapPin size={11} />
-          <span className="truncate">{signal.location}</span>
-        </span>
+        <>
+          <Dot />
+          <span className="truncate max-w-[180px]">{signal.location}</span>
+        </>
       )}
       {signal.external_url && (
-        <a
-          href={signal.external_url}
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); openExternal(signal.external_url) }}
-          className="inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 hover:underline cursor-pointer"
-        >
-          <ExternalLink size={11} />
-          Open in {
-            signal.source === 'jira' ? 'Jira'
-              : signal.source === 'github' ? 'GitHub'
-              : signal.source === 'google' ? (signal.kind === 'email' ? 'Gmail' : 'Calendar')
-              : 'Outlook'
-          }
-        </a>
+        <>
+          <Dot />
+          <a
+            href={signal.external_url}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openExternal(signal.external_url) }}
+            className="inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 hover:underline cursor-pointer"
+          >
+            Open <ExternalLink size={10} />
+          </a>
+        </>
       )}
     </div>
   )
@@ -511,10 +520,18 @@ function formatMeetingTime(iso, allDay) {
 // ─── Suggestion + actions row ────────────────────────────────────────────────
 
 // How an accepted signal can land. Calendar items default to a meeting;
-// emails / Jira issues to a to-do. The user can override per signal, and this
-// applies consistently across Google and Microsoft (and Jira).
-const CREATE_AS_LABEL = { meeting: 'Meeting', todo: 'To-do', note: 'Note' }
-const createAsOptions = (kind) => (kind === 'meeting' ? ['meeting', 'todo', 'note'] : ['todo', 'note'])
+// everything else to a to-do. Decision and Note are always on offer; Link
+// appears when the signal carries a URL (its deep link, or one found in the
+// captured text), File when a Telegram attachment can be downloaded.
+const CREATE_AS_LABEL = { meeting: 'Meeting', todo: 'To-do', decision: 'Decision', note: 'Note', link: 'Link', file: 'File' }
+const createAsOptions = (signal) => {
+  const opts = signal.kind === 'meeting'
+    ? ['meeting', 'todo', 'decision', 'note']
+    : ['todo', 'decision', 'note']
+  if (signal.link_url) opts.push('link')
+  if (signal.has_media) opts.push('file')
+  return opts
+}
 const defaultCreateAs = (kind) => (kind === 'meeting' ? 'meeting' : 'todo')
 
 function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, onReassign, onDismiss }) {
@@ -523,7 +540,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
   const [newThreadTitle, setNewThreadTitle] = useState('')
   const [threadsInArea, setThreadsInArea] = useState([])
   const [createAs, setCreateAs] = useState(defaultCreateAs(signal.kind))
-  const typeOpts = createAsOptions(signal.kind)
+  const typeOpts = createAsOptions(signal)
 
   // Load threads when an area is picked, for the existing-thread dropdown.
   useEffect(() => {
