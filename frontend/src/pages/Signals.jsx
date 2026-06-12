@@ -430,30 +430,34 @@ function SignalCard({
   )
 }
 
+// Where exactly this came from, one notch finer than the source: the app
+// surface (Gmail vs Google Calendar) or the item type (PR vs Issue).
+const BADGE_LABEL = {
+  microsoft: 'Outlook',
+  'google:meeting': 'Google Calendar',
+  'google:email': 'Gmail',
+  'icloud:meeting': 'iCloud Calendar',
+  'icloud:email': 'Apple Mail',
+  'github:pr': 'Pull request',
+  'github:issue': 'Issue',
+  telegram: 'Telegram',
+  mail: 'Email',
+}
+
 function SourceBadge({ source, kind }) {
-  // Jira items show their native issue-type tile (Epic/Story/Task/Sub-task/Bug)
-  // so they read exactly like they do inside Jira.
-  if (source === 'jira') {
-    return <JiraIssueType kind={kind} />
-  }
-  const labels = {
-    microsoft: { label: 'Outlook', color: 'text-source-outlook bg-source-outlook/10 border-source-outlook/20' },
-    'google:meeting': { label: 'Google Calendar', color: 'text-source-gcal bg-source-gcal/10 border-source-gcal/20' },
-    'google:email': { label: 'Gmail', color: 'text-source-gmail bg-source-gmail/10 border-source-gmail/20' },
-    'icloud:meeting': { label: 'iCloud Calendar', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
-    'icloud:email': { label: 'Apple Mail', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
-    'github:pr': { label: 'GitHub PR', color: 'text-source-github bg-source-github/10 border-source-github/20' },
-    'github:issue': { label: 'GitHub Issue', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
-    telegram: { label: 'Telegram', color: 'text-source-telegram bg-source-telegram/10 border-source-telegram/20' },
-    mail: { label: 'Email', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
-  }
-  let key = source
-  if (source === 'google' || source === 'icloud') key = `${source}:${kind === 'email' ? 'email' : 'meeting'}`
-  else if (source === 'github') key = `github:${kind === 'pr' ? 'pr' : 'issue'}`
-  const { label, color } = labels[key] || { label: source, color: 'text-paper-500 dark:text-paper-600 bg-paper-100 dark:bg-pitch-700 border-stone' }
+  // The brand mark carries the identity; the chrome stays neutral and calm.
+  // Jira keeps its native issue-type tile (Epic/Story/Bug...) next to the
+  // logo, so issues read exactly like they do inside Jira.
+  const logo = SOURCE_META[source]?.logo
+  const label = BADGE_LABEL[`${source}:${kind}`] || BADGE_LABEL[source] || SOURCE_META[source]?.label || source
   return (
-    <span className={`inline-flex items-center text-2xs font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${color}`}>
-      {label}
+    <span className="inline-flex items-center gap-1.5 pl-1.5 pr-2 py-[3px] rounded-md
+                     bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500"
+          title={SOURCE_META[source]?.label || source}>
+      {logo && <ProviderLogo provider={logo} size={13} />}
+      {source === 'jira'
+        ? <JiraIssueType kind={kind} size={13} />
+        : <span className="text-2xs font-medium text-pitch-700 dark:text-paper-300">{label}</span>}
     </span>
   )
 }
@@ -517,10 +521,18 @@ function formatMeetingTime(iso, allDay) {
 // ─── Suggestion + actions row ────────────────────────────────────────────────
 
 // How an accepted signal can land. Calendar items default to a meeting;
-// emails / Jira issues to a to-do. The user can override per signal, and this
-// applies consistently across Google and Microsoft (and Jira).
-const CREATE_AS_LABEL = { meeting: 'Meeting', todo: 'To-do', note: 'Note' }
-const createAsOptions = (kind) => (kind === 'meeting' ? ['meeting', 'todo', 'note'] : ['todo', 'note'])
+// everything else to a to-do. Decision and Note are always on offer; Link
+// appears when the signal carries a URL (its deep link, or one found in the
+// captured text), File when a Telegram attachment can be downloaded.
+const CREATE_AS_LABEL = { meeting: 'Meeting', todo: 'To-do', decision: 'Decision', note: 'Note', link: 'Link', file: 'File' }
+const createAsOptions = (signal) => {
+  const opts = signal.kind === 'meeting'
+    ? ['meeting', 'todo', 'decision', 'note']
+    : ['todo', 'decision', 'note']
+  if (signal.link_url) opts.push('link')
+  if (signal.has_media) opts.push('file')
+  return opts
+}
 const defaultCreateAs = (kind) => (kind === 'meeting' ? 'meeting' : 'todo')
 
 function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, onReassign, onDismiss }) {
@@ -529,7 +541,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
   const [newThreadTitle, setNewThreadTitle] = useState('')
   const [threadsInArea, setThreadsInArea] = useState([])
   const [createAs, setCreateAs] = useState(defaultCreateAs(signal.kind))
-  const typeOpts = createAsOptions(signal.kind)
+  const typeOpts = createAsOptions(signal)
 
   // Load threads when an area is picked, for the existing-thread dropdown.
   useEffect(() => {

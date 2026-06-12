@@ -38,6 +38,20 @@ _SERVICE_KEYS = (
 )
 
 
+def _media_descriptor(msg: dict) -> dict | None:
+    """The downloadable attachment a message carries (file_id + name), kept in
+    raw_json so accepting the signal as a File can fetch it from Telegram
+    later. Photos: the largest rendition."""
+    if msg.get("photo"):
+        best = msg["photo"][-1]
+        return {"kind": "photo", "file_id": best.get("file_id"), "file_name": None}
+    for kind in ("document", "voice", "video", "video_note", "audio"):
+        d = msg.get(kind)
+        if isinstance(d, dict) and d.get("file_id"):
+            return {"kind": kind, "file_id": d["file_id"], "file_name": d.get("file_name")}
+    return None
+
+
 def _message_text(msg: dict) -> str | None:
     """The readable content of a message: text, a media caption, or a label
     for media-only messages so they still surface (the user can open Telegram
@@ -125,8 +139,13 @@ def run_telegram_sync(db: Session) -> dict:
         }
         # Private bot chats have no public web URL, so raw_json carries no
         # link field - the Signals card simply shows no "Open in" action.
-        raw = json.dumps({"chat_id": chat_id, "message_id": message_id,
-                          "text": text[:2000], "from": msg.get("from")})
+        # "media" (when present) lets accept-as-File download the attachment.
+        raw_payload = {"chat_id": chat_id, "message_id": message_id,
+                       "text": text[:2000], "from": msg.get("from")}
+        media = _media_descriptor(msg)
+        if media:
+            raw_payload["media"] = media
+        raw = json.dumps(raw_payload)
         existing = (
             db.query(models.SignalItem)
             .filter(models.SignalItem.source == "telegram", models.SignalItem.external_id == ext_id)

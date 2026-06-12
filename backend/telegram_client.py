@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Optional
 
 import httpx
@@ -86,6 +87,30 @@ def _call(token: str, method: str, *, params: Optional[dict] = None, timeout: fl
 def get_me(token: str) -> dict:
     """The bot's own identity; doubles as the auth check."""
     return _call(token, "getMe")
+
+
+def download_file(db: Session, file_id: str, *, max_bytes: int = 20 * 1024 * 1024) -> tuple[bytes, Optional[str]]:
+    """Fetch a message attachment from Telegram: getFile resolves the path,
+    then one GET pulls the bytes (Bot API caps downloads at 20 MB). Returns
+    (content, server filename). Raises RuntimeError / ConnectionError with
+    token-free messages, like every other call here."""
+    token = _token(db)
+    if not token:
+        raise RuntimeError("Telegram is not connected.")
+    info = _call(token, "getFile", params={"file_id": file_id})
+    file_path = (info or {}).get("file_path")
+    if not file_path:
+        raise RuntimeError("Telegram did not return a download path for this file.")
+    try:
+        with httpx.Client(timeout=60.0) as client:
+            r = client.get(f"{API_BASE}/file/bot{token}/{file_path}")
+    except Exception as e:
+        raise ConnectionError(_redact(token, f"Could not reach Telegram: {e}")) from None
+    if r.status_code >= 400:
+        raise RuntimeError(f"Telegram file download failed (HTTP {r.status_code}).")
+    if len(r.content) > max_bytes:
+        raise RuntimeError("That file is too large to attach (20 MB max).")
+    return r.content, os.path.basename(file_path) or None
 
 
 def fetch_updates(token: str, *, offset: Optional[int] = None, limit: int = 100) -> list[dict]:

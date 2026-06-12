@@ -20,16 +20,21 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
+import uuid
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException
 from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 import models
 import schemas
+from audit import log_activity_entry
 from database import get_db
+from routers.attachments import UPLOAD_DIR, _ensure_upload_dir, _upload_to_remote
 
 log = logging.getLogger("effro.routers.signals")
 router = APIRouter(prefix="/signals", tags=["signals"])
@@ -37,6 +42,47 @@ router = APIRouter(prefix="/signals", tags=["signals"])
 # app_settings key for the dashboard nudge mode (off / gentle / with-peek).
 _NUDGE_SETTING_KEY = "signal_nudge_mode"
 _VALID_NUDGE_MODES = {"off", "gentle", "with-peek"}
+
+_URL_RE = re.compile(r"https?://[^\s<>\"')\]]+")
+
+
+def _raw(signal: models.SignalItem) -> dict:
+    try:
+        return json.loads(signal.raw_json) if signal.raw_json else {}
+    except (ValueError, AttributeError):
+        return {}
+
+
+def _deep_link(signal: models.SignalItem, jira_host: Optional[str] = None) -> Optional[str]:
+    """The item's own URL in its source app, when one exists."""
+    if signal.source == "jira" and jira_host and signal.external_id:
+        return f"https://{jira_host}/browse/{signal.external_id}"
+    d = _raw(signal)
+    return d.get("webLink") or d.get("htmlLink") or d.get("html_url") or d.get("webViewLink") or None
+
+
+def _link_url(signal: models.SignalItem, jira_host: Optional[str] = None) -> Optional[str]:
+    """The URL an accept-as-Link attachment would point at: the deep link if
+    the source has one, else the first URL inside the captured text (the
+    'message your bot a link' case)."""
+    url = _deep_link(signal, jira_host)
+    if url:
+        return url
+    m = _URL_RE.search(_raw(signal).get("text") or signal.title or "")
+    return m.group(0) if m else None
+
+
+def _media(signal: models.SignalItem) -> Optional[dict]:
+    """The downloadable attachment descriptor a Telegram capture carries."""
+    media = _raw(signal).get("media")
+    return media if isinstance(media, dict) and media.get("file_id") else None
+
+
+def _jira_host(db: Session, signal: models.SignalItem) -> Optional[str]:
+    if signal.source != "jira":
+        return None
+    j = db.query(models.JiraIntegration).first()
+    return j.cloud_name if j else None
 
 
 # ─── List ────────────────────────────────────────────────────────────────────
@@ -73,18 +119,6 @@ def list_signals(db: Session = Depends(get_db)):
     _jira = db.query(models.JiraIntegration).first() if any(r.source == "jira" for r in rows) else None
     jira_host = _jira.cloud_name if _jira else None
 
-    def _external_url(r):
-        if r.source == "jira" and jira_host and r.external_id:
-            return f"https://{jira_host}/browse/{r.external_id}"
-        if r.source in ("microsoft", "google", "github") and r.raw_json:
-            try:
-                d = json.loads(r.raw_json)
-                # MS events: webLink. Google calendar: htmlLink. Gmail/GitHub: ...
-                return d.get("webLink") or d.get("htmlLink") or d.get("html_url") or None
-            except (ValueError, AttributeError):
-                return None
-        return None
-
     items = [
         schemas.SignalItemOut(
             id=r.id,
@@ -103,7 +137,11 @@ def list_signals(db: Session = Depends(get_db)):
             suggested_thread_id=r.suggested_thread_id,
             suggested_thread_title=threads.get(r.suggested_thread_id) if r.suggested_thread_id else None,
             assigned_entry_id=r.assigned_entry_id,
-            external_url=_external_url(r),
+            external_url=_deep_link(r, jira_host),
+            # Accept-as affordances: Link needs a URL (deep link or one found
+            # in the captured text), File a downloadable Telegram attachment.
+            link_url=_link_url(r, jira_host),
+            has_media=_media(r) is not None,
             created_at=r.created_at,
             updated_at=r.updated_at,
         )
@@ -217,14 +255,18 @@ def _is_ai_configured(db: Session) -> bool:
 def accept_signal(
     signal_id: int,
     payload: schemas.SignalAcceptIn,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    """Commit a pending signal as a meeting Entry on the chosen thread.
+    """Commit a pending signal onto the chosen thread.
 
     The thread is either an existing one (thread_id given) or a brand-new
-    thread under the chosen area (new_thread_title given). The signal flips
-    to 'assigned' and points at the new Entry.id; future syncs that update
-    the upstream event will mutate that Entry in place via external_id.
+    thread under the chosen area (new_thread_title given). create_as picks
+    what it lands as: an Entry (meeting / todo / decision / note), a link
+    attachment (the item's URL, or one found in the captured text), or a file
+    attachment (the Telegram media downloaded onto the thread). The signal
+    flips to 'assigned'; entry modes also record assigned_entry_id so future
+    syncs can update the entry in place via external_id.
     """
     signal = db.query(models.SignalItem).filter(models.SignalItem.id == signal_id).first()
     if not signal:
@@ -253,14 +295,16 @@ def accept_signal(
         db.add(thread)
         db.flush()
 
-    # How the signal lands is the user's choice (create_as): a meeting, a todo,
-    # or a logged note. When unspecified we pick a sensible default per kind -
-    # calendar items become meetings, everything else (Jira, email) a todo.
-    # external_id carries the upstream id so a future re-sync can find the entry.
+    # How the signal lands is the user's choice (create_as): an entry (meeting,
+    # todo, decision, note), a link attachment, or a downloaded file attachment.
+    # When unspecified we pick a sensible default per kind - calendar items
+    # become meetings, everything else (Jira, email, messages) a todo.
+    # external_id carries the upstream id so a future re-sync can find entries.
     mode = (getattr(payload, "create_as", None) or "").strip().lower()
-    if mode not in ("meeting", "todo", "note"):
+    if mode not in ("meeting", "todo", "decision", "note", "link", "file"):
         mode = "meeting" if signal.kind == "meeting" else "todo"
 
+    entry = None
     if mode == "meeting":
         entry = models.Entry(
             thread_id=thread.id,
@@ -280,14 +324,51 @@ def accept_signal(
             due_date=due,
             external_id=signal.external_id,
         )
+    elif mode == "decision":
+        entry = models.Entry(
+            thread_id=thread.id,
+            content=signal.title,
+            type="decision",
+            external_id=signal.external_id,
+        )
+    elif mode == "link":
+        url = _link_url(signal, _jira_host(db, signal))
+        if not url:
+            raise HTTPException(status_code=400, detail="This signal has no link to attach.")
+        db.add(models.Attachment(
+            thread_id=thread.id, type="link",
+            name=(signal.title or url)[:255], url=url[:1000],
+        ))
+        log_activity_entry(db, thread.id, f"Attached a link: **{(signal.title or url)[:80]}**")
+    elif mode == "file":
+        media = _media(signal)
+        if signal.source != "telegram" or not media:
+            raise HTTPException(status_code=400, detail="This signal has no file to attach.")
+        import telegram_client
+        try:
+            content, remote_name = telegram_client.download_file(db, media["file_id"])
+        except (RuntimeError, ConnectionError) as e:
+            raise HTTPException(status_code=502, detail=str(e))
+        original = media.get("file_name") or remote_name or f"{media.get('kind', 'file')}"
+        ext = os.path.splitext(original)[1]
+        stored_name = f"{uuid.uuid4().hex}{ext}"
+        _ensure_upload_dir()
+        dest = os.path.join(UPLOAD_DIR, stored_name)
+        with open(dest, "wb") as fh:
+            fh.write(content)
+        att = models.Attachment(
+            thread_id=thread.id, type="file",
+            name=original[:255], stored_name=stored_name,
+            original_name=original[:255], size=len(content),
+        )
+        db.add(att)
+        db.flush()
+        log_activity_entry(db, thread.id, f"Attached a file: **{original[:80]}**")
+        # Best-effort cloud sync, same as a manual upload.
+        background_tasks.add_task(_upload_to_remote, attachment_id=att.id,
+                                  local_path=dest, stored_name=stored_name)
     else:  # note - a logged timeline entry, with a deep link when we have one
-        link = None
-        if signal.raw_json:
-            try:
-                d = json.loads(signal.raw_json)
-                link = d.get("htmlLink") or d.get("webLink") or d.get("webViewLink")
-            except (ValueError, AttributeError):
-                link = None
+        link = _deep_link(signal, _jira_host(db, signal))
         content = f"[{signal.title}]({link})" if link else signal.title
         if signal.organizer:
             content += f" (from {signal.organizer})"
@@ -297,11 +378,13 @@ def accept_signal(
             type="entry",
             external_id=signal.external_id,
         )
-    db.add(entry)
-    db.flush()
+
+    if entry is not None:
+        db.add(entry)
+        db.flush()
 
     signal.status = "assigned"
-    signal.assigned_entry_id = entry.id
+    signal.assigned_entry_id = entry.id if entry is not None else None
     signal.suggested_area_id = area.id
     signal.suggested_thread_id = thread.id
     _log_resolution(db, signal, final_area_id=area.id)
