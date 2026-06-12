@@ -372,17 +372,19 @@ fn get_updater_auth_header() -> Option<String> {
 }
 
 
-/// Authoritative app version. Returns `env!("CARGO_PKG_VERSION")`, which is
-/// the Rust crate version compiled into this binary - sourced from Cargo.toml
-/// at build time, bumped in lockstep with tauri.conf.json on every release.
+/// Authoritative app version: the bundle version from tauri.conf.json - the
+/// SAME value the updater compares against the release manifest, so the label
+/// and the update logic can never disagree. (It previously returned
+/// `CARGO_PKG_VERSION`, which drifted from tauri.conf.json whenever a release
+/// bump missed Cargo.toml - builds then displayed the wrong version.)
 ///
 /// Why a custom command instead of `@tauri-apps/api/app`'s `getVersion()`:
 /// the JS API has historically had permission and WebView-cache edge cases
 /// that left the sidebar showing a stale version after an in-place upgrade.
 /// Reading from the binary side-steps both classes of issue.
 #[tauri::command]
-fn app_version() -> &'static str {
-    env!("CARGO_PKG_VERSION")
+fn app_version(app: tauri::AppHandle) -> String {
+    app.package_info().version.to_string()
 }
 
 
