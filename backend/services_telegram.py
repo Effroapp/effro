@@ -114,7 +114,10 @@ def run_telegram_sync(db: Session) -> dict:
         sent = msg.get("date")
         fields = {
             "title": " ".join(text.split())[:500],
-            "starts_at": datetime.utcfromtimestamp(sent) if isinstance(sent, int) else None,
+            # Naive LOCAL wall-clock: signal starts_at follows the meeting_at
+            # convention (it is displayed as-is and feeds Entry.meeting_at on
+            # accept), unlike created_at which is naive UTC.
+            "starts_at": datetime.fromtimestamp(sent) if isinstance(sent, int) else None,
             "ends_at": None,
             "location": None,
             "organizer": _sender(msg),

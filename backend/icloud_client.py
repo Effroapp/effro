@@ -265,12 +265,14 @@ def _decode_header(raw) -> Optional[str]:
 
 
 def parse_mail_date(s: Optional[str]) -> Optional[datetime]:
+    """RFC 2822 Date header -> naive LOCAL wall-clock, matching the meeting_at
+    convention signal starts_at follows (displayed as-is in the UI)."""
     if not s:
         return None
     try:
         dt = parsedate_to_datetime(s)
         if dt and dt.tzinfo:
-            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+            dt = dt.astimezone().replace(tzinfo=None)
         return dt
     except Exception:
         return None

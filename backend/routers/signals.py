@@ -24,6 +24,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 import models
@@ -51,8 +52,12 @@ def list_signals(db: Session = Depends(get_db)):
             # Pending first (status='pending' < 'assigned' lex-wise, but be
             # explicit since 'a' < 'p').
             models.SignalItem.status.desc(),
-            # Earliest meeting first, then most recent arrival.
-            models.SignalItem.starts_at.asc().nulls_last(),
+            # Meetings: soonest first (what's coming up). Everything else
+            # (messages, emails, issues): newest first, like an inbox. The two
+            # kinds sit in separate source groups in the UI, so meetings
+            # sorting ahead of non-meetings overall is invisible there.
+            case((models.SignalItem.kind == "meeting", models.SignalItem.starts_at)).asc().nulls_last(),
+            case((models.SignalItem.kind != "meeting", models.SignalItem.starts_at)).desc().nulls_last(),
             models.SignalItem.created_at.desc(),
         )
         .all()

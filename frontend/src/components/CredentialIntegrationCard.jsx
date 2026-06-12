@@ -68,7 +68,11 @@ export default function CredentialIntegrationCard({
       <ConfigForm
         api={api} fields={fields} guide={guide} infoBox={infoBox} existing={config}
         onCancel={config.is_configured ? () => setEditing(false) : null}
-        onSaved={() => { setEditing(false); refresh() }}
+        onSaved={() => {
+          // A fresh credential invalidates whatever the old one reported.
+          setEditing(false); setTestResult(null); setLastSyncSummary(null); setError(null)
+          refresh()
+        }}
       />
     )
   }

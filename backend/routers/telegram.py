@@ -39,16 +39,25 @@ def get_telegram_config(db: Session = Depends(get_db)):
 
 @router.put("/config", response_model=schemas.TelegramConfigOut)
 def save_telegram_config(payload: schemas.TelegramConfigIn, db: Session = Depends(get_db)):
-    if not payload.token.strip():
+    token = payload.token.strip()
+    if not token:
         raise HTTPException(status_code=400, detail="token is required")
-    tg.save_config(db, token=payload.token)
-    # Cache the bot's username so the UI can show "Connected as @…" without a
-    # round-trip.
+    # Verify with getMe BEFORE saving: a mistyped token otherwise sits there
+    # looking connected and only fails later. Telegram rejecting it is a hard
+    # no (nothing is stored, any previous token survives); Telegram being
+    # unreachable is not the user's fault, so the save still goes through and
+    # the Test button can verify later.
+    me = None
     try:
-        me = tg.get_me(payload.token.strip())
+        me = tg.get_me(token)
+    except ConnectionError as e:
+        log.warning("Telegram getMe on save skipped (unreachable): %s", e)
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=f"Telegram rejected that token: {e}")
+    tg.save_config(db, token=token)
+    if me:
+        # Cache the bot's username so the UI shows "Connected as @…" at once.
         tg.set_meta(db, bot_username=me.get("username"))
-    except Exception as e:
-        log.warning("Telegram getMe after save failed: %s", e)
     return get_telegram_config(db)
 
 

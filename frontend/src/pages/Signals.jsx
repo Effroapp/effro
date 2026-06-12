@@ -395,7 +395,9 @@ function SignalCard({
           <div className="flex items-center gap-2 mb-0.5">
             <SourceBadge source={signal.source} kind={signal.kind} />
           </div>
-          <h3 className="font-display font-medium text-base text-pitch-800 dark:text-white leading-tight">
+          {/* Clamped: meeting subjects are short, but a forwarded Telegram
+              message or email can be a wall of text - keep the card calm. */}
+          <h3 className="font-display font-medium text-base text-pitch-800 dark:text-white leading-tight line-clamp-3 break-words">
             <BionicText>{signal.title}</BionicText>
           </h3>
           <MetaRow signal={signal} />

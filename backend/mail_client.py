@@ -17,7 +17,7 @@ import email.header
 import imaplib
 import logging
 import ssl
-from datetime import datetime, timezone
+from datetime import datetime
 from email.utils import parsedate_to_datetime
 from typing import Optional
 
@@ -87,13 +87,15 @@ def _decode_header(raw) -> Optional[str]:
 
 
 def parse_mail_date(s: Optional[str]) -> Optional[datetime]:
-    """RFC 2822 Date header -> naive UTC, matching the rest of the schema."""
+    """RFC 2822 Date header -> naive LOCAL wall-clock. Signal starts_at follows
+    the meeting_at convention (displayed as-is, feeds Entry.meeting_at on
+    accept), unlike created_at which is naive UTC."""
     if not s:
         return None
     try:
         dt = parsedate_to_datetime(s)
         if dt and dt.tzinfo:
-            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+            dt = dt.astimezone().replace(tzinfo=None)
         return dt
     except Exception:
         return None
