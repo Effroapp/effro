@@ -13,6 +13,8 @@ import {
   migrateAndSetDataDir,
   relaunch,
   openExternal,
+  getUpdateChannel,
+  setUpdateChannel,
 } from '../api/tauri'
 import {
   getAIConfig, getAIPresets, saveAIConfig, testAIConfig,
@@ -796,6 +798,22 @@ function Field({ label, hint, value, onChange, placeholder, type = 'text', autoC
 
 function UpdateSection({ updater }) {
   const version = useAppVersion()
+  // Update channel: stable (releases only) or beta (every build from main).
+  // The Rust side resolves the endpoint per check, so switching takes effect
+  // on the next check - which we trigger immediately on change.
+  const [channel, setChannel] = useState(null)
+  useEffect(() => {
+    getUpdateChannel().then((c) => setChannel(c || 'stable')).catch(() => setChannel('stable'))
+  }, [])
+  const switchChannel = async (next) => {
+    if (next === channel) return
+    setChannel(next)
+    try {
+      await setUpdateChannel(next)
+      updater?.checkNow?.()
+    } catch { /* keep UI state; the next check surfaces any problem */ }
+  }
+
   const hasUpdateBanner = (
     updater?.status === 'available' || updater?.status === 'dismissed'
   ) && updater.available
@@ -906,6 +924,40 @@ function UpdateSection({ updater }) {
           )}
         </div>
       )}
+
+      {/* Update channel - stable (finished releases) vs beta (every build
+          from main). Switching re-checks immediately, so the choice acts
+          right away rather than on the next launch. */}
+      <div className="
+        flex items-center gap-3 px-3 py-2.5 rounded-lg mt-3
+        bg-paper-100 dark:bg-pitch-800
+        border border-paper-300 dark:border-pitch-500
+      ">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-pitch-700 dark:text-paper-300">Update channel</p>
+          <p className="text-2xs text-paper-500 dark:text-paper-600 mt-0.5">
+            {channel === 'beta'
+              ? 'Beta gets every new build first. Expect rough edges.'
+              : 'Stable gets finished releases only.'}
+          </p>
+        </div>
+        <div className="inline-flex rounded-md border border-paper-300 dark:border-pitch-500 overflow-hidden flex-shrink-0">
+          {['stable', 'beta'].map((c) => (
+            <button
+              key={c}
+              onClick={() => switchChannel(c)}
+              disabled={channel === null}
+              className={`px-3 py-1 text-xs capitalize transition-colors ${
+                channel === c
+                  ? 'bg-mint-700 text-white'
+                  : 'text-paper-600 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-600'
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
     </Card>
   )
 }
