@@ -24,6 +24,7 @@ import httpx
 from sqlalchemy.orm import Session
 
 import integration_config
+import mail_body
 
 log = logging.getLogger("effro.icloud")
 
@@ -215,6 +216,9 @@ def _parse_ics_dt(prop):
 # ─── IMAP (Apple Mail) ───────────────────────────────────────────────────────
 
 def fetch_flagged_mail(db: Session, *, limit: int = 25) -> list[dict]:
+    """Flagged messages with a clean text body (shared mail_body.extract_body)
+    and attachment names. Partial PEEK (first 256 KB) keeps attachment
+    megabytes off the wire; read-only, the mailbox is never modified."""
     apple_id, app_password = _creds(db)
     if not apple_id or not app_password:
         return []
@@ -230,16 +234,19 @@ def fetch_flagged_mail(db: Session, *, limit: int = 25) -> list[dict]:
             if typ == "OK":
                 ids = data[0].split()[-limit:]
                 if ids:
-                    typ, msgs = M.fetch(b",".join(ids), "(BODY.PEEK[HEADER.FIELDS (SUBJECT FROM DATE MESSAGE-ID)])")
+                    typ, msgs = M.fetch(b",".join(ids), "(BODY.PEEK[]<0.262144>)")
                     for part in msgs:
                         if not isinstance(part, tuple):
                             continue
-                        hdr = email.message_from_bytes(part[1])
+                        msg = email.message_from_bytes(part[1])
+                        body, attachments = mail_body.extract_body(msg)
                         out.append({
-                            "uid": _decode_header(hdr.get("Message-ID")) or None,
-                            "subject": _decode_header(hdr.get("Subject")) or "(no subject)",
-                            "sender": _decode_header(hdr.get("From")),
-                            "date": hdr.get("Date"),
+                            "uid": _decode_header(msg.get("Message-ID")) or None,
+                            "subject": _decode_header(msg.get("Subject")) or "(no subject)",
+                            "sender": _decode_header(msg.get("From")),
+                            "date": msg.get("Date"),
+                            "body": body,
+                            "attachments": attachments,
                         })
         finally:
             try:

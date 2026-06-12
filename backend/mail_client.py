@@ -24,6 +24,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 import integration_config
+import mail_body
 
 log = logging.getLogger("effro.mail")
 
@@ -102,8 +103,11 @@ def parse_mail_date(s: Optional[str]) -> Optional[datetime]:
 
 
 def fetch_flagged_mail(db: Session, *, limit: int = 25) -> list[dict]:
-    """Headers of the most recent flagged messages. Read-only and PEEK, so the
-    mailbox is never modified; failures return [] and the sync just skips."""
+    """The most recent flagged messages: headers plus a clean text body (see
+    mail_body.extract_body) and attachment names. Fetched with a partial PEEK
+    (first 256 KB - text parts come first; pulling whole messages would drag
+    attachment megabytes). Read-only, so the mailbox is never modified;
+    failures return [] and the sync just skips."""
     host, port, username, password = _creds(db)
     if not host or not username or not password:
         return []
@@ -117,16 +121,19 @@ def fetch_flagged_mail(db: Session, *, limit: int = 25) -> list[dict]:
             if typ == "OK":
                 ids = data[0].split()[-limit:]
                 if ids:
-                    typ, msgs = M.fetch(b",".join(ids), "(BODY.PEEK[HEADER.FIELDS (SUBJECT FROM DATE MESSAGE-ID)])")
+                    typ, msgs = M.fetch(b",".join(ids), "(BODY.PEEK[]<0.262144>)")
                     for part in msgs:
                         if not isinstance(part, tuple):
                             continue
-                        hdr = email.message_from_bytes(part[1])
+                        msg = email.message_from_bytes(part[1])
+                        body, attachments = mail_body.extract_body(msg)
                         out.append({
-                            "uid": _decode_header(hdr.get("Message-ID")) or None,
-                            "subject": _decode_header(hdr.get("Subject")) or "(no subject)",
-                            "sender": _decode_header(hdr.get("From")),
-                            "date": hdr.get("Date"),
+                            "uid": _decode_header(msg.get("Message-ID")) or None,
+                            "subject": _decode_header(msg.get("Subject")) or "(no subject)",
+                            "sender": _decode_header(msg.get("From")),
+                            "date": msg.get("Date"),
+                            "body": body,
+                            "attachments": attachments,
                         })
         finally:
             try:
