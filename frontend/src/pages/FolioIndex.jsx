@@ -9,6 +9,7 @@ import PageHeader from '../components/PageHeader'
 import { useToast } from '../components/Toast'
 import { folioApi } from '../api/client'
 import { BionicText } from '../utils/bionic.jsx'
+import { parseUTC } from '../utils/time.js'
 
 /**
  * Folio index - your deep dives.
@@ -202,7 +203,7 @@ function MetaLine({ folio }) {
         <Layers size={11} /> {folio.capture_count} capture{folio.capture_count === 1 ? '' : 's'}
       </span>
       <span>·</span>
-      <span>{formatDistanceToNow(new Date(folio.updated_at), { addSuffix: true })}</span>
+      <span>{formatDistanceToNow(parseUTC(folio.updated_at), { addSuffix: true })}</span>
     </span>
   )
 }

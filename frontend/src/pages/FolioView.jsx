@@ -7,8 +7,10 @@ import {
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useToast } from '../components/Toast'
+import PageHeader from '../components/PageHeader'
 import { folioApi } from '../api/client'
 import { BionicText } from '../utils/bionic.jsx'
+import { parseUTC } from '../utils/time.js'
 
 // Subtle paper grain for the reading sheet (a generic fractal-noise SVG, used
 // only as a faint texture, never content).
@@ -98,48 +100,51 @@ export default function FolioView() {
           <ChevronLeft size={15} /> Folios
         </button>
 
-        {/* Header: icon + editable title + meta */}
-        <header className="mt-4">
-          <div className="flex items-center gap-2.5">
-            <BookOpen size={20} strokeWidth={1.75} className="flex-shrink-0 text-paper-500 dark:text-pitch-100" />
-            <TitleField folio={folio} onSaved={setFolio} />
-          </div>
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 mt-2 font-mono text-2xs text-paper-500 dark:text-pitch-200">
-            {(folio.topics || []).map((t) => (
-              <span key={t.id} className="px-2 py-0.5 rounded-full bg-paper-200 dark:bg-pitch-700
-                                          border border-paper-300 dark:border-pitch-400 text-paper-700 dark:text-pitch-100">
-                {t.name}
+        {/* The same PageHeader every main view uses, with the title editable
+            in place and the dive's meta as the subtitle line. */}
+        <div className="mt-4">
+          <PageHeader
+            icon={BookOpen}
+            title={<TitleField folio={folio} onSaved={setFolio} />}
+            subtitle={
+              <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 font-mono text-2xs text-paper-500 dark:text-pitch-200">
+                {(folio.topics || []).map((t) => (
+                  <span key={t.id} className="px-2 py-0.5 rounded-full bg-paper-200 dark:bg-pitch-700
+                                              border border-paper-300 dark:border-pitch-400 text-paper-700 dark:text-pitch-100">
+                    {t.name}
+                  </span>
+                ))}
+                <span className="inline-flex items-center gap-1"><Layers size={11} /> {capCount} capture{capCount === 1 ? '' : 's'}</span>
+                <span className="opacity-50">·</span>
+                <span>updated {formatDistanceToNow(parseUTC(folio.updated_at), { addSuffix: true })}</span>
               </span>
-            ))}
-            <span className="inline-flex items-center gap-1"><Layers size={11} /> {capCount} capture{capCount === 1 ? '' : 's'}</span>
-            <span className="opacity-50">·</span>
-            <span>updated {formatDistanceToNow(new Date(folio.updated_at), { addSuffix: true })}</span>
-          </div>
-        </header>
-
-        {/* Read / Captures toggle + always-visible Add */}
-        <div className="flex items-center justify-between gap-3 mt-5 flex-wrap">
-          <div className="inline-flex bg-paper-200 dark:bg-pitch-700 rounded-lg p-0.5 gap-0.5">
-            <Tab on={view === 'read'} onClick={() => setView('read')}><BookOpen size={13} /> Read</Tab>
-            <Tab on={view === 'captures'} onClick={() => setView('captures')}>
-              Captures <span className="text-paper-500 dark:text-pitch-200">{capCount}</span>
-            </Tab>
-          </div>
-          <button
-            onClick={focusAdd}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium
-                       bg-paper-50 dark:bg-pitch-600 border border-paper-400 dark:border-pitch-400
-                       text-pitch-800 dark:text-pitch-50 hover:border-mint/40 hover:bg-mint/5
-                       transition-colors"
-          >
-            <Plus size={15} className="text-mint" /> Add
-          </button>
+            }
+            right={
+              <>
+                <div className="inline-flex bg-paper-200 dark:bg-pitch-700 rounded-lg p-0.5 gap-0.5">
+                  <Tab on={view === 'read'} onClick={() => setView('read')}><BookOpen size={13} /> Read</Tab>
+                  <Tab on={view === 'captures'} onClick={() => setView('captures')}>
+                    Captures <span className="text-paper-500 dark:text-pitch-200">{capCount}</span>
+                  </Tab>
+                </div>
+                <button
+                  onClick={focusAdd}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium
+                             bg-paper-50 dark:bg-pitch-600 border border-paper-400 dark:border-pitch-400
+                             text-pitch-800 dark:text-pitch-50 hover:border-mint/40 hover:bg-mint/5
+                             transition-colors"
+                >
+                  <Plus size={15} className="text-mint" /> Add
+                </button>
+              </>
+            }
+          />
         </div>
 
-        {/* Reading / working column: comfortable measure inside the page-wide
-            chrome, so the digest stays readable and the captures area lines up
-            under the header rather than sprawling the full width. */}
-        <div className="max-w-4xl">
+        {/* Reading / working column: a comfortable measure centred in the page,
+            so the sheet sits like a magazine spread instead of hugging the left
+            edge with all the spare width on one side. */}
+        <div className="max-w-4xl mx-auto">
           {view === 'read'
             ? <ReadView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} onGoCaptures={focusAdd} />
             : <CapturesView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} noteRef={noteRef} />}
@@ -185,7 +190,7 @@ function TitleField({ folio, onSaved }) {
       placeholder="Untitled deep dive"
       spellCheck={false}
       aria-label="Folio title"
-      className="flex-1 min-w-0 font-display font-semibold text-2xl tracking-[-0.015em]
+      className="w-full min-w-0 font-display font-semibold text-xl tracking-[-0.01em]
                  text-pitch-800 dark:text-pitch-50 bg-transparent border-0 outline-none
                  px-1.5 -mx-1.5 py-0.5 rounded-md hover:bg-paper-200 dark:hover:bg-pitch-700
                  focus:ring-2 focus:ring-mint-500 transition-shadow placeholder:text-paper-400 dark:placeholder:text-pitch-300"
@@ -247,7 +252,10 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
     >
       <div aria-hidden className="absolute inset-0 pointer-events-none opacity-[0.045] dark:opacity-[0.03] mix-blend-multiply dark:mix-blend-screen"
            style={{ backgroundImage: GRAIN }} />
-      <div className="relative">
+      {/* The whole piece sits in one centred reading measure, so the sheet
+          reads like a magazine column rather than text pinned to the left
+          edge of a wide card. */}
+      <div className="relative max-w-[42rem] mx-auto">
         {/* Masthead */}
         <div className="flex items-start justify-between gap-3">
           <span className="font-mono text-2xs uppercase tracking-[0.22em] text-mint-700 dark:text-mint-300">
@@ -260,8 +268,8 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
             <Pencil size={13} /> Edit
           </button>
         </div>
-        <h1 className="font-display font-semibold text-2xl tracking-[-0.02em] text-pitch-800 dark:text-pitch-50 mt-2">
-          Your deep dive, pulled together
+        <h1 className="font-display font-semibold text-[1.75rem] leading-[1.2] tracking-[-0.02em] text-pitch-800 dark:text-pitch-50 mt-2">
+          {digest.headline || 'Your deep dive, pulled together'}
         </h1>
         <div className="border-t-2 border-pitch-800/80 dark:border-pitch-50/70 mt-4 mb-0.5" />
         <div className="border-t border-paper-300 dark:border-pitch-400 mb-5" />
@@ -295,7 +303,7 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
 
         {/* Lede with a drop cap */}
         {digest.summary && (
-          <p className="font-lexend text-[16.5px] leading-[1.68] text-pitch-800 dark:text-pitch-50 max-w-[60ch] mb-6
+          <p className="font-lexend text-[16.5px] leading-[1.68] text-pitch-800 dark:text-pitch-50 mb-6
                         first-letter:float-left first-letter:font-display first-letter:font-semibold
                         first-letter:text-[3.2em] first-letter:leading-[0.82] first-letter:pr-3 first-letter:pt-1.5
                         first-letter:text-mint-700 dark:first-letter:text-mint-300">
@@ -306,11 +314,21 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
         {/* The body of the piece: themed sections with pull quotes and figures,
             everything traceable to a capture (quotes verified verbatim). */}
         {sections.map((sec, i) => (
-          <section key={i} className="max-w-[60ch] mb-7">
+          <section key={i} className="mb-8">
             {sec.heading && (
-              <h2 className="font-display font-semibold text-lg tracking-[-0.01em] text-pitch-800 dark:text-pitch-50 mb-2.5">
-                {sec.heading}
-              </h2>
+              <>
+                {/* A numbered mint kicker lifts each section title off the page
+                    without shouting - the accent stays scarce elsewhere. */}
+                <div className="flex items-center gap-2.5 mb-2" aria-hidden>
+                  <span className="h-[3px] w-7 rounded-full bg-mint" />
+                  <span className="font-mono text-2xs tracking-[0.18em] text-mint-700 dark:text-mint-300">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                </div>
+                <h2 className="font-display font-semibold text-xl tracking-[-0.015em] text-pitch-800 dark:text-pitch-50 mb-3">
+                  {sec.heading}
+                </h2>
+              </>
             )}
             {(sec.body || '').split(/\n{2,}/).map((para, j) => (
               <p key={j} className="font-lexend text-[15px] leading-[1.7] text-pitch-800 dark:text-pitch-50 mb-3">
@@ -386,7 +404,7 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
 function Section({ title, count, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="border-t border-paper-300 dark:border-pitch-400 max-w-[62ch]">
+    <div className="border-t border-paper-300 dark:border-pitch-400">
       <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
         className="w-full flex items-center gap-2.5 py-3.5 px-0.5 font-mono text-2xs uppercase tracking-[0.1em]
                    text-pitch-800 dark:text-pitch-50">
@@ -403,6 +421,7 @@ function Section({ title, count, defaultOpen = false, children }) {
 function DigestEditor({ folio, onDone, onCancel }) {
   const toast = useToast()
   const d = folio.digest
+  const [headline, setHeadline] = useState(d.headline || '')
   const [summary, setSummary] = useState(d.summary || '')
   // Full section objects ride through the editor; only heading/body are
   // editable here, so a section's pull quote and figure survive an edit.
@@ -416,6 +435,7 @@ function DigestEditor({ folio, onDone, onCancel }) {
     setSaving(true)
     try {
       await folioApi.editDigest(folio.id, {
+        headline,
         summary,
         sections: sections.filter((s) => (s.body || '').trim()),
         key_points: keyPoints.filter((s) => s.trim()),
@@ -445,6 +465,13 @@ function DigestEditor({ folio, onDone, onCancel }) {
           </button>
         </div>
       </div>
+      <FieldLabel>Headline</FieldLabel>
+      <input value={headline} onChange={(e) => setHeadline(e.target.value)} maxLength={140}
+        placeholder="A title for the piece"
+        className="w-full mb-5 px-3 py-2 rounded-lg font-display font-medium text-sm
+                   bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-400
+                   text-pitch-800 dark:text-pitch-50 focus:outline-none focus:ring-2 focus:ring-mint-500" />
+
       <FieldLabel>Summary</FieldLabel>
       <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={5}
         className="w-full mb-5 px-3 py-2 rounded-lg font-lexend text-sm leading-relaxed resize-y
@@ -679,7 +706,7 @@ function CaptureRow({ c, onRemove }) {
         <div className="font-mono text-2xs text-paper-500 dark:text-pitch-200 mt-1 flex items-center gap-1.5 flex-wrap">
           {sub.map((s, i) => <span key={i}>{s}</span>)}
           <span className="opacity-50">·</span>
-          <span>{formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}</span>
+          <span>{formatDistanceToNow(parseUTC(c.created_at), { addSuffix: true })}</span>
           {c.type === 'image' && (
             <span className={`px-1.5 py-0.5 rounded-full text-[9.5px] uppercase tracking-wide ${
               sm.vision_read ? 'bg-sage/15 text-sage' : 'bg-paper-300 dark:bg-pitch-600 text-paper-500 dark:text-pitch-200'

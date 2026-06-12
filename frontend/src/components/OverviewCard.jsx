@@ -3,6 +3,7 @@ import { Sparkles, Edit3, Wand2, Clock, Check, X } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { SECTION_ICONS } from '../utils/entityIcons'
 import { BionicText } from '../utils/bionic.jsx'
+import { parseUTC } from '../utils/time.js'
 
 /**
  * OverviewCard — the AI "Overview" for an Area or a Thread. One component so
@@ -20,11 +21,6 @@ import { BionicText } from '../utils/bionic.jsx'
  * sweep a mint shimmer across it, show one muted "Generating…" label. No
  * spinner, no blur, no overlay. Honors prefers-reduced-motion (see index.css).
  */
-function parseUTC(s) {
-  if (!s) return null
-  return new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z')
-}
-
 export default function OverviewCard({
   data,
   aiConfigured,

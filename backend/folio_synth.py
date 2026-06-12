@@ -34,6 +34,9 @@ _SYSTEM = (
 
 _INSTRUCTIONS = (
     "Produce a JSON object with exactly these keys and no others:\n"
+    '  "headline": a specific title for the piece, at most ten words, saying '
+    "plainly what the captures are about. No clickbait, no colons-for-drama, "
+    "nothing the captures do not support.\n"
     '  "summary": a string of three to five sentences saying what the captures '
     "add up to and where they disagree. This is the lede.\n"
     '  "sections": an array of two to five objects, the body of the piece. '
@@ -197,6 +200,7 @@ def _parse(text: str) -> dict:
     if not isinstance(obj, dict):
         raise ValueError("The digest came back in an unexpected shape.")
     return {
+        "headline": (obj.get("headline") or "").strip()[:140] if isinstance(obj.get("headline"), str) else "",
         "summary": (obj.get("summary") or "").strip() if isinstance(obj.get("summary"), str) else "",
         "sections": _parse_sections(obj.get("sections")),
         "key_points": _coerce(obj.get("key_points")),
@@ -223,6 +227,7 @@ def synthesize(provider, captures: list[dict], prior: dict | None = None,
     if prior and new_capture_ids is not None:
         feed = [c for c in captures if c["id"] in set(new_capture_ids)]
         prior_json = json.dumps({
+            "headline": prior.get("headline", ""),
             "summary": prior.get("summary", ""),
             "sections": prior.get("sections", []),
             "key_points": prior.get("key_points", []),

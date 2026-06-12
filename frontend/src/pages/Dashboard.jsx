@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MessageSquare, ArrowRight, RefreshCw, Clock, Sparkles, RotateCcw, Leaf, ChevronDown, X } from 'lucide-react'
 import { formatDistanceToNow, format, differenceInDays, differenceInCalendarDays, parseISO } from 'date-fns'
+import { parseUTC } from '../utils/time.js'
 import { areasApi, entriesApi } from '../api/client'
 import { getTodayNudge, getRandomNudge } from '../api/nudges'
 import StatusBadge from '../components/StatusBadge'
@@ -275,8 +276,8 @@ function ViewSegmentedControl({ viewMode, onChange }) {
 
 function AreaCard({ area }) {
   const config         = getAreaStatus(area.status)
-  const relativeTime   = formatDistanceToNow(new Date(area.updated_at), { addSuffix: true })
-  const daysSinceUpdate = differenceInDays(new Date(), new Date(area.updated_at))
+  const relativeTime   = formatDistanceToNow(parseUTC(area.updated_at), { addSuffix: true })
+  const daysSinceUpdate = differenceInDays(new Date(), parseUTC(area.updated_at))
   // Stable areas recede so the urgent ones carry the eye. Present but quiet;
   // full weight returns on hover.
   const isStable = area.status === 'stable'

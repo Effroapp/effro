@@ -79,6 +79,7 @@ def reindex_folio(db: Session, folio: "models.Folio") -> None:
                 parts.append(cap.extracted_text)
         cur = next((d for d in folio.digests if d.is_current), None)
         if cur:
+            parts.append(cur.headline or "")
             parts.append(cur.summary or "")
             for field in (cur.key_points, cur.sources, cur.open_threads):
                 try:
@@ -268,7 +269,8 @@ def get_folio(folio_id: int, db: Session = Depends(get_db)):
             for c in sorted(folio.captures, key=lambda c: c.id)
         ],
         "digest": None if not cur else {
-            "id": cur.id, "version": cur.version, "summary": cur.summary,
+            "id": cur.id, "version": cur.version,
+            "headline": cur.headline or "", "summary": cur.summary,
             "sections": json.loads(cur.sections or "[]"),
             "key_points": json.loads(cur.key_points or "[]"),
             "sources": json.loads(cur.sources or "[]"),
@@ -427,6 +429,7 @@ def delete_capture(folio_id: int, capture_id: int, db: Session = Depends(get_db)
 # ── Digest: pull-it-together, edit, version history ───────────────────────────
 
 class DigestEdit(BaseModel):
+    headline: Optional[str] = None
     summary: Optional[str] = None
     # Sections: full replacement list of {heading, body, quote?, image?}.
     # The editor mutates heading/body; quote and image ride through untouched.
@@ -443,6 +446,7 @@ class DigestRestore(BaseModel):
 def _digest_out(d: "models.Digest") -> dict:
     return {
         "id": d.id, "version": d.version, "is_current": d.is_current,
+        "headline": d.headline or "",
         "summary": d.summary,
         "sections": json.loads(d.sections or "[]"),
         "key_points": json.loads(d.key_points or "[]"),
@@ -455,6 +459,7 @@ def _digest_out(d: "models.Digest") -> dict:
 
 def _digest_dict(d: "models.Digest") -> dict:
     return {
+        "headline": d.headline or "",
         "summary": d.summary,
         "sections": json.loads(d.sections or "[]"),
         "key_points": json.loads(d.key_points or "[]"),
@@ -538,6 +543,7 @@ def pull_together(folio_id: int, db: Session = Depends(get_db)):
             db.flush()    # write the clears before inserting the new current row
             digest = models.Digest(
                 folio_id=folio.id, version=next_version, is_current=True,
+                headline=result.get("headline", ""),
                 summary=result["summary"],
                 sections=json.dumps(result.get("sections", [])),
                 key_points=json.dumps(result["key_points"]),
@@ -546,6 +552,11 @@ def pull_together(folio_id: int, db: Session = Depends(get_db)):
                 based_on_capture_ids=based_on,
             )
             db.add(digest)
+            # An untitled dive takes the digest's headline as its name, so the
+            # index never has to say "Untitled deep dive" for pulled-together
+            # work. A title the person typed is never overwritten.
+            if not (folio.title or "").strip() and result.get("headline"):
+                folio.title = result["headline"]
             folio.updated_at = datetime.utcnow()
             db.commit()
             break
@@ -568,6 +579,8 @@ def edit_digest(folio_id: int, body: DigestEdit, db: Session = Depends(get_db)):
     cur = next((d for d in folio.digests if d.is_current), None)
     if not cur:
         raise HTTPException(status_code=404, detail="There is no digest yet. Pull it together first.")
+    if body.headline is not None:
+        cur.headline = body.headline.strip()[:140]
     if body.summary is not None:
         cur.summary = body.summary
     if body.sections is not None:
