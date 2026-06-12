@@ -4,10 +4,11 @@ import { formatDistanceToNow } from 'date-fns'
 import StatusBadge from './StatusBadge'
 import { getThreadStatus } from '../utils/status'
 import { BionicText } from '../utils/bionic.jsx'
+import { parseUTC } from '../utils/time.js'
 
 export default function ThreadCard({ thread, areaId }) {
   const config = getThreadStatus(thread.status)
-  const relativeTime = formatDistanceToNow(new Date(thread.updated_at), { addSuffix: true })
+  const relativeTime = formatDistanceToNow(parseUTC(thread.updated_at), { addSuffix: true })
 
   return (
     <Link

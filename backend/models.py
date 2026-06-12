@@ -639,6 +639,9 @@ class Digest(Base):
     # Structured fields, kept separate so each section stays independently
     # editable and grounding can be checked per claim. summary is prose;
     # key_points / sources / open_threads / based_on_capture_ids are JSON lists.
+    # headline is the piece's own title, drawn from the captures (empty for
+    # digests pulled before headlines existed).
+    headline = Column(Text, default="")
     summary = Column(Text, default="")
     key_points = Column(Text, default="[]")
     sources = Column(Text, default="[]")

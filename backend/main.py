@@ -61,7 +61,13 @@ if not os.path.exists(_db_path) and os.path.exists(_legacy_db):
         print(f"DB migration failed ({_legacy_db} -> {_db_path}): {_e}",
               file=sys.stderr, flush=True)
 
-UPLOAD_DIR = os.environ.get("UPLOAD_DIR", os.path.join(_DATA_DIR, "uploads"))
+UPLOAD_DIR = os.path.abspath(os.environ.get("UPLOAD_DIR", os.path.join(_DATA_DIR, "uploads")))
+# Propagate like DB_PATH above: routers (folio, attachments) and storage_backend
+# read UPLOAD_DIR at import time with a CWD-relative "./data/uploads" fallback.
+# In the packaged app the sidecar's CWD is not the data dir, so without this
+# they would WRITE to one folder while /uploads SERVES another - uploads then
+# 404 in the installed app (works in dev, where CWD makes the two coincide).
+os.environ["UPLOAD_DIR"] = UPLOAD_DIR
 FRONTEND_DIST = os.environ.get("FRONTEND_DIST", _DEFAULT_FRONTEND)
 
 # ── Now safe to import everything that depends on the env ───────────────────
@@ -134,6 +140,22 @@ def _init_db():
     from sqlalchemy import text
     models.Base.metadata.create_all(bind=engine)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+    # Rescue files stranded by the UPLOAD_DIR divergence above: older builds
+    # wrote uploads to ./data/uploads relative to the process CWD while serving
+    # from the data dir. Move anything found there into UPLOAD_DIR (never
+    # overwriting), so a user's existing images start rendering again.
+    _stray_dir = os.path.abspath(os.path.join(".", "data", "uploads"))
+    if _stray_dir != UPLOAD_DIR and os.path.isdir(_stray_dir):
+        for _name in os.listdir(_stray_dir):
+            _src = os.path.join(_stray_dir, _name)
+            _dst = os.path.join(UPLOAD_DIR, _name)
+            if os.path.isfile(_src) and not os.path.exists(_dst):
+                try:
+                    os.replace(_src, _dst)
+                except OSError as _e:
+                    print(f"Could not rescue stranded upload {_src}: {_e}",
+                          file=sys.stderr, flush=True)
 
     # Safe migration: add new columns to existing databases
     with engine.connect() as conn:
@@ -210,6 +232,8 @@ def _init_db():
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_digests_one_current ON digests(folio_id) WHERE is_current = 1",
             # Magazine sections on digests (JSON list; empty = legacy flat digest).
             "ALTER TABLE digests ADD COLUMN sections TEXT",
+            # The piece's own grounded headline (empty = legacy digest).
+            "ALTER TABLE digests ADD COLUMN headline TEXT",
             # ── Suggester corrections log ───────────────────────────────────────
             # The AI's original area call, preserved on the signal row (accept and
             # reassign overwrite suggested_area_id, so this is the honest record).
@@ -547,9 +571,11 @@ app.include_router(folio_router.router, prefix="/api")
 app.include_router(telegram_router.router, prefix="/api")
 app.include_router(mail_router.router, prefix="/api")
 
-# Serve uploaded files at /uploads/<stored_name>
-if os.path.exists(UPLOAD_DIR):
-    app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+# Serve uploaded files at /uploads/<stored_name>. Mounted unconditionally:
+# guarding on os.path.exists here meant a fresh install (dir created later, in
+# _init_db) served 404 for every upload until the next restart.
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 
 # Serve the compiled React app (production only).

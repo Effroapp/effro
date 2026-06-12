@@ -14,6 +14,7 @@ import { listSignals, acceptSignal, reassignSignal, dismissSignal, syncAllSignal
 import { areasApi } from '../api/client'
 import { openExternal } from '../api/tauri'
 import { BionicText } from '../utils/bionic.jsx'
+import { parseUTC } from '../utils/time.js'
 
 /**
  * Signals - triage surface for externally-sourced items waiting on a decision.
@@ -499,12 +500,6 @@ function SourceMetaLine({ signal }) {
       )}
     </div>
   )
-}
-
-// Backend timestamps are naive UTC; tag them so the browser localises correctly.
-function parseUTC(s) {
-  if (!s) return null
-  return new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z')
 }
 
 function formatMeetingTime(iso, allDay) {
