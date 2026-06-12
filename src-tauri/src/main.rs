@@ -37,6 +37,10 @@ const CONFIG_STORE: &str = "config.json";
 /// JSON key inside `CONFIG_STORE` holding the user-chosen data directory.
 const DATA_DIR_KEY: &str = "data_dir";
 
+/// JSON key inside `CONFIG_STORE` holding the app version of the previous
+/// launch - drives the one-time webview cache bust after an update.
+const LAST_RUN_VERSION_KEY: &str = "last_run_version";
+
 /// Find a free TCP port for the sidecar. Prefers a stable, well-known port
 /// (8000) so the Microsoft 365 OAuth redirect URI registered in Azure stays
 /// consistent across launches - Microsoft does an exact-match validation on
@@ -520,6 +524,50 @@ fn main() {
             // BEFORE we try to spawn a new one - saves the user from
             // having to manually taskkill leftovers.
             kill_orphan_backends();
+
+            // One-time webview cache bust when the app version changes.
+            // WebView2 has repeatedly served a STALE cached frontend after an
+            // in-place update (new binary, old UI - whole features missing),
+            // so the first launch of a new version clears the webview's
+            // browsing data and reloads. localStorage resets too (intro
+            // dismissals, dismissed-update list) - a fair price, once per
+            // update. The last-run version is remembered in the config store.
+            {
+                let handle = app.handle().clone();
+                let current = handle.package_info().version.to_string();
+                let last_seen = handle
+                    .store(CONFIG_STORE)
+                    .ok()
+                    .and_then(|s| s.get(LAST_RUN_VERSION_KEY))
+                    .and_then(|v| v.as_str().map(String::from));
+                if last_seen.as_deref() != Some(current.as_str()) {
+                    std::thread::spawn(move || {
+                        // The main window may not exist yet this early in
+                        // startup - poll briefly rather than assume ordering.
+                        for _ in 0..40 {
+                            if let Some(win) = handle.get_webview_window("main") {
+                                match win.clear_all_browsing_data() {
+                                    Ok(()) => {
+                                        let _ = win.eval("window.location.reload()");
+                                    }
+                                    Err(e) => eprintln!("[updates] cache bust failed: {e}"),
+                                }
+                                // Record the version either way: a persistently
+                                // failing clear must not loop a reload every launch.
+                                if let Ok(store) = handle.store(CONFIG_STORE) {
+                                    store.set(
+                                        LAST_RUN_VERSION_KEY,
+                                        serde_json::Value::String(current.clone()),
+                                    );
+                                    let _ = store.save();
+                                }
+                                return;
+                            }
+                            std::thread::sleep(Duration::from_millis(100));
+                        }
+                    });
+                }
+            }
 
             let port = find_free_port();
             let data_dir = resolve_data_dir(&app.handle());
