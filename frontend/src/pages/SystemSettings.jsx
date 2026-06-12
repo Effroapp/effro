@@ -864,11 +864,9 @@ function UpdateSection({ updater }) {
         </div>
       )}
 
-      {/* Current version row. No "Check now" button yet because useUpdater
-          doesn't expose a `check()` callback or `lastCheckedAt` timestamp -
-          the hook only runs its check once per hour at mount. Extend the
-          hook in a future change if we want a manual recheck.
-          TODO(updates): wire check-now action once useUpdater exposes it. */}
+      {/* Current version row + manual re-check. The button bypasses the
+          hourly debounce, so "is checking even working?" is answerable on
+          the spot - silent updater failures stayed invisible for weeks once. */}
       {!hasUpdateBanner && (
         <div className="
           flex items-center gap-3 px-3 py-2.5 rounded-lg
@@ -884,9 +882,28 @@ function UpdateSection({ updater }) {
                 ? 'Checking for updates…'
                 : updater?.status === 'none'
                   ? 'Up to date.'
-                  : "Effro checks for updates automatically at launch."}
+                  : updater?.status === 'error'
+                    ? 'The last check did not finish - see above.'
+                    : "Effro checks for updates automatically at launch."}
             </p>
           </div>
+          {updater?.checkNow && (
+            <button
+              onClick={updater.checkNow}
+              disabled={updater.status === 'checking'}
+              className="
+                flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs
+                text-paper-700 dark:text-paper-300
+                hover:bg-paper-200 dark:hover:bg-pitch-700
+                disabled:opacity-40 font-display uppercase tracking-wide transition-colors
+              "
+            >
+              {updater.status === 'checking'
+                ? <Loader2 size={11} className="animate-spin" />
+                : <RefreshCw size={11} />}
+              Check now
+            </button>
+          )}
         </div>
       )}
     </Card>
