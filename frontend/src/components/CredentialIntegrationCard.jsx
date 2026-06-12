@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Check, BookOpen, Loader2, AlertCircle, RefreshCw, LogOut, CheckCircle2, XCircle } from 'lucide-react'
+import PostConnectFlow from './PostConnectFlow'
 import SetupGuide from './SetupGuide'
 
 /**
@@ -18,9 +19,13 @@ import SetupGuide from './SetupGuide'
  *   connectedSubtitle fn(profile) -> mono line under it (last synced is appended)
  *   helpText          JSX paragraph under the connected actions
  *   disconnectConfirm window.confirm copy
+ *   providerKey/providerName/providerLogo
+ *                     identity for the post-connect flow (celebration, first
+ *                     sync, go to Signals focused on this source)
  */
 export default function CredentialIntegrationCard({
   api, fields, guide, infoBox, connectedTitle, connectedSubtitle, helpText, disconnectConfirm,
+  providerKey, providerName, providerLogo,
 }) {
   const [config, setConfig] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -30,6 +35,9 @@ export default function CredentialIntegrationCard({
   const [lastSyncSummary, setLastSyncSummary] = useState(null)
   const [testResult, setTestResult] = useState(null)
   const [testingConn, setTestingConn] = useState(false)
+  // True right after a fresh connect (not an edit) - shows the post-connect
+  // flow: celebration, first-sync invitation, summary, go to Signals.
+  const [justConnected, setJustConnected] = useState(false)
 
   const refresh = useCallback(async () => {
     try {
@@ -63,7 +71,20 @@ export default function CredentialIntegrationCard({
     )
   }
 
+  if (justConnected) {
+    return (
+      <PostConnectFlow
+        providerKey={providerKey}
+        providerName={providerName}
+        providerLogo={providerLogo}
+        syncNow={api.syncNow}
+        onClose={() => { setJustConnected(false); refresh() }}
+      />
+    )
+  }
+
   if (editing || !config.is_configured) {
+    const isFirstConnect = !config.is_configured
     return (
       <ConfigForm
         api={api} fields={fields} guide={guide} infoBox={infoBox} existing={config}
@@ -71,6 +92,7 @@ export default function CredentialIntegrationCard({
         onSaved={() => {
           // A fresh credential invalidates whatever the old one reported.
           setEditing(false); setTestResult(null); setLastSyncSummary(null); setError(null)
+          if (isFirstConnect) setJustConnected(true)   // celebrate + offer first sync
           refresh()
         }}
       />

@@ -42,6 +42,22 @@
   }
 }
 
+/* Post-connect celebration (PostConnectFlow): the Effro mark and the
+   provider's slide together, then the tick pops between them. */
+.pcf-slide-left  { animation: pcfSlideLeft  .45s cubic-bezier(.2,.8,.3,1) both; }
+.pcf-slide-right { animation: pcfSlideRight .45s cubic-bezier(.2,.8,.3,1) both; }
+.pcf-tick        { animation: pcfTickPop    .35s cubic-bezier(.2,.8,.3,1) .35s both; }
+@keyframes pcfSlideLeft  { from { transform: translateX(16px);  opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pcfSlideRight { from { transform: translateX(-16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pcfTickPop {
+  0%   { transform: scale(0);    opacity: 0; }
+  60%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pcf-slide-left, .pcf-slide-right, .pcf-tick { animation: none; }
+}
+
 /* Bionic reading: emboldened word-prefixes. Kept strong even where prose
    styles would otherwise normalise weight. */
 .bionic-fix { font-weight: 700; }

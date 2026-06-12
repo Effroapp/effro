@@ -13,6 +13,7 @@ import { TELEGRAM_GUIDE } from './SetupGuide'
 export default function TelegramIntegration() {
   return (
     <CredentialIntegrationCard
+      providerKey="telegram" providerName="Telegram" providerLogo="telegram"
       api={{
         getConfig: getTelegramConfig,
         getProfile: getTelegramProfile,

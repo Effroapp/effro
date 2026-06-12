@@ -68,6 +68,13 @@ export default function Signals() {
 
   useEffect(() => { refresh() }, [refresh])
 
+  // Arriving via "Go to Signals" after connecting an integration lands the
+  // page focused on that source (?source=telegram etc.).
+  useEffect(() => {
+    const src = new URLSearchParams(window.location.search).get('source')
+    if (src && SOURCE_ORDER.includes(src)) setActiveSource(src)
+  }, [])
+
   const handleSyncNow = async () => {
     setIsSyncing(true)
     setError(null)

@@ -12,6 +12,7 @@ import { MAIL_GUIDE } from './SetupGuide'
 export default function MailIntegration() {
   return (
     <CredentialIntegrationCard
+      providerKey="mail" providerName="Email (IMAP)" providerLogo="mail"
       api={{
         getConfig: getMailConfig,
         getProfile: getMailProfile,

@@ -13,6 +13,7 @@ import { GITHUB_GUIDE } from './SetupGuide'
 export default function GithubIntegration() {
   return (
     <CredentialIntegrationCard
+      providerKey="github" providerName="GitHub" providerLogo="github"
       api={{
         getConfig: getGithubConfig,
         getProfile: getGithubProfile,

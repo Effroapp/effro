@@ -13,6 +13,7 @@ import { ICLOUD_GUIDE } from './SetupGuide'
 export default function IcloudIntegration() {
   return (
     <CredentialIntegrationCard
+      providerKey="icloud" providerName="iCloud" providerLogo="icloud"
       api={{
         getConfig: getIcloudConfig,
         getProfile: getIcloudProfile,
