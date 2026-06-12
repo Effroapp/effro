@@ -643,6 +643,11 @@ class Digest(Base):
     key_points = Column(Text, default="[]")
     sources = Column(Text, default="[]")
     open_threads = Column(Text, default="[]")
+    # Magazine sections, JSON list of {heading, body, quote?: {text, capture},
+    # image?: capture_id}. Quotes are verified verbatim against the captures at
+    # synthesis time; images reference the folio's own image captures. Empty
+    # for digests pulled before sections existed - those render the flat way.
+    sections = Column(Text, default="[]")
     based_on_capture_ids = Column(Text, default="[]")
     generated_at = Column(DateTime, server_default=func.now())
 

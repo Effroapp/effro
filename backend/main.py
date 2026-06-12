@@ -208,6 +208,8 @@ def _init_db():
             # this a DB-level invariant, so two concurrent pull-togethers cannot
             # both leave is_current=1 (the second insert is rejected and retried).
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_digests_one_current ON digests(folio_id) WHERE is_current = 1",
+            # Magazine sections on digests (JSON list; empty = legacy flat digest).
+            "ALTER TABLE digests ADD COLUMN sections TEXT",
             # ── Suggester corrections log ───────────────────────────────────────
             # The AI's original area call, preserved on the signal row (accept and
             # reassign overwrite suggested_area_id, so this is the honest record).
