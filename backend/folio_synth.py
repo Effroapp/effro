@@ -35,7 +35,17 @@ _SYSTEM = (
 _INSTRUCTIONS = (
     "Produce a JSON object with exactly these keys and no others:\n"
     '  "summary": a string of three to five sentences saying what the captures '
-    "add up to and where they disagree.\n"
+    "add up to and where they disagree. This is the lede.\n"
+    '  "sections": an array of two to five objects, the body of the piece. '
+    "Each has:\n"
+    '    "heading": a short title for one theme in the captures.\n'
+    '    "body": two to six sentences on that theme, grounded in the captures.\n'
+    '    "quote" (optional, at most one per section, use sparingly): an object '
+    '{"text", "capture"} where text is one striking sentence copied EXACTLY, '
+    "word for word, from a capture, and capture is that capture's id number. "
+    "Never paraphrase a quote.\n"
+    '    "image" (optional): the id number of an image capture that belongs '
+    "with this section, only when one genuinely fits.\n"
     '  "key_points": an array of short strings, the load-bearing facts, each '
     "traceable to a capture.\n"
     '  "sources": an array of short strings, the captures you drew on, each '
@@ -70,13 +80,15 @@ def _label(cap: dict) -> str:
 
 
 def _captures_block(captures: list[dict]) -> str:
+    # Labelled with the REAL capture id, so quote/image references in the
+    # output point at rows that exist (and can be verified below).
     lines, total = [], 0
-    for i, cap in enumerate(captures, 1):
+    for cap in captures:
         text = (cap.get("extracted_text") or "").strip()
-        if not text:
+        if not text and cap.get("type") != "image":
             continue
         text = text[:_MAX_CAPTURE_CHARS]
-        chunk = f"[{i}] {_label(cap)}:\n{text}"
+        chunk = f"[id {cap['id']}] {_label(cap)}:\n{text or '(image, no readable text)'}"
         if total + len(chunk) > _MAX_TOTAL_CHARS:
             break
         lines.append(chunk)
@@ -103,6 +115,71 @@ def _coerce(value) -> list[str]:
     return []
 
 
+def _parse_sections(value) -> list[dict]:
+    """Tolerant parse of the sections array: heading + body strings, an
+    optional quote ({text, capture} or a bare string), an optional image
+    capture id. Sections without a body are dropped; capped at six."""
+    if not isinstance(value, list):
+        return []
+    out = []
+    for v in value:
+        if not isinstance(v, dict):
+            continue
+        heading = v.get("heading") if isinstance(v.get("heading"), str) else ""
+        body = v.get("body") if isinstance(v.get("body"), str) else ""
+        if not body.strip():
+            continue
+        sec = {"heading": heading.strip(), "body": body.strip()}
+        q = v.get("quote")
+        if isinstance(q, dict) and isinstance(q.get("text"), str) and q["text"].strip():
+            sec["quote"] = {
+                "text": q["text"].strip(),
+                "capture": q.get("capture") if isinstance(q.get("capture"), int) else None,
+            }
+        elif isinstance(q, str) and q.strip():
+            sec["quote"] = {"text": q.strip(), "capture": None}
+        img = v.get("image")
+        if isinstance(img, int):
+            sec["image"] = img
+        out.append(sec)
+    return out[:6]
+
+
+def _norm(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "")).strip().lower()
+
+
+def _verify_sections(sections: list[dict], captures: list[dict]) -> list[dict]:
+    """Runtime grounding, stronger than the prompt: a pull quote must appear
+    VERBATIM (whitespace-normalised, case-insensitive) in a capture's text or
+    it is dropped entirely; an image reference must be one of this folio's own
+    image captures or it is dropped. Nothing fabricated survives to render."""
+    texts = {c["id"]: _norm(c.get("extracted_text") or "") for c in captures}
+    image_ids = {c["id"] for c in captures if c.get("type") == "image"}
+    out = []
+    for sec in sections:
+        sec = dict(sec)
+        q = sec.get("quote")
+        if q:
+            needle = _norm(q.get("text"))
+            cid = q.get("capture")
+            if needle and cid in texts and needle in texts[cid]:
+                pass                                   # verified where claimed
+            elif needle:
+                # claimed capture wrong or missing - find the real source
+                match = next((c for c, t in texts.items() if needle and needle in t), None)
+                if match is None:
+                    sec.pop("quote", None)             # not in any capture: fabricated
+                else:
+                    sec["quote"] = {"text": q["text"], "capture": match}
+            else:
+                sec.pop("quote", None)
+        if "image" in sec and sec["image"] not in image_ids:
+            sec.pop("image", None)
+        out.append(sec)
+    return out
+
+
 def _parse(text: str) -> dict:
     """Robustly pull the JSON object out of a model response (tolerates code
     fences and leading prose)."""
@@ -121,6 +198,7 @@ def _parse(text: str) -> dict:
         raise ValueError("The digest came back in an unexpected shape.")
     return {
         "summary": (obj.get("summary") or "").strip() if isinstance(obj.get("summary"), str) else "",
+        "sections": _parse_sections(obj.get("sections")),
         "key_points": _coerce(obj.get("key_points")),
         "sources": _coerce(obj.get("sources")),
         "open_threads": _coerce(obj.get("open_threads")),
@@ -146,6 +224,7 @@ def synthesize(provider, captures: list[dict], prior: dict | None = None,
         feed = [c for c in captures if c["id"] in set(new_capture_ids)]
         prior_json = json.dumps({
             "summary": prior.get("summary", ""),
+            "sections": prior.get("sections", []),
             "key_points": prior.get("key_points", []),
             "sources": prior.get("sources", []),
             "open_threads": prior.get("open_threads", []),
@@ -155,5 +234,9 @@ def synthesize(provider, captures: list[dict], prior: dict | None = None,
         body = "CAPTURES:\n" + _captures_block(captures)
 
     user = f"{body}\n\n{_INSTRUCTIONS}"
-    text = provider.complete(system=_SYSTEM, messages=[{"role": "user", "content": user}], max_tokens=2000)
-    return _parse(text)
+    text = provider.complete(system=_SYSTEM, messages=[{"role": "user", "content": user}], max_tokens=3000)
+    result = _parse(text)
+    # Quotes and image references are verified against the captures at runtime,
+    # not just prompt-enforced - fabricated ones are dropped before render.
+    result["sections"] = _verify_sections(result["sections"], captures)
+    return result

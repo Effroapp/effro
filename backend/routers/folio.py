@@ -85,6 +85,12 @@ def reindex_folio(db: Session, folio: "models.Folio") -> None:
                     parts.extend(str(x) for x in json.loads(field or "[]"))
                 except Exception:
                     pass
+            try:
+                for sec in json.loads(cur.sections or "[]"):
+                    parts.append(sec.get("heading") or "")
+                    parts.append(sec.get("body") or "")
+            except Exception:
+                pass
         body = "\n".join(p for p in parts if p)
         db.execute(text("DELETE FROM folio_fts WHERE folio_id = :fid"), {"fid": folio.id})
         db.execute(
@@ -263,6 +269,7 @@ def get_folio(folio_id: int, db: Session = Depends(get_db)):
         ],
         "digest": None if not cur else {
             "id": cur.id, "version": cur.version, "summary": cur.summary,
+            "sections": json.loads(cur.sections or "[]"),
             "key_points": json.loads(cur.key_points or "[]"),
             "sources": json.loads(cur.sources or "[]"),
             "open_threads": json.loads(cur.open_threads or "[]"),
@@ -421,6 +428,9 @@ def delete_capture(folio_id: int, capture_id: int, db: Session = Depends(get_db)
 
 class DigestEdit(BaseModel):
     summary: Optional[str] = None
+    # Sections: full replacement list of {heading, body, quote?, image?}.
+    # The editor mutates heading/body; quote and image ride through untouched.
+    sections: Optional[list[dict]] = None
     key_points: Optional[list[str]] = None
     sources: Optional[list[str]] = None
     open_threads: Optional[list[str]] = None
@@ -434,6 +444,7 @@ def _digest_out(d: "models.Digest") -> dict:
     return {
         "id": d.id, "version": d.version, "is_current": d.is_current,
         "summary": d.summary,
+        "sections": json.loads(d.sections or "[]"),
         "key_points": json.loads(d.key_points or "[]"),
         "sources": json.loads(d.sources or "[]"),
         "open_threads": json.loads(d.open_threads or "[]"),
@@ -445,10 +456,38 @@ def _digest_out(d: "models.Digest") -> dict:
 def _digest_dict(d: "models.Digest") -> dict:
     return {
         "summary": d.summary,
+        "sections": json.loads(d.sections or "[]"),
         "key_points": json.loads(d.key_points or "[]"),
         "sources": json.loads(d.sources or "[]"),
         "open_threads": json.loads(d.open_threads or "[]"),
     }
+
+
+def _clean_sections(sections: list[dict]) -> str:
+    """Validate + normalise an edited sections list down to the stored shape.
+    Returns the JSON string. Unknown keys are dropped; quote/image survive
+    only in their well-formed shapes."""
+    out = []
+    for sec in sections or []:
+        if not isinstance(sec, dict):
+            continue
+        body = sec.get("body")
+        if not isinstance(body, str) or not body.strip():
+            continue
+        clean = {
+            "heading": sec.get("heading", "").strip() if isinstance(sec.get("heading"), str) else "",
+            "body": body.strip(),
+        }
+        q = sec.get("quote")
+        if isinstance(q, dict) and isinstance(q.get("text"), str) and q["text"].strip():
+            clean["quote"] = {
+                "text": q["text"].strip(),
+                "capture": q.get("capture") if isinstance(q.get("capture"), int) else None,
+            }
+        if isinstance(sec.get("image"), int):
+            clean["image"] = sec["image"]
+        out.append(clean)
+    return json.dumps(out)
 
 
 @router.post("/folios/{folio_id}/pull-together")
@@ -500,6 +539,7 @@ def pull_together(folio_id: int, db: Session = Depends(get_db)):
             digest = models.Digest(
                 folio_id=folio.id, version=next_version, is_current=True,
                 summary=result["summary"],
+                sections=json.dumps(result.get("sections", [])),
                 key_points=json.dumps(result["key_points"]),
                 sources=json.dumps(result["sources"]),
                 open_threads=json.dumps(result["open_threads"]),
@@ -530,6 +570,8 @@ def edit_digest(folio_id: int, body: DigestEdit, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="There is no digest yet. Pull it together first.")
     if body.summary is not None:
         cur.summary = body.summary
+    if body.sections is not None:
+        cur.sections = _clean_sections(body.sections)
     if body.key_points is not None:
         cur.key_points = json.dumps([s for s in body.key_points if isinstance(s, str)])
     if body.sources is not None:

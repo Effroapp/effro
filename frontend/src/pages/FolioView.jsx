@@ -21,11 +21,22 @@ function readingTime(digest) {
   if (!digest) return 1
   const words = [
     digest.summary || '',
+    ...(digest.sections || []).flatMap((s) => [s.heading || '', s.body || '', s.quote?.text || '']),
     ...(digest.key_points || []),
     ...(digest.sources || []),
     ...(digest.open_threads || []),
   ].join(' ').trim().split(/\s+/).filter(Boolean).length
   return Math.max(1, Math.round(words / 200))
+}
+
+// Where a capture came from, for quote attributions and figure captions.
+function captureLabel(c) {
+  if (!c) return null
+  const m = c.source_meta || {}
+  if (c.type === 'link') return m.domain || m.title || 'a link'
+  if (c.type === 'file') return m.original_name || 'a document'
+  if (c.type === 'image') return m.original_name || 'an image'
+  return 'a note'
 }
 
 export default function FolioView() {
@@ -219,6 +230,16 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
   }
 
   const mins = readingTime(digest)
+  const capturesById = Object.fromEntries((folio.captures || []).map((c) => [c.id, c]))
+  const sections = digest.sections || []
+  // Hero: the first captured image no section claims for itself. Shown even on
+  // digests pulled before sections existed - a captured image always earns a
+  // place on the page.
+  const sectionImageIds = new Set(sections.map((s) => s.image).filter(Boolean))
+  const hero = (folio.captures || []).find(
+    (c) => c.type === 'image' && c.raw_content && !sectionImageIds.has(c.id),
+  ) || (folio.captures || []).find((c) => c.type === 'image' && c.raw_content)
+
   return (
     <article
       className="relative mt-5 rounded-2xl bg-paper-50 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
@@ -255,17 +276,78 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
           </div>
         )}
 
-        {/* Summary with a drop cap */}
+        {/* Hero: the dive's first image, full width of the reading column */}
+        {hero && (
+          <figure className="mb-6 -mx-1">
+            <img
+              src={`/uploads/${hero.raw_content}`}
+              alt={captureLabel(hero) || ''}
+              loading="lazy"
+              className="w-full max-h-80 object-cover rounded-xl border border-paper-300 dark:border-pitch-400"
+            />
+            {hero.source_meta?.original_name && (
+              <figcaption className="mt-1.5 font-mono text-2xs text-paper-500 dark:text-pitch-200">
+                {hero.source_meta.original_name}
+              </figcaption>
+            )}
+          </figure>
+        )}
+
+        {/* Lede with a drop cap */}
         {digest.summary && (
           <p className="font-lexend text-[16.5px] leading-[1.68] text-pitch-800 dark:text-pitch-50 max-w-[60ch] mb-6
                         first-letter:float-left first-letter:font-display first-letter:font-semibold
                         first-letter:text-[3.2em] first-letter:leading-[0.82] first-letter:pr-3 first-letter:pt-1.5
                         first-letter:text-mint-700 dark:first-letter:text-mint-300">
-            {digest.summary}
+            <BionicText>{digest.summary}</BionicText>
           </p>
         )}
 
-        <Section title="Key points" count={digest.key_points?.length} defaultOpen>
+        {/* The body of the piece: themed sections with pull quotes and figures,
+            everything traceable to a capture (quotes verified verbatim). */}
+        {sections.map((sec, i) => (
+          <section key={i} className="max-w-[60ch] mb-7">
+            {sec.heading && (
+              <h2 className="font-display font-semibold text-lg tracking-[-0.01em] text-pitch-800 dark:text-pitch-50 mb-2.5">
+                {sec.heading}
+              </h2>
+            )}
+            {(sec.body || '').split(/\n{2,}/).map((para, j) => (
+              <p key={j} className="font-lexend text-[15px] leading-[1.7] text-pitch-800 dark:text-pitch-50 mb-3">
+                <BionicText>{para}</BionicText>
+              </p>
+            ))}
+            {sec.quote?.text && (
+              <blockquote className="my-5 pl-5 border-l-[3px] border-mint">
+                <p className="font-display text-xl leading-snug tracking-[-0.01em] text-pitch-800 dark:text-pitch-50">
+                  “{sec.quote.text}”
+                </p>
+                {capturesById[sec.quote.capture] && (
+                  <cite className="block mt-1.5 font-mono text-2xs not-italic text-paper-500 dark:text-pitch-200">
+                    from {captureLabel(capturesById[sec.quote.capture])}
+                  </cite>
+                )}
+              </blockquote>
+            )}
+            {sec.image && capturesById[sec.image]?.raw_content && (
+              <figure className="my-5">
+                <img
+                  src={`/uploads/${capturesById[sec.image].raw_content}`}
+                  alt={captureLabel(capturesById[sec.image]) || ''}
+                  loading="lazy"
+                  className="w-full max-h-72 object-cover rounded-xl border border-paper-300 dark:border-pitch-400"
+                />
+                {capturesById[sec.image].source_meta?.original_name && (
+                  <figcaption className="mt-1.5 font-mono text-2xs text-paper-500 dark:text-pitch-200">
+                    {capturesById[sec.image].source_meta.original_name}
+                  </figcaption>
+                )}
+              </figure>
+            )}
+          </section>
+        ))}
+
+        <Section title="Key points" count={digest.key_points?.length} defaultOpen={sections.length === 0}>
           <ul className="flex flex-col gap-2.5">
             {digest.key_points.map((p, i) => (
               <li key={i} className="relative pl-4 font-lexend text-sm leading-relaxed text-pitch-800 dark:text-pitch-50
@@ -322,6 +404,9 @@ function DigestEditor({ folio, onDone, onCancel }) {
   const toast = useToast()
   const d = folio.digest
   const [summary, setSummary] = useState(d.summary || '')
+  // Full section objects ride through the editor; only heading/body are
+  // editable here, so a section's pull quote and figure survive an edit.
+  const [sections, setSections] = useState(d.sections || [])
   const [keyPoints, setKeyPoints] = useState(d.key_points || [])
   const [sources, setSources] = useState(d.sources || [])
   const [openThreads, setOpenThreads] = useState(d.open_threads || [])
@@ -332,6 +417,7 @@ function DigestEditor({ folio, onDone, onCancel }) {
     try {
       await folioApi.editDigest(folio.id, {
         summary,
+        sections: sections.filter((s) => (s.body || '').trim()),
         key_points: keyPoints.filter((s) => s.trim()),
         sources: sources.filter((s) => s.trim()),
         open_threads: openThreads.filter((s) => s.trim()),
@@ -364,6 +450,52 @@ function DigestEditor({ folio, onDone, onCancel }) {
         className="w-full mb-5 px-3 py-2 rounded-lg font-lexend text-sm leading-relaxed resize-y
                    bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-400
                    text-pitch-800 dark:text-pitch-50 focus:outline-none focus:ring-2 focus:ring-mint-500" />
+
+      {/* Sections: heading + body editable; a section's quote and figure are
+          kept as they are and follow the section through the edit. */}
+      <div className="mb-5">
+        <FieldLabel>Sections</FieldLabel>
+        <div className="flex flex-col gap-4">
+          {sections.map((sec, i) => (
+            <div key={i} className="rounded-lg border border-paper-300 dark:border-pitch-400 p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  value={sec.heading || ''}
+                  onChange={(e) => setSections(sections.map((s, j) => (j === i ? { ...s, heading: e.target.value } : s)))}
+                  placeholder="Section heading"
+                  className="flex-1 px-3 py-1.5 rounded-lg font-display font-medium text-sm bg-paper-100 dark:bg-pitch-800
+                             border border-paper-300 dark:border-pitch-400 text-pitch-800 dark:text-pitch-50
+                             focus:outline-none focus:ring-2 focus:ring-mint-500"
+                />
+                <button onClick={() => setSections(sections.filter((_, j) => j !== i))}
+                  aria-label="Remove section"
+                  className="p-1.5 rounded-md text-paper-500 dark:text-pitch-200 hover:text-terracotta hover:bg-terracotta/10 transition-colors">
+                  <X size={14} />
+                </button>
+              </div>
+              <textarea
+                value={sec.body || ''}
+                onChange={(e) => setSections(sections.map((s, j) => (j === i ? { ...s, body: e.target.value } : s)))}
+                rows={4}
+                className="w-full px-3 py-2 rounded-lg font-lexend text-sm leading-relaxed resize-y
+                           bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-400
+                           text-pitch-800 dark:text-pitch-50 focus:outline-none focus:ring-2 focus:ring-mint-500"
+              />
+              {(sec.quote?.text || sec.image) && (
+                <p className="mt-1.5 font-mono text-2xs text-paper-500 dark:text-pitch-200">
+                  Keeps its {sec.quote?.text ? 'pull quote' : ''}{sec.quote?.text && sec.image ? ' and ' : ''}{sec.image ? 'figure' : ''}.
+                </p>
+              )}
+            </div>
+          ))}
+          <button onClick={() => setSections([...sections, { heading: '', body: '' }])}
+            className="inline-flex items-center gap-1.5 text-xs text-paper-600 dark:text-pitch-100
+                       hover:text-pitch-800 dark:hover:text-pitch-50 px-1 py-1 self-start transition-colors">
+            <Plus size={13} /> Add section
+          </button>
+        </div>
+      </div>
+
       <ListEditor label="Key points" items={keyPoints} setItems={setKeyPoints} />
       <ListEditor label="Sources" items={sources} setItems={setSources} />
       <ListEditor label="Open threads" items={openThreads} setItems={setOpenThreads} />
