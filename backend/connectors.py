@@ -32,19 +32,33 @@ log = logging.getLogger("effro.connectors")
 _POLICY_KEY = "connector_policy"
 
 # The canonical list. Keys double as the URL segment (/api/<key>/...) and the
-# frontend integration key, labels match the Settings cards.
+# frontend integration key, labels match the Settings cards. "sync" names the
+# connector's signal-sync runner (module, function) - used by both the
+# scheduler and POST /signals/sync-now, so a new connector is wired into both
+# by its registry entry alone. Dropbox is storage-only: no sync.
 CONNECTORS = (
-    {"key": "microsoft", "label": "Microsoft 365"},
-    {"key": "google",    "label": "Google"},
-    {"key": "jira",      "label": "Jira"},
-    {"key": "icloud",    "label": "iCloud"},
-    {"key": "github",    "label": "GitHub"},
-    {"key": "dropbox",   "label": "Dropbox"},
-    {"key": "telegram",  "label": "Telegram"},
-    {"key": "mail",      "label": "Email (IMAP)"},
+    {"key": "microsoft", "label": "Microsoft 365", "sync": ("services_signals",  "run_microsoft_sync")},
+    {"key": "google",    "label": "Google",        "sync": ("services_google",   "run_google_sync")},
+    {"key": "jira",      "label": "Jira",          "sync": ("services_jira",     "run_jira_sync")},
+    {"key": "icloud",    "label": "iCloud",        "sync": ("services_icloud",   "run_icloud_sync")},
+    {"key": "github",    "label": "GitHub",        "sync": ("services_github",   "run_github_sync")},
+    {"key": "dropbox",   "label": "Dropbox",       "sync": None},
+    {"key": "telegram",  "label": "Telegram",      "sync": ("services_telegram", "run_telegram_sync")},
+    {"key": "mail",      "label": "Email (IMAP)",  "sync": ("services_mail",     "run_mail_sync")},
 )
 
 CONNECTOR_KEYS = tuple(c["key"] for c in CONNECTORS)
+
+
+def sync_runner(key: str):
+    """The connector's signal-sync function (imported lazily - the service
+    modules pull in their API clients), or None when it has no sync."""
+    entry = next((c for c in CONNECTORS if c["key"] == key), None)
+    if not entry or not entry.get("sync"):
+        return None
+    module_name, func_name = entry["sync"]
+    import importlib
+    return getattr(importlib.import_module(module_name), func_name)
 
 
 # ─── Policy storage ───────────────────────────────────────────────────────────

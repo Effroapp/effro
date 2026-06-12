@@ -10,9 +10,7 @@ import PageHeader from '../components/PageHeader'
 import IntroPanel, { Key } from '../components/IntroPanel'
 import JiraIssueType from '../components/JiraIssueType'
 import ProviderLogo from '../components/ProviderLogos'
-import { listSignals, acceptSignal, reassignSignal, dismissSignal } from '../api/signals'
-import { syncNow } from '../api/microsoft'
-import { jiraSyncNow } from '../api/jira'
+import { listSignals, acceptSignal, reassignSignal, dismissSignal, syncAllSignals } from '../api/signals'
 import { areasApi } from '../api/client'
 import { openExternal } from '../api/tauri'
 import { BionicText } from '../utils/bionic.jsx'
@@ -75,29 +73,31 @@ export default function Signals() {
     setError(null)
     setSyncNote(null)
     try {
-      // Sync all connected sources in parallel — a disconnected Jira shouldn't
-      // block an MS365 sync. Crucially, REPORT the Jira outcome: the sync
-      // returns {skipped, reason} as a *resolved* promise, so without this a
-      // token/endpoint problem (or a query that finds nothing) is invisible.
-      const [, jiraResult] = await Promise.allSettled([syncNow(), jiraSyncNow()])
-      const jira = jiraResult?.status === 'fulfilled' ? jiraResult.value : null
-      if (jiraResult?.status === 'rejected') {
-        setError(`Jira sync failed: ${jiraResult.reason?.message || 'unknown error'}`)
-      } else if (jira?.skipped) {
-        if (jira.reason === 'not_connected') {
-          setError('Jira: the saved login has expired. Reconnect in Settings → Integrations.')
-        } else if (jira.reason === 'api_error') {
-          setError(`Jira sync failed: ${jira.error || 'the Jira API rejected the request'}`)
+      // One call pulls every connected source (registry-driven server side),
+      // and the per-source results come back so problems are never invisible:
+      // a broken connector is reported while the rest still sync.
+      const { sources } = await syncAllSignals()
+      const ran = []
+      const problems = []
+      Object.entries(sources || {}).forEach(([key, r]) => {
+        const name = SOURCE_META[key]?.label || key
+        if (!r) return
+        if (r.skipped) {
+          // not_connected is normal (nothing set up for that source) - quiet.
+          if (r.reason && r.reason !== 'not_connected') {
+            problems.push(`${name}: ${r.error || r.reason}`)
+          }
+          return
         }
-      } else if (jira && !jira.skipped) {
-        const f = jira.fetched ?? 0
-        const n = jira.added ?? 0
-        setSyncNote(
-          f === 0
-            ? 'Jira: connected, but no matching issues found (assigned, watching, or in an open sprint, and not Done).'
-            : `Jira: ${f} issue${f === 1 ? '' : 's'} found${n ? `, ${n} new` : ' (already up to date)'}.`
-        )
-      }
+        const n = r.added ?? 0
+        ran.push(`${name}: ${n ? `${n} new` : 'up to date'}`)
+      })
+      if (problems.length) setError(problems.join(' · '))
+      setSyncNote(
+        ran.length
+          ? ran.join(' · ')
+          : 'No sources connected yet. Add one in Settings → Integrations.'
+      )
       await refresh()
     } catch (e) {
       setError(e.message || 'Sync failed')

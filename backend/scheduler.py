@@ -150,14 +150,17 @@ def _refresh_thread(db, thread: models.Thread, provider) -> bool:
 # sync, log, close. Each runner returns {"skipped": bool, "added": int,
 # "updated": int, ...} and skips silently when not configured.
 
-def _run_signal_sync(key: str, label: str, import_runner) -> None:
+def _run_signal_sync(key: str, label: str) -> None:
     from database import SessionLocal
     import connectors
+    runner = connectors.sync_runner(key)
+    if runner is None:
+        return
     db = SessionLocal()
     try:
         if not connectors.connector_enabled(db, key):
             return
-        result = import_runner()(db)
+        result = runner(db)
         if not result.get("skipped"):
             log.info("%s signal sync: +%d new, %d updated",
                      label, result.get("added", 0), result.get("updated", 0))
@@ -168,38 +171,31 @@ def _run_signal_sync(key: str, label: str, import_runner) -> None:
 
 
 def run_jira_signal_sync():
-    _run_signal_sync("jira", "Jira",
-                     lambda: __import__("services_jira").run_jira_sync)
+    _run_signal_sync("jira", "Jira")
 
 
 def run_microsoft_signal_sync():
-    _run_signal_sync("microsoft", "MS",
-                     lambda: __import__("services_signals").run_microsoft_sync)
+    _run_signal_sync("microsoft", "MS")
 
 
 def run_google_signal_sync():
-    _run_signal_sync("google", "Google",
-                     lambda: __import__("services_google").run_google_sync)
+    _run_signal_sync("google", "Google")
 
 
 def run_github_signal_sync():
-    _run_signal_sync("github", "GitHub",
-                     lambda: __import__("services_github").run_github_sync)
+    _run_signal_sync("github", "GitHub")
 
 
 def run_telegram_signal_sync():
-    _run_signal_sync("telegram", "Telegram",
-                     lambda: __import__("services_telegram").run_telegram_sync)
+    _run_signal_sync("telegram", "Telegram")
 
 
 def run_mail_signal_sync():
-    _run_signal_sync("mail", "Mail",
-                     lambda: __import__("services_mail").run_mail_sync)
+    _run_signal_sync("mail", "Mail")
 
 
 def run_icloud_signal_sync():
-    _run_signal_sync("icloud", "iCloud",
-                     lambda: __import__("services_icloud").run_icloud_sync)
+    _run_signal_sync("icloud", "iCloud")
 
 
 def topup_nudges():

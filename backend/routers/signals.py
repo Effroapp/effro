@@ -173,6 +173,28 @@ def list_signals(db: Session = Depends(get_db)):
     )
 
 
+@router.post("/sync-now")
+def sync_all_sources(db: Session = Depends(get_db)):
+    """Pull every connected source once - the Signals page's Sync button.
+    Registry-driven (see connectors.py), so a new connector joins this fan-out
+    by its registry entry alone. Per-source failures are reported, never
+    raised: one broken connector must not block the rest."""
+    import connectors
+    results = {}
+    for c in connectors.CONNECTORS:
+        if not c.get("sync"):
+            continue
+        key = c["key"]
+        if not connectors.connector_enabled(db, key):
+            continue
+        try:
+            results[key] = connectors.sync_runner(key)(db)
+        except Exception as e:
+            log.warning("Sync-now: %s failed: %s", key, e)
+            results[key] = {"skipped": True, "reason": "error", "error": str(e)}
+    return {"sources": results}
+
+
 @router.get("/suggestion-stats")
 def suggestion_stats(db: Session = Depends(get_db)):
     """Aggregates over the corrections log, the evaluation surface for the

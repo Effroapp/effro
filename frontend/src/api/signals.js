@@ -14,14 +14,27 @@ export async function listSignals() {
   return res.json()
 }
 
-/** Commit a signal to a meeting Entry. Either picks an existing thread
- *  (thread_id) or creates a new one under the area (new_thread_title). */
-export async function acceptSignal(signalId, { area_id, thread_id, new_thread_title }) {
+/** Commit a signal onto a thread - an existing one (thread_id) or a new one
+ *  under the area (new_thread_title). create_as picks what it lands as:
+ *  meeting | todo | decision | note | link | file (defaults by kind). */
+export async function acceptSignal(signalId, { area_id, thread_id, new_thread_title, create_as }) {
   const res = await fetch(`${BASE}/${signalId}/accept`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ area_id, thread_id, new_thread_title }),
+    body: JSON.stringify({ area_id, thread_id, new_thread_title, create_as }),
   })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.detail || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
+/** Pull every connected source once (the page-level Sync button). Returns
+ *  {sources: {jira: {added, ...}, telegram: {...}, ...}} - per-source results,
+ *  skipped entries included so problems are visible. */
+export async function syncAllSignals() {
+  const res = await fetch(`${BASE}/sync-now`, { method: 'POST' })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
     throw new Error(data.detail || `HTTP ${res.status}`)
