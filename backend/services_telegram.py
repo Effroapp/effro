@@ -90,6 +90,9 @@ def run_telegram_sync(db: Session) -> dict:
     ignored_chats = 0
     max_update_id = last_seen if isinstance(last_seen, int) else None
     for upd in updates:
+        if not isinstance(upd, dict):
+            log.warning("Telegram sync: skipping malformed update: %r", upd)
+            continue
         uid = upd.get("update_id")
         if isinstance(uid, int):
             max_update_id = uid if max_update_id is None else max(max_update_id, uid)
@@ -99,7 +102,7 @@ def run_telegram_sync(db: Session) -> dict:
         chat_id = (msg.get("chat") or {}).get("id")
         message_id = msg.get("message_id")
         text = _message_text(msg)
-        if chat_id is None or message_id is None or not text:
+        if chat_id is None or message_id is None or not text or not text.strip():
             continue
         if paired_chat_id is None:
             paired_chat_id = chat_id

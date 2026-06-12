@@ -130,6 +130,31 @@ def list_signals(db: Session = Depends(get_db)):
     )
 
 
+@router.get("/suggestion-stats")
+def suggestion_stats(db: Session = Depends(get_db)):
+    """Aggregates over the corrections log, the evaluation surface for the
+    area suggester. Accuracy counts only items where the AI made a call
+    (accepted vs reassigned); coverage is how often it made one at all.
+    Dismissals are reported but excluded from accuracy - declining an item
+    says nothing about whether its suggested area was right."""
+    rows = db.query(models.SignalResolution).all()
+    by_outcome = {"accepted": 0, "reassigned": 0, "filed_unsuggested": 0, "dismissed": 0}
+    per_source: dict = {}
+    for r in rows:
+        by_outcome[r.outcome] = by_outcome.get(r.outcome, 0) + 1
+        s = per_source.setdefault(r.source, {"accepted": 0, "reassigned": 0, "filed_unsuggested": 0, "dismissed": 0})
+        s[r.outcome] = s.get(r.outcome, 0) + 1
+    judged = by_outcome["accepted"] + by_outcome["reassigned"]
+    filed = judged + by_outcome["filed_unsuggested"]
+    return {
+        "total_resolutions": len(rows),
+        "outcomes": by_outcome,
+        "top1_accuracy": (by_outcome["accepted"] / judged) if judged else None,
+        "suggestion_coverage": (judged / filed) if filed else None,
+        "per_source": per_source,
+    }
+
+
 def _any_source_configured(db: Session) -> bool:
     """True if at least one Signals source is set up. Microsoft / Jira / Google
     keep a row per connection; GitHub, iCloud, Telegram and Mail store
@@ -274,6 +299,7 @@ def accept_signal(
     signal.assigned_entry_id = entry.id
     signal.suggested_area_id = area.id
     signal.suggested_thread_id = thread.id
+    _log_resolution(db, signal, final_area_id=area.id)
     db.commit()
     db.refresh(signal)
 
@@ -329,9 +355,30 @@ def dismiss_signal(signal_id: int, db: Session = Depends(get_db)):
     if signal.status == "dismissed":
         return _to_out(signal, db)
     signal.status = "dismissed"
+    _log_resolution(db, signal, final_area_id=None)
     db.commit()
     db.refresh(signal)
     return _to_out(signal, db)
+
+
+def _log_resolution(db: Session, signal: models.SignalItem, *, final_area_id) -> None:
+    """Append the triage decision to the corrections log (see SignalResolution).
+    Outcome is judged against the AI's ORIGINAL call (ai_suggested_area_id),
+    not suggested_area_id, which accept/reassign overwrite. Called inside the
+    accept/dismiss transaction so the log and the decision commit together."""
+    orig = signal.ai_suggested_area_id
+    if final_area_id is None:
+        outcome = "dismissed"
+    elif orig is None:
+        outcome = "filed_unsuggested"
+    elif orig == final_area_id:
+        outcome = "accepted"
+    else:
+        outcome = "reassigned"
+    db.add(models.SignalResolution(
+        signal_id=signal.id, source=signal.source, kind=signal.kind,
+        ai_suggested_area_id=orig, final_area_id=final_area_id, outcome=outcome,
+    ))
 
 
 def _to_out(signal: models.SignalItem, db: Session) -> schemas.SignalItemOut:

@@ -213,6 +213,7 @@ def _suggest_areas_for_pending(db: Session) -> int:
         "Use commas or hyphens for punctuation, never em dashes."
     )
     suggested = 0
+    touched = 0
     for item in pending:
         user_msg = (
             f"Meeting title: {item.title}\n"
@@ -230,13 +231,20 @@ def _suggest_areas_for_pending(db: Session) -> int:
         except Exception as e:
             log.warning("AI suggestion for signal %s failed: %s", item.id, e)
             continue
+        # Stamp every row the AI actually looked at - including abstentions -
+        # so suggestion coverage is measurable (see SignalResolution).
+        item.ai_suggested_at = datetime.utcnow()
+        touched += 1
         text = (text or "").strip().lower().rstrip(".")
         if text == "none" or not text.isdigit():
             continue
         area_id = int(text)
         if any(a.id == area_id for a in areas):
             item.suggested_area_id = area_id
+            # The original call, never overwritten afterwards (the row leaves
+            # the pending-without-suggestion filter, so the pass cannot revisit).
+            item.ai_suggested_area_id = area_id
             suggested += 1
-    if suggested:
+    if touched:
         db.commit()
     return suggested

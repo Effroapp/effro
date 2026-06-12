@@ -29,11 +29,18 @@ def run_mail_sync(db: Session) -> dict:
     mail = mc.fetch_flagged_mail(db, limit=25)
 
     added = updated = 0
+    seen_batch: set = set()
     for m in mail:
         uid = m.get("uid") or m.get("subject")
         if not uid:
             continue
         ext_id = f"mail:{uid}"[:256]
+        # In-batch dedupe: the session doesn't autoflush, so a repeated
+        # Message-ID in ONE fetch would pass the existence query twice and
+        # blow the (source, external_id) unique index at commit.
+        if ext_id in seen_batch:
+            continue
+        seen_batch.add(ext_id)
         fields = {
             "title": (m.get("subject") or "(no subject)")[:500],
             "starts_at": mc.parse_mail_date(m.get("date")),
