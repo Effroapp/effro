@@ -117,6 +117,15 @@ jobs:
       # bundles step below only picks up *setup.exe / .sig). Saves ~30s
       # of build time too. Stable releases (desktop-release.yml) still
       # build all targets because the tagged versions are clean SemVer.
+      # The cargo cache includes src-tauri/target, which carries the PREVIOUS
+      # run's installer in bundle/nsis. Without this clean, Collect swept BOTH
+      # exes into the release and the manifest's old glob picked the stale one:
+      # version said new, url pointed old, and beta-channel updates looped
+      # forever without ever advancing.
+      - name: Clean stale bundles from cache
+        shell: bash
+        run: rm -rf src-tauri/target/release/bundle
+
       - name: Build Tauri desktop app (signed)
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -141,10 +150,20 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          NSIS_EXE=$(ls artifacts/*setup.exe 2>/dev/null | head -1)
-          NSIS_SIG=$(ls artifacts/*setup.exe.sig 2>/dev/null | head -1)
-          if [[ -z "$NSIS_EXE" || -z "$NSIS_SIG" ]]; then
-            echo "Missing NSIS bundle or its .sig - can't build manifest" >&2
+          # Exact name only, and exactly one installer allowed - the old glob
+          # with head -1 picked a stale exe from the cached target dir, so the
+          # manifest's version and url described two different builds.
+          COUNT=$(ls artifacts/*setup.exe 2>/dev/null | wc -l)
+          if [[ "$COUNT" != "1" ]]; then
+            echo "Expected exactly 1 NSIS exe in artifacts, found ${COUNT}" >&2
+            ls -l artifacts/ >&2
+            exit 1
+          fi
+          NSIS_EXE="artifacts/Effro_${VERSION}_x64-setup.exe"
+          NSIS_SIG="${NSIS_EXE}.sig"
+          if [[ ! -f "$NSIS_EXE" || ! -f "$NSIS_SIG" ]]; then
+            echo "Expected ${NSIS_EXE} (+ .sig) not found - version/bundle mismatch" >&2
+            ls -l artifacts/ >&2
             exit 1
           fi
           SIG=$(cat "$NSIS_SIG")

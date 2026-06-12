@@ -105,6 +105,14 @@ jobs:
       - name: Build backend sidecar (frontend + PyInstaller)
         run: python scripts/build-backend.py
 
+      # The cargo cache includes src-tauri/target, which carries the PREVIOUS
+      # run's installers in bundle/. Without this clean, the glob-collect below
+      # can sweep a stale exe into the release and the manifest can point the
+      # updater at the wrong binary (the bug that broke beta-channel updates).
+      - name: Clean stale bundles from cache
+        shell: bash
+        run: rm -rf src-tauri/target/release/bundle
+
       - name: Build Tauri desktop app
         env:
           # Tauri updater signing - generates .sig sidecar files next to
@@ -190,10 +198,13 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${VERSION#v}"
-          NSIS_EXE=$(ls artifacts/*setup.exe 2>/dev/null | head -1)
-          NSIS_SIG=$(ls artifacts/*setup.exe.sig 2>/dev/null | head -1)
-          if [[ -z "$NSIS_EXE" || -z "$NSIS_SIG" ]]; then
-            echo "Missing NSIS bundle or its .sig - can't build manifest" >&2
+          # Exact name only - a glob with head -1 once picked a STALE exe left
+          # in the cached target dir, pointing the updater at the wrong binary.
+          NSIS_EXE="artifacts/Effro_${VERSION}_x64-setup.exe"
+          NSIS_SIG="${NSIS_EXE}.sig"
+          if [[ ! -f "$NSIS_EXE" || ! -f "$NSIS_SIG" ]]; then
+            echo "Expected ${NSIS_EXE} (+ .sig) not found - version/bundle mismatch" >&2
+            ls -l artifacts/ >&2
             exit 1
           fi
           SIG=$(cat "$NSIS_SIG")
