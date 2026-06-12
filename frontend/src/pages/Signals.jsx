@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Radar, Check, X, Pencil, Loader2, AlertCircle, Calendar,
-  MapPin, User, ChevronRight, RefreshCw, ExternalLink, Clock,
+  Radar, Check, X, Pencil, Loader2, AlertCircle,
+  ChevronRight, RefreshCw, ExternalLink, Clock,
   CheckCircle2, ChevronDown, Plug, Inbox,
 } from 'lucide-react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
@@ -392,15 +392,14 @@ function SignalCard({
       {/* Header row: title + status */}
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-0.5">
-            <SourceBadge source={signal.source} kind={signal.kind} />
-          </div>
+          {/* One quiet line carries everything contextual - brand mark, where
+              it came from, when, who - so the title is the visual lead. */}
+          <SourceMetaLine signal={signal} />
           {/* Clamped: meeting subjects are short, but a forwarded Telegram
               message or email can be a wall of text - keep the card calm. */}
           <h3 className="font-display font-medium text-base text-pitch-800 dark:text-white leading-tight line-clamp-3 break-words">
             <BionicText>{signal.title}</BionicText>
           </h3>
-          <MetaRow signal={signal} />
         </div>
         {isAssigned && (
           <button
@@ -444,59 +443,52 @@ const BADGE_LABEL = {
   mail: 'Email',
 }
 
-function SourceBadge({ source, kind }) {
-  // The brand mark carries the identity; the chrome stays neutral and calm.
-  // Jira keeps its native issue-type tile (Epic/Story/Bug...) next to the
-  // logo, so issues read exactly like they do inside Jira.
-  const logo = SOURCE_META[source]?.logo
-  const label = BADGE_LABEL[`${source}:${kind}`] || BADGE_LABEL[source] || SOURCE_META[source]?.label || source
+function SourceMetaLine({ signal }) {
+  // The quiet meta line: brand mark + source surface, then when / who /
+  // where / open, separated by middle dots. No chip chrome - the logo
+  // carries the identity, the line stays one muted breath above the title.
+  // Jira keeps its native issue-type tile so issues read like they do in Jira.
+  const logo = SOURCE_META[signal.source]?.logo
+  const label = BADGE_LABEL[`${signal.source}:${signal.kind}`]
+    || BADGE_LABEL[signal.source] || SOURCE_META[signal.source]?.label || signal.source
+  const Dot = () => <span className="text-paper-400 dark:text-pitch-400" aria-hidden>·</span>
   return (
-    <span className="inline-flex items-center gap-1.5 pl-1.5 pr-2 py-[3px] rounded-md
-                     bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500"
-          title={SOURCE_META[source]?.label || source}>
-      {logo && <ProviderLogo provider={logo} size={13} />}
-      {source === 'jira'
-        ? <JiraIssueType kind={kind} size={13} />
-        : <span className="text-2xs font-medium text-pitch-700 dark:text-paper-300">{label}</span>}
-    </span>
-  )
-}
-
-function MetaRow({ signal }) {
-  return (
-    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-2xs text-paper-500 dark:text-paper-600">
+    <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mb-1.5 text-2xs text-paper-500 dark:text-paper-600">
+      <span className="inline-flex items-center gap-1.5" title={SOURCE_META[signal.source]?.label || signal.source}>
+        {logo && <ProviderLogo provider={logo} size={14} />}
+        {signal.source === 'jira'
+          ? <JiraIssueType kind={signal.kind} size={13} />
+          : <span className="font-medium text-paper-600 dark:text-paper-300">{label}</span>}
+      </span>
       {signal.starts_at && (
-        <span className="inline-flex items-center gap-1">
-          <Calendar size={11} />
-          {formatMeetingTime(signal.starts_at, signal.is_all_day)}
-        </span>
+        <>
+          <Dot />
+          <span>{formatMeetingTime(signal.starts_at, signal.is_all_day)}</span>
+        </>
       )}
       {signal.organizer && (
-        <span className="inline-flex items-center gap-1 truncate max-w-[200px]">
-          <User size={11} />
-          <span className="truncate">{signal.organizer}</span>
-        </span>
+        <>
+          <Dot />
+          <span className="truncate max-w-[220px]">{signal.organizer}</span>
+        </>
       )}
       {signal.location && (
-        <span className="inline-flex items-center gap-1 truncate max-w-[200px]">
-          <MapPin size={11} />
-          <span className="truncate">{signal.location}</span>
-        </span>
+        <>
+          <Dot />
+          <span className="truncate max-w-[180px]">{signal.location}</span>
+        </>
       )}
       {signal.external_url && (
-        <a
-          href={signal.external_url}
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); openExternal(signal.external_url) }}
-          className="inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 hover:underline cursor-pointer"
-        >
-          <ExternalLink size={11} />
-          Open in {
-            signal.source === 'jira' ? 'Jira'
-              : signal.source === 'github' ? 'GitHub'
-              : signal.source === 'google' ? (signal.kind === 'email' ? 'Gmail' : 'Calendar')
-              : 'Outlook'
-          }
-        </a>
+        <>
+          <Dot />
+          <a
+            href={signal.external_url}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openExternal(signal.external_url) }}
+            className="inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 hover:underline cursor-pointer"
+          >
+            Open <ExternalLink size={10} />
+          </a>
+        </>
       )}
     </div>
   )
