@@ -54,7 +54,15 @@ already use and pull the important bits into one place. Core ideas:
   folio, and per-integration: microsoft, jira, google, dropbox, icloud, github.
 - Integrations follow a repeatable pattern: `<name>_client.py` (API/OAuth client)
   + `services_<name>.py` (sync -> upserts into `signal_items`) +
-  `routers/<name>.py` (config/profile/test/auth/sync-now).
+  `routers/<name>.py` (config/profile/test/auth/sync-now). Credential-based
+  ones (github, icloud, telegram, mail) persist config through
+  `integration_config.py` (shared load/save/clear/set_meta, secrets
+  Fernet-encrypted); frontend cards share `CredentialIntegrationCard.jsx`.
+- `connectors.py` - the connector registry + workspace policy, the single
+  source of truth consumed by the main.py connector gate, the scheduler, the
+  admin API (`/admin/connectors`) and `/auth/me` ("connectors" map). On a
+  licensed workspace each connector resolves as edition default (Pro: on,
+  Enterprise: off) + per-connector admin override; desktop ignores all of it.
 - Storage backends: `storage_backend.py` (abstract + factory + Fernet
   `encrypt_secret`/`decrypt_secret`) and
   `storage_{nextcloud,googledrive,dropbox,s3,webdav}.py`. Backups:

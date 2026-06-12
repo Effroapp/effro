@@ -132,9 +132,9 @@ def list_signals(db: Session = Depends(get_db)):
 
 def _any_source_configured(db: Session) -> bool:
     """True if at least one Signals source is set up. Microsoft / Jira / Google
-    keep a row per connection; GitHub and iCloud store credentials in
-    app_settings (read via their client helpers). Used only to choose the empty
-    state copy, so any failure degrades to 'not configured'."""
+    keep a row per connection; GitHub, iCloud, Telegram and Mail store
+    credentials in app_settings (read via their client helpers). Used only to
+    choose the empty state copy, so any failure degrades to 'not configured'."""
     try:
         if db.query(models.MicrosoftIntegration).first():
             return True
@@ -148,6 +148,13 @@ def _any_source_configured(db: Session) -> bool:
         import icloud_client
         ic = icloud_client.get_config(db) or {}
         if ic.get("apple_id") and ic.get("app_password"):
+            return True
+        import telegram_client
+        if (telegram_client.get_config(db) or {}).get("token"):
+            return True
+        import mail_client
+        m = mail_client.get_config(db) or {}
+        if m.get("host") and m.get("username") and m.get("password"):
             return True
     except Exception:
         pass

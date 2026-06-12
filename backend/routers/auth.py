@@ -22,6 +22,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import demo_seed
+import connectors
 import licence_manager
 import oidc_client
 from database import get_db
@@ -254,6 +255,9 @@ def me(current_user: User = Depends(get_current_user), db: Session = Depends(get
         "licence": licence_manager.public_status(licence_manager.current(db), db),
         # Gates the Folios nav item / routes in the frontend.
         "folio_enabled": folio_enabled(),
+        # Which connectors this workspace offers ({key: bool}) - the edition
+        # default plus admin overrides. The Integrations panel hides the rest.
+        "connectors": connectors.enabled_map(db),
     }
 
 

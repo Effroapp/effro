@@ -12,6 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+import connectors
 import demo_seed
 import email_client
 import licence_manager
@@ -275,6 +276,41 @@ def put_licence(
         )
     licence_manager.store_key(db, token)
     return licence_manager.admin_status(licence_manager.current(db), db)
+
+
+# ── Workspace connections (admin) ─────────────────────────────────────────────
+# Per-connector availability on a licensed workspace: the edition default
+# (Pro: on, Enterprise: off) plus the admin's explicit overrides. The registry
+# in connectors.py is the single source of truth; the gate in main.py and the
+# background syncs enforce the same answer this API reports.
+
+class ConnectorPolicyIn(BaseModel):
+    # {"telegram": true, "github": false, "mail": null} - true/false pins a
+    # connector on/off, null drops the override back to the edition default.
+    overrides: dict
+
+
+@router.get("/connectors")
+def get_connectors(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Every connector with its label, the edition default, the explicit
+    override (if any), and what is in effect."""
+    return connectors.admin_status(db)
+
+
+@router.put("/connectors")
+def put_connectors(
+    body: ConnectorPolicyIn,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    unknown = [k for k in body.overrides if k not in connectors.CONNECTOR_KEYS]
+    if unknown:
+        raise HTTPException(status_code=400, detail=f"Unknown connector: {', '.join(sorted(unknown))}")
+    bad = [k for k, v in body.overrides.items() if v is not None and not isinstance(v, bool)]
+    if bad:
+        raise HTTPException(status_code=400, detail="Overrides must be true, false or null.")
+    connectors.save_overrides(db, body.overrides)
+    return connectors.admin_status(db)
 
 
 # ── Demo data (admin; showcase only) ──────────────────────────────────────────

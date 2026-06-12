@@ -782,6 +782,47 @@ class GithubProfileOut(BaseModel):
     last_synced: Optional[str] = None
 
 
+class TelegramConfigIn(BaseModel):
+    """Telegram bot token (BYO, made with @BotFather)."""
+    token: str
+
+
+class TelegramConfigOut(BaseModel):
+    token_masked: Optional[str] = None
+    bot_username: Optional[str] = None
+    is_configured: bool = False
+
+
+class TelegramProfileOut(BaseModel):
+    connected: bool
+    bot_username: Optional[str] = None
+    last_synced: Optional[str] = None
+
+
+class MailConfigIn(BaseModel):
+    """Generic IMAP mailbox: host + username + an app password. An omitted
+    port keeps the stored one (the client defaults new configs to 993)."""
+    host: str
+    username: str
+    password: str
+    port: Optional[int] = None
+
+
+class MailConfigOut(BaseModel):
+    host: Optional[str] = None
+    port: Optional[int] = None
+    username: Optional[str] = None
+    password_masked: Optional[str] = None
+    is_configured: bool = False
+
+
+class MailProfileOut(BaseModel):
+    connected: bool
+    username: Optional[str] = None
+    host: Optional[str] = None
+    last_synced: Optional[str] = None
+
+
 class SignalItemOut(BaseModel):
     """A pending/assigned Signal row, enriched with the AI suggestion's labels."""
     id: int

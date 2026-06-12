@@ -1,4 +1,4 @@
-import { Server } from 'lucide-react'
+import { Server, Mail } from 'lucide-react'
 
 /**
  * Official-ish brand logos for storage + integration providers, in one place so
@@ -84,6 +84,22 @@ const Jira = ({ size = 18, className = '' }) => (
   </svg>
 )
 
+const Telegram = ({ size = 18, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
+    <circle cx="12" cy="12" r="12" fill="#26A5E4" />
+    <path
+      fill="#fff"
+      d="M5.43 11.87 17.2 7.33c.55-.2 1.03.13.85.96l-2 9.45c-.15.67-.55.83-1.11.52l-3.05-2.25-1.47 1.42c-.16.16-.3.3-.61.3l.21-3.1 5.65-5.1c.25-.22-.05-.34-.38-.12l-6.98 4.39-3.01-.94c-.65-.2-.66-.65.13-.99Z"
+    />
+  </svg>
+)
+
+// Generic email has no brand mark; the neutral Lucide glyph keeps the row
+// consistent (same approach as WebDAV's Server fallback, but explicit).
+const MailGlyph = ({ size = 18, className = '' }) => (
+  <Mail size={size} aria-hidden="true" className={`text-pitch-800 dark:text-paper-100 ${className}`} />
+)
+
 const LOGOS = {
   microsoft: Microsoft,
   onedrive: Microsoft,
@@ -97,5 +113,7 @@ const LOGOS = {
   icloud: Apple,
   github: Github,
   jira: Jira,
+  telegram: Telegram,
+  mail: MailGlyph,
   // webdav -> Server fallback
 }

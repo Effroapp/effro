@@ -8,15 +8,13 @@ app_settings; no refresh needed.
 """
 from __future__ import annotations
 
-import json
 import logging
-from datetime import datetime
 from typing import Optional
 
 import httpx
 from sqlalchemy.orm import Session
 
-import models
+import integration_config
 
 log = logging.getLogger("effro.github")
 
@@ -30,58 +28,23 @@ _HEADERS_BASE = {
 }
 
 
-# ─── Config ──────────────────────────────────────────────────────────────────
+# ─── Config (shared store, token encrypted at rest) ──────────────────────────
 
 def get_config(db: Session) -> dict:
-    row = db.query(models.AppSettings).filter(models.AppSettings.key == _GH_CONFIG_KEY).first()
-    if not row or not row.value:
-        return {}
-    try:
-        cfg = json.loads(row.value)
-        if cfg.get("token"):
-            from storage_backend import decrypt_secret
-            cfg["token"] = decrypt_secret(cfg["token"])
-        return cfg
-    except Exception as e:
-        log.warning("GitHub config parse failed: %s", e)
-        return {}
+    return integration_config.load(db, _GH_CONFIG_KEY, secret_fields=("token",))
 
 
 def save_config(db: Session, *, token: str) -> None:
-    from storage_backend import encrypt_secret
-    row = db.query(models.AppSettings).filter(models.AppSettings.key == _GH_CONFIG_KEY).first()
-    data = {}
-    if row and row.value:
-        try:
-            data = json.loads(row.value)
-        except Exception:
-            data = {}
-    data["token"] = encrypt_secret(token.strip(), db)
-    payload = json.dumps(data)
-    if row:
-        row.value = payload
-    else:
-        db.add(models.AppSettings(key=_GH_CONFIG_KEY, value=payload))
-    db.commit()
+    integration_config.save(db, _GH_CONFIG_KEY, {"token": token}, secret_fields=("token",))
 
 
 def clear_config(db: Session) -> None:
-    db.query(models.AppSettings).filter(models.AppSettings.key == _GH_CONFIG_KEY).delete()
-    db.commit()
+    integration_config.clear(db, _GH_CONFIG_KEY)
 
 
 def set_meta(db: Session, **fields) -> None:
     """Stamp non-secret fields (login, last_synced) without touching the token."""
-    row = db.query(models.AppSettings).filter(models.AppSettings.key == _GH_CONFIG_KEY).first()
-    if not row or not row.value:
-        return
-    try:
-        data = json.loads(row.value)
-    except Exception:
-        return
-    data.update(fields)
-    row.value = json.dumps(data)
-    db.commit()
+    integration_config.set_meta(db, _GH_CONFIG_KEY, **fields)
 
 
 def _token(db: Session) -> Optional[str]:

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Check, Plus, X, ChevronLeft } from 'lucide-react'
 import ProviderLogo from './ProviderLogos'
+import ConnectorPolicySection from './ConnectorPolicySection'
+import { useAuth } from '../contexts/AuthContext'
 import { openExternal } from '../api/tauri'
 
 import MicrosoftIntegration from './MicrosoftIntegration'
@@ -8,12 +10,16 @@ import JiraIntegration from './JiraIntegration'
 import GoogleIntegration from './GoogleIntegration'
 import IcloudIntegration from './IcloudIntegration'
 import GithubIntegration from './GithubIntegration'
+import TelegramIntegration from './TelegramIntegration'
+import MailIntegration from './MailIntegration'
 
 import { getMicrosoftProfile } from '../api/microsoft'
 import { getJiraProfile } from '../api/jira'
 import { getGoogleProfile } from '../api/google'
 import { getIcloudProfile } from '../api/icloud'
 import { getGithubProfile } from '../api/github'
+import { getTelegramProfile } from '../api/telegram'
+import { getMailProfile } from '../api/mail'
 
 /**
  * Integrations tab body, modelled on the Storage flow: a row of every option,
@@ -27,31 +33,45 @@ const INTEGRATIONS = [
   { key: 'icloud',    logo: 'icloud',    name: 'iCloud',        tagline: 'Calendar + Apple Mail',         Component: IcloudIntegration,    getProfile: getIcloudProfile,    status: (p) => p.apple_id },
   { key: 'github',    logo: 'github',    name: 'GitHub',        tagline: 'Reviews, assigned, mentions',   Component: GithubIntegration,    getProfile: getGithubProfile,    status: (p) => (p.login ? `@${p.login}` : null) },
   { key: 'microsoft', logo: 'microsoft', name: 'Microsoft 365', tagline: 'Outlook calendar',              Component: MicrosoftIntegration, getProfile: getMicrosoftProfile, status: (p) => p.email },
+  { key: 'telegram',  logo: 'telegram',  name: 'Telegram',      tagline: 'Messages to your personal bot', Component: TelegramIntegration,  getProfile: getTelegramProfile,  status: (p) => (p.bot_username ? `@${p.bot_username}` : null) },
+  { key: 'mail',      logo: 'mail',      name: 'Email (IMAP)',  tagline: 'Flagged mail from any mailbox', Component: MailIntegration,      getProfile: getMailProfile,      status: (p) => p.username },
 ]
 
 export default function IntegrationsPanel() {
+  const { user, refresh: refreshAuth } = useAuth()
   const [conn, setConn] = useState({})           // key -> { connected, status }
   const [modalKey, setModalKey] = useState(undefined)  // undefined=closed, null=picker, '<key>'=that integration
 
+  // The workspace's connector policy (from /auth/me): a connector absent from
+  // the map (or no map at all - the desktop build) is available.
+  const policy = user?.connectors
+  const available = INTEGRATIONS.filter((i) => !policy || policy[i.key] !== false)
+  const hiddenCount = INTEGRATIONS.length - available.length
+  const showPolicy = user?.role === 'admin' && !!user?.licence?.licence_required
+
   const refresh = useCallback(() => {
-    INTEGRATIONS.forEach((i) => {
+    available.forEach((i) => {
       i.getProfile()
         .then((p) => setConn((c) => ({ ...c, [i.key]: { connected: Boolean(p?.connected), status: p?.connected ? i.status(p) : null } })))
         .catch(() => {})
     })
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
   useEffect(() => { refresh() }, [refresh])
 
   const closeModal = () => { setModalKey(undefined); refresh() }
-  const connected = INTEGRATIONS.filter((i) => conn[i.key]?.connected)
+  const connected = available.filter((i) => conn[i.key]?.connected)
 
   return (
     <div className="space-y-5">
+      {/* Admin: which connections this workspace offers (licensed instances only) */}
+      {showPolicy && <ConnectorPolicySection onChanged={refreshAuth} />}
+
       {/* All options - icon row */}
       <div>
         <div className="font-mono uppercase tracking-widest text-2xs text-paper-500 dark:text-paper-600 mb-2">All integrations</div>
         <div className="flex flex-wrap gap-2">
-          {INTEGRATIONS.map((i) => {
+          {available.map((i) => {
             const on = conn[i.key]?.connected
             return (
               <button
@@ -110,6 +130,12 @@ export default function IntegrationsPanel() {
         )}
       </div>
 
+      {hiddenCount > 0 && !showPolicy && (
+        <p className="text-2xs text-paper-500 dark:text-paper-600 text-center">
+          Some connections are managed by your administrator.
+        </p>
+      )}
+
       <p className="text-2xs text-paper-500 dark:text-paper-600 text-center">
         Missing one you use?{' '}
         <a
@@ -121,14 +147,14 @@ export default function IntegrationsPanel() {
         </a>.
       </p>
 
-      {modalKey !== undefined && <IntegrationModal initialKey={modalKey} onClose={closeModal} />}
+      {modalKey !== undefined && <IntegrationModal items={available} initialKey={modalKey} onClose={closeModal} />}
     </div>
   )
 }
 
-function IntegrationModal({ initialKey, onClose }) {
+function IntegrationModal({ items, initialKey, onClose }) {
   const [key, setKey] = useState(initialKey)  // null => picker grid
-  const item = INTEGRATIONS.find((i) => i.key === key)
+  const item = items.find((i) => i.key === key)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-pitch-900/40 backdrop-blur-sm" onClick={onClose}>
@@ -153,7 +179,7 @@ function IntegrationModal({ initialKey, onClose }) {
         <div className="p-5 overflow-y-auto">
           {key === null ? (
             <div className="space-y-1.5">
-              {INTEGRATIONS.map((i) => (
+              {items.map((i) => (
                 <button
                   key={i.key}
                   onClick={() => setKey(i.key)}

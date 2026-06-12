@@ -34,13 +34,15 @@ import { BionicText } from '../utils/bionic.jsx'
 // ProviderLogo) and a short app label. Source-level, so each maps to one icon
 // (Google = Gmail + Calendar; iCloud = Apple Mail + Calendar).
 const SOURCE_META = {
-  microsoft: { label: 'Outlook', logo: 'microsoft' },
-  google:    { label: 'Google',  logo: 'google' },
-  icloud:    { label: 'iCloud',  logo: 'icloud' },
-  github:    { label: 'GitHub',  logo: 'github' },
-  jira:      { label: 'Jira',    logo: 'jira' },
+  microsoft: { label: 'Outlook',  logo: 'microsoft' },
+  google:    { label: 'Google',   logo: 'google' },
+  icloud:    { label: 'iCloud',   logo: 'icloud' },
+  github:    { label: 'GitHub',   logo: 'github' },
+  jira:      { label: 'Jira',     logo: 'jira' },
+  telegram:  { label: 'Telegram', logo: 'telegram' },
+  mail:      { label: 'Email',    logo: 'mail' },
 }
-const SOURCE_ORDER = ['microsoft', 'google', 'icloud', 'github', 'jira']
+const SOURCE_ORDER = ['microsoft', 'google', 'icloud', 'github', 'jira', 'telegram', 'mail']
 
 export default function Signals() {
   const navigate = useNavigate()
@@ -440,6 +442,8 @@ function SourceBadge({ source, kind }) {
     'icloud:email': { label: 'Apple Mail', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
     'github:pr': { label: 'GitHub PR', color: 'text-source-github bg-source-github/10 border-source-github/20' },
     'github:issue': { label: 'GitHub Issue', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
+    telegram: { label: 'Telegram', color: 'text-source-telegram bg-source-telegram/10 border-source-telegram/20' },
+    mail: { label: 'Email', color: 'text-pitch-600 dark:text-paper-300 bg-paper-200/60 dark:bg-pitch-600/40 border-paper-300 dark:border-pitch-500' },
   }
   let key = source
   if (source === 'google' || source === 'icloud') key = `${source}:${kind === 'email' ? 'email' : 'meeting'}`

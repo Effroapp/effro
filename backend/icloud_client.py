@@ -11,9 +11,9 @@ from __future__ import annotations
 
 import email
 import imaplib
-import json
 import logging
 import re
+import ssl
 from datetime import datetime, timezone, timedelta
 from email.utils import parsedate_to_datetime
 from typing import Optional
@@ -23,7 +23,7 @@ from xml.etree import ElementTree as ET
 import httpx
 from sqlalchemy.orm import Session
 
-import models
+import integration_config
 
 log = logging.getLogger("effro.icloud")
 
@@ -34,51 +34,26 @@ _ICLOUD_CONFIG_KEY = "icloud_config"
 _NS = {"d": "DAV:", "c": "urn:ietf:params:xml:ns:caldav"}
 
 
-# ─── Config ──────────────────────────────────────────────────────────────────
+# ─── Config (shared store, app password encrypted at rest) ───────────────────
 
 def get_config(db: Session) -> dict:
-    row = db.query(models.AppSettings).filter(models.AppSettings.key == _ICLOUD_CONFIG_KEY).first()
-    if not row or not row.value:
-        return {}
-    try:
-        cfg = json.loads(row.value)
-        if cfg.get("app_password"):
-            from storage_backend import decrypt_secret
-            cfg["app_password"] = decrypt_secret(cfg["app_password"])
-        return cfg
-    except Exception as e:
-        log.warning("iCloud config parse failed: %s", e)
-        return {}
+    return integration_config.load(db, _ICLOUD_CONFIG_KEY, secret_fields=("app_password",))
 
 
 def save_config(db: Session, *, apple_id: str, app_password: str) -> None:
-    from storage_backend import encrypt_secret
-    payload = {"apple_id": apple_id.strip(), "app_password": encrypt_secret(app_password.strip(), db)}
-    row = db.query(models.AppSettings).filter(models.AppSettings.key == _ICLOUD_CONFIG_KEY).first()
-    if row:
-        row.value = json.dumps(payload)
-    else:
-        db.add(models.AppSettings(key=_ICLOUD_CONFIG_KEY, value=json.dumps(payload)))
-    db.commit()
+    integration_config.save(db, _ICLOUD_CONFIG_KEY, {
+        "apple_id": apple_id.strip(),
+        "app_password": app_password,
+    }, secret_fields=("app_password",))
 
 
 def clear_config(db: Session) -> None:
-    db.query(models.AppSettings).filter(models.AppSettings.key == _ICLOUD_CONFIG_KEY).delete()
-    db.commit()
+    integration_config.clear(db, _ICLOUD_CONFIG_KEY)
 
 
 def set_last_synced(db: Session, iso: str) -> None:
     """Stamp last_synced without touching the encrypted password."""
-    row = db.query(models.AppSettings).filter(models.AppSettings.key == _ICLOUD_CONFIG_KEY).first()
-    if not row or not row.value:
-        return
-    try:
-        data = json.loads(row.value)
-    except Exception:
-        return
-    data["last_synced"] = iso
-    row.value = json.dumps(data)
-    db.commit()
+    integration_config.set_meta(db, _ICLOUD_CONFIG_KEY, last_synced=iso)
 
 
 def _creds(db: Session):
@@ -245,7 +220,9 @@ def fetch_flagged_mail(db: Session, *, limit: int = 25) -> list[dict]:
         return []
     out = []
     try:
-        M = imaplib.IMAP4_SSL(IMAP_HOST, 993)
+        # ssl_context is required: stdlib imaplib does not verify server
+        # certificates by default before Python 3.13.
+        M = imaplib.IMAP4_SSL(IMAP_HOST, 993, ssl_context=ssl.create_default_context())
         M.login(apple_id, app_password)
         try:
             M.select("INBOX", readonly=True)
@@ -321,7 +298,7 @@ def test_connection(db: Session) -> tuple[bool, str]:
         return False, f"Could not reach iCloud calendar: {e}"
     # IMAP login check
     try:
-        M = imaplib.IMAP4_SSL(IMAP_HOST, 993)
+        M = imaplib.IMAP4_SSL(IMAP_HOST, 993, ssl_context=ssl.create_default_context())
         try:
             M.login(apple_id, app_password)
         finally:

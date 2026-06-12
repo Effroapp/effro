@@ -52,10 +52,11 @@ export default {
         // Real brand hues, kept in one place so a tweak propagates and no raw
         // hex sits inline in the JSX.
         source: {
-          outlook: '#0078D4',
-          gcal:    '#1a73e8',
-          gmail:   '#ea4335',
-          github:  '#8957e5',
+          outlook:  '#0078D4',
+          gcal:     '#1a73e8',
+          gmail:    '#ea4335',
+          github:   '#8957e5',
+          telegram: '#26A5E4',
         },
         // ── Brand signature · mint ─────────────────────────────────────────
         // Used sparingly: the dot in "Effro.", the splash animation, and
