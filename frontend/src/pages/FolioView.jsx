@@ -257,6 +257,7 @@ function TitleField({ folio, onSaved }) {
 
 function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
   const [editing, setEditing] = useState(false)
+  const [zoom, setZoom] = useState(null)   // {src, caption} of the image being viewed
   const digest = folio.digest
 
   if (!digest) {
@@ -301,6 +302,7 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
   ) || (folio.captures || []).find((c) => c.type === 'image' && c.raw_content)
 
   return (
+    <>
     <article
       className="effro-rise relative mt-5 rounded-2xl bg-paper-50 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
                  shadow-sm px-7 sm:px-11 py-9 overflow-hidden"
@@ -355,12 +357,16 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
             editorial cover feel (negative margins cancel the card padding). */}
         {hero && (
           <figure className="-mx-7 sm:-mx-11 mb-7">
-            <img
-              src={`/uploads/${hero.raw_content}`}
-              alt={captureLabel(hero) || ''}
-              loading="lazy"
-              className="w-full max-h-[24rem] object-cover border-y border-paper-300 dark:border-pitch-400"
-            />
+            <button type="button" aria-label="View image larger"
+              onClick={() => setZoom({ src: `/uploads/${hero.raw_content}`, caption: hero.source_meta?.original_name })}
+              className="block w-full cursor-zoom-in">
+              <img
+                src={`/uploads/${hero.raw_content}`}
+                alt={captureLabel(hero) || ''}
+                loading="lazy"
+                className="w-full max-h-[24rem] object-cover border-y border-paper-300 dark:border-pitch-400"
+              />
+            </button>
             {hero.source_meta?.original_name && (
               <figcaption className="px-7 sm:px-11 mt-2 flex items-center gap-2 font-mono text-2xs text-paper-500 dark:text-pitch-200">
                 <span className="text-mint-700 dark:text-mint-300">Figure</span>
@@ -419,12 +425,16 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
             )}
             {sec.image && capturesById[sec.image]?.raw_content && (
               <figure className="my-6">
-                <img
-                  src={`/uploads/${capturesById[sec.image].raw_content}`}
-                  alt={captureLabel(capturesById[sec.image]) || ''}
-                  loading="lazy"
-                  className="w-full max-h-72 object-cover rounded-xl border border-paper-300 dark:border-pitch-400"
-                />
+                <button type="button" aria-label="View image larger"
+                  onClick={() => setZoom({ src: `/uploads/${capturesById[sec.image].raw_content}`, caption: capturesById[sec.image].source_meta?.original_name })}
+                  className="block w-full cursor-zoom-in">
+                  <img
+                    src={`/uploads/${capturesById[sec.image].raw_content}`}
+                    alt={captureLabel(capturesById[sec.image]) || ''}
+                    loading="lazy"
+                    className="w-full max-h-72 object-cover rounded-xl border border-paper-300 dark:border-pitch-400"
+                  />
+                </button>
                 {capturesById[sec.image].source_meta?.original_name && (
                   <figcaption className="mt-2 flex items-center gap-2 font-mono text-2xs text-paper-500 dark:text-pitch-200">
                     <span className="text-mint-700 dark:text-mint-300">Figure</span>
@@ -470,6 +480,34 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
         </Section>
       </div>
     </article>
+    {zoom && <Lightbox src={zoom.src} caption={zoom.caption} onClose={() => setZoom(null)} />}
+    </>
+  )
+}
+
+// Tap any article image to view it larger. A simple modal lightbox: Esc or a
+// backdrop click closes it, body scroll is locked while open. The image is
+// local (/uploads), shown in-app rather than opened externally.
+function Lightbox({ src, caption, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
+  }, [onClose])
+  return (
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Image viewer"
+      className="fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-12 bg-pitch-900/85 backdrop-blur-sm">
+      <button onClick={onClose} aria-label="Close image"
+        className="absolute top-4 right-4 p-2 rounded-lg text-paper-100 hover:bg-white/10 transition-colors">
+        <X size={20} />
+      </button>
+      <figure onClick={(e) => e.stopPropagation()} className="flex flex-col items-center gap-3 max-w-6xl">
+        <img src={src} alt={caption || ''} className="max-w-full max-h-[82vh] object-contain rounded-lg shadow-2xl" />
+        {caption && <figcaption className="font-mono text-2xs text-paper-200">{caption}</figcaption>}
+      </figure>
+    </div>
   )
 }
 
