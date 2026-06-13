@@ -45,7 +45,9 @@ export default function FolioRail({ folio, related = [] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {shown.map((k) => <div key={k}>{render[k]()}</div>)}
+      {shown.map((k, i) => (
+        <div key={k} className="effro-rise" style={{ animationDelay: `${i * 70}ms` }}>{render[k]()}</div>
+      ))}
       <p className="text-center font-mono text-[10px] tracking-wide text-paper-400 dark:text-pitch-300 pt-0.5">
         drawn only from your captures and workspace
       </p>
