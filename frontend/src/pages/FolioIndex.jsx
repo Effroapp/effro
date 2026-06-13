@@ -244,10 +244,12 @@ function Hero({ folio, onOpen }) {
         )}
         <Faces faces={folio.faces} count={folio.capture_count} />
       </div>
-      <div className="sm:w-36 flex-shrink-0 flex flex-col gap-2.5 sm:items-end">
+      <div className="sm:w-48 flex-shrink-0 flex flex-col gap-3 sm:items-end">
         <Thumb folio={folio} />
-        <span className="font-mono text-2xs text-paper-600 dark:text-pitch-100 inline-flex items-center gap-1">
-          Open <ArrowRight size={12} />
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium
+                         bg-paper-50 dark:bg-pitch-600 border border-paper-300 dark:border-pitch-400
+                         text-pitch-800 dark:text-pitch-50">
+          Open <ArrowRight size={14} />
         </span>
       </div>
     </button>
@@ -256,14 +258,18 @@ function Hero({ folio, onOpen }) {
 
 function Thumb({ folio }) {
   if (folio.thumb_url) {
+    // Framed (border + soft inner bg) and object-contain, so the whole image
+    // reads as a deliberate thumbnail rather than a cropped fragment stuffed
+    // into a box.
     return (
-      <div className="w-full sm:w-36 h-24 rounded-xl overflow-hidden bg-paper-300 dark:bg-pitch-600">
-        <img src={folio.thumb_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+      <div className="w-full sm:w-48 h-32 rounded-xl overflow-hidden p-1.5
+                      border border-paper-300 dark:border-pitch-400 bg-paper-100 dark:bg-pitch-800">
+        <img src={folio.thumb_url} alt="" className="w-full h-full object-contain rounded-md" loading="lazy" />
       </div>
     )
   }
   // No image capture: a calm gradient, not an empty box.
-  return <div className="w-full sm:w-36 h-24 rounded-xl bg-gradient-to-br from-sky-muted to-sage opacity-80" />
+  return <div className="w-full sm:w-48 h-32 rounded-xl border border-paper-300 dark:border-pitch-400 bg-gradient-to-br from-sky-muted to-sage opacity-80" />
 }
 
 function DiveCard({ folio, onOpen }) {

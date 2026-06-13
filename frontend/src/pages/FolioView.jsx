@@ -129,7 +129,7 @@ export default function FolioView() {
 
   return (
     <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
-      <div className="max-w-6xl mx-auto px-6 md:px-10 py-8">
+      <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
         {/* Back */}
         <button
           onClick={() => navigate('/folios')}
@@ -178,7 +178,7 @@ export default function FolioView() {
                        text-pitch-800 dark:text-pitch-50 hover:border-mint/40 hover:bg-mint/5
                        transition-colors"
           >
-            <Plus size={15} className="text-mint" /> Add
+            <Plus size={15} className="text-mint" /> Add capture
           </button>
         </div>
 
@@ -312,7 +312,7 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
       {/* The whole piece sits in one centred reading measure, so the sheet
           reads like a magazine column rather than text pinned to the left
           edge of a wide card. */}
-      <div className="relative max-w-[42rem] mx-auto">
+      <div className="relative max-w-[46rem] mx-auto">
         {/* Masthead: the Effro mark + kicker, the headline, then an issue line
             (when it was pulled together, read time, sources drawn on). */}
         <div className="flex items-start justify-between gap-3">
@@ -353,22 +353,24 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
           </div>
         )}
 
-        {/* Hero: the dive's first image, full-bleed to the sheet's edges for an
-            editorial cover feel (negative margins cancel the card padding). */}
+        {/* Hero: the dive's first image. Padded off the masthead rule, framed,
+            and object-contain so the whole image shows (never cropped) - a
+            captured diagram is usually the point, so it must be readable. */}
         {hero && (
-          <figure className="-mx-7 sm:-mx-11 mb-7">
+          <figure className="mt-2 mb-7">
             <button type="button" aria-label="View image larger"
               onClick={() => setZoom({ src: `/uploads/${hero.raw_content}`, caption: hero.source_meta?.original_name })}
-              className="block w-full cursor-zoom-in">
+              className="block w-full cursor-zoom-in rounded-xl overflow-hidden
+                         border border-paper-300 dark:border-pitch-400 bg-paper-100 dark:bg-pitch-800">
               <img
                 src={`/uploads/${hero.raw_content}`}
                 alt={captureLabel(hero) || ''}
                 loading="lazy"
-                className="w-full max-h-[24rem] object-cover border-y border-paper-300 dark:border-pitch-400"
+                className="w-full max-h-[28rem] object-contain"
               />
             </button>
             {hero.source_meta?.original_name && (
-              <figcaption className="px-7 sm:px-11 mt-2 flex items-center gap-2 font-mono text-2xs text-paper-500 dark:text-pitch-200">
+              <figcaption className="mt-2 flex items-center gap-2 font-mono text-2xs text-paper-500 dark:text-pitch-200">
                 <span className="text-mint-700 dark:text-mint-300">Figure</span>
                 <span className="opacity-40">·</span>
                 {hero.source_meta.original_name}
@@ -427,12 +429,13 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
               <figure className="my-6">
                 <button type="button" aria-label="View image larger"
                   onClick={() => setZoom({ src: `/uploads/${capturesById[sec.image].raw_content}`, caption: capturesById[sec.image].source_meta?.original_name })}
-                  className="block w-full cursor-zoom-in">
+                  className="block w-full cursor-zoom-in rounded-xl overflow-hidden
+                             border border-paper-300 dark:border-pitch-400 bg-paper-100 dark:bg-pitch-800">
                   <img
                     src={`/uploads/${capturesById[sec.image].raw_content}`}
                     alt={captureLabel(capturesById[sec.image]) || ''}
                     loading="lazy"
-                    className="w-full max-h-72 object-cover rounded-xl border border-paper-300 dark:border-pitch-400"
+                    className="w-full max-h-80 object-contain"
                   />
                 </button>
                 {capturesById[sec.image].source_meta?.original_name && (
