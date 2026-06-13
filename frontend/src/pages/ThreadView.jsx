@@ -5,12 +5,13 @@ import {
   Paperclip, Link2, Upload, ExternalLink, UploadCloud,
   RefreshCw, FileText, GitBranch, ArrowRight, ArrowLeft,
   ChevronDown, ChevronUp, Calendar, Ban,
-  MessageSquare, ListTodo, Activity
+  MessageSquare, ListTodo, Activity, Library, Loader2
 } from 'lucide-react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import ReactMarkdown from 'react-markdown'
-import { threadsApi, entriesApi, attachmentsApi, areasApi } from '../api/client'
+import { threadsApi, entriesApi, attachmentsApi, areasApi, folioApi } from '../api/client'
 import { openExternal } from '../api/tauri'
+import { useAuth } from '../contexts/AuthContext'
 import StatusBadge from '../components/StatusBadge'
 import Modal from '../components/Modal'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -45,6 +46,7 @@ function getDueDateClass(dueDateStr) {
 export default function ThreadView() {
   const { threadId } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const toast = useToast()
   const { configured: aiConfigured } = useAIConfigured()
 
@@ -63,6 +65,7 @@ export default function ThreadView() {
 
   // Thread-level editing
   const [editingTitle, setEditingTitle] = useState(false)
+  const [creatingDive, setCreatingDive] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
   const [editingDescription, setEditingDescription] = useState(false)
   const [descDraft, setDescDraft] = useState('')
@@ -645,6 +648,30 @@ export default function ThreadView() {
             </div>
 
             <div className="flex items-center gap-3 flex-shrink-0">
+              {/* Start a deep dive filed to this thread (and its area) */}
+              {user?.folio_enabled && (
+                <button
+                  onClick={async () => {
+                    setCreatingDive(true)
+                    try {
+                      const f = await folioApi.create({ area_id: thread.area_id, thread_id: thread.id })
+                      navigate(`/folios/${f.id}`)
+                    } catch (e) {
+                      toast(e.message || 'Could not start a deep dive', 'error')
+                      setCreatingDive(false)
+                    }
+                  }}
+                  disabled={creatingDive}
+                  title="Start a deep dive filed to this thread"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display font-medium
+                             bg-paper-200/60 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500
+                             text-pitch-800 dark:text-pitch-50 hover:border-mint/40 transition-colors disabled:opacity-50"
+                >
+                  {creatingDive ? <Loader2 size={13} className="animate-spin" /> : <Library size={13} className="text-mint" />}
+                  Deep dive
+                </button>
+              )}
+
               {/* Status selector */}
               <div className="relative">
                 <button onClick={() => setEditingStatus((v) => !v)}>
