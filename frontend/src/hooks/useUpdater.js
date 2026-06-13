@@ -136,5 +136,11 @@ export function useUpdater({ enabled = true } = {}) {
     }
   }, [available])
 
-  return { status, available, progress, error, install, dismiss, checkNow }
+  /** Step back out of an errored install to the available prompt (or idle). */
+  const reset = useCallback(() => {
+    setError('')
+    setStatus(available ? 'available' : 'idle')
+  }, [available])
+
+  return { status, available, progress, error, install, dismiss, checkNow, reset }
 }

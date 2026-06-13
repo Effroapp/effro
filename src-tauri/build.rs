@@ -24,6 +24,7 @@ fn main() {
                 "get_updater_auth_header",
                 "check_update",
                 "app_version",
+                "take_just_updated",
             ]),
         ),
     )

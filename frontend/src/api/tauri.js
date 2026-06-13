@@ -144,3 +144,14 @@ export async function relaunchForUpdate() {
   const { relaunch: processRelaunch } = await import('@tauri-apps/plugin-process')
   return processRelaunch()
 }
+
+/**
+ * One-shot read of the "just updated" flag. Returns the version we updated TO
+ * on the first launch after an auto-update, otherwise null. The Rust side
+ * clears it on read, so the welcome notice fires exactly once.
+ */
+export async function takeJustUpdated() {
+  if (!isTauri()) return null
+  const { invoke: tauriInvoke } = await import('@tauri-apps/api/core')
+  return tauriInvoke('take_just_updated')
+}
