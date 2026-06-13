@@ -73,7 +73,7 @@ export default function UpdateToast({ updater }) {
             "
           >
             <Download size={11} />
-            Install &amp; restart
+            Update now
           </button>
           <button
             onClick={dismiss}

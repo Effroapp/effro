@@ -10,6 +10,8 @@ import { useUpdater } from './hooks/useUpdater'
 import { useAuth } from './contexts/AuthContext'
 import SettingsMenu from './components/SettingsMenu'
 import UpdateToast from './components/UpdateToast'
+import UpdateOverlay from './components/UpdateOverlay'
+import UpdatedNotice from './components/UpdatedNotice'
 import { ToastProvider } from './components/Toast'
 import QuickCapture from './components/QuickCapture'
 import QuickSwitcher from './components/QuickSwitcher'
@@ -181,6 +183,10 @@ function AuthedChrome({
       {/* Update prompt - appears once per detected new version, then
           collapses into the cog badge until installed. */}
       <UpdateToast updater={updater} />
+      {/* Full-screen progress while an accepted update downloads + installs,
+          and a quiet welcome-back notice on the first launch afterwards. */}
+      <UpdateOverlay updater={updater} />
+      <UpdatedNotice />
       <QuickCapture />
       <QuickSwitcher isOpen={switcherOpen} onClose={() => setSwitcherOpen(false)} />
       <NewAreaModal isOpen={newAreaOpen} onClose={() => setNewAreaOpen(false)} />

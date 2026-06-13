@@ -42,6 +42,11 @@ const DATA_DIR_KEY: &str = "data_dir";
 /// launch - drives the one-time webview cache bust after an update.
 const LAST_RUN_VERSION_KEY: &str = "last_run_version";
 
+/// One-shot flag set when an auto-update changes the version, holding the
+/// version we updated TO. The frontend reads + clears it on the next launch to
+/// welcome the user back onto the new version. Skipped on a first install.
+const JUST_UPDATED_KEY: &str = "just_updated_to";
+
 /// Find a free TCP port for the sidecar. Prefers a stable, well-known port
 /// (8000) so the Microsoft 365 OAuth redirect URI registered in Azure stays
 /// consistent across launches - Microsoft does an exact-match validation on
@@ -448,6 +453,20 @@ fn app_version(app: tauri::AppHandle) -> String {
     app.package_info().version.to_string()
 }
 
+/// Reads and clears the one-shot "just updated" flag. Returns the version we
+/// updated TO on the first launch after an auto-update, otherwise None. The
+/// frontend reads this to show a quiet "welcome back, you're now on vX" notice.
+#[tauri::command]
+fn take_just_updated(app: AppHandle) -> Option<String> {
+    let store = app.store(CONFIG_STORE).ok()?;
+    let version = store.get(JUST_UPDATED_KEY).and_then(|v| v.as_str().map(String::from));
+    if version.is_some() {
+        store.delete(JUST_UPDATED_KEY);
+        let _ = store.save();
+    }
+    version
+}
+
 
 /// Recursively copy `src` into `dst`. Existing files at the destination are
 /// left alone (this is what makes the migration idempotent - re-running the
@@ -564,6 +583,7 @@ fn main() {
             get_updater_auth_header,
             check_update,
             app_version,
+            take_just_updated,
         ])
         .setup(move |app| {
             // One-time Trace -> Effro migration. Runs FIRST, before any config-
@@ -595,6 +615,18 @@ fn main() {
                     .and_then(|s| s.get(LAST_RUN_VERSION_KEY))
                     .and_then(|v| v.as_str().map(String::from));
                 if last_seen.as_deref() != Some(current.as_str()) {
+                    // A real update (a previous version is on record) leaves a
+                    // one-shot flag the frontend consumes on this launch to
+                    // welcome the user. Skipped on a first install (None), and
+                    // written before the cache-bust below so it survives the
+                    // webview reload (it lives in the config store, not
+                    // localStorage, which the bust clears).
+                    if last_seen.is_some() {
+                        if let Ok(store) = handle.store(CONFIG_STORE) {
+                            store.set(JUST_UPDATED_KEY, serde_json::Value::String(current.clone()));
+                            let _ = store.save();
+                        }
+                    }
                     std::thread::spawn(move || {
                         // The main window may not exist yet this early in
                         // startup - poll briefly rather than assume ordering.

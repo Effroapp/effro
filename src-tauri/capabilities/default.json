@@ -25,6 +25,7 @@
     "allow-get-updater-auth-header",
     "allow-check-update",
     "allow-app-version",
+    "allow-take-just-updated",
     "shell:default",
     "shell:allow-execute",
     "shell:allow-spawn",
