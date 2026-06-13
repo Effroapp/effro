@@ -95,37 +95,21 @@ export async function setUpdateChannel(channel) {
 }
 
 /**
- * Returns the update endpoint URL the user's current channel would hit.
- * The Rust side reads the channel from the store and resolves to the
- * right GitHub Releases URL.
- */
-async function getUpdateEndpoint() {
-  if (!isTauri()) return null
-  const { invoke: tauriInvoke } = await import('@tauri-apps/api/core')
-  return tauriInvoke('get_update_endpoint')
-}
-
-/**
- * Returns the "Bearer <pat>" header value baked into the binary at build
- * time, or null when the binary was built without a token (local dev).
- * We use this to authenticate against the private GitHub Releases endpoint.
- */
-async function getUpdaterAuthHeader() {
-  if (!isTauri()) return null
-  const { invoke: tauriInvoke } = await import('@tauri-apps/api/core')
-  return tauriInvoke('get_updater_auth_header')
-}
-
-/**
  * Check for an update. Returns:
  *   - { available: true, version, currentVersion, body, downloadAndInstall }
  *     when a newer version is found. Call `downloadAndInstall()` to apply.
  *   - { available: false } when up to date.
  *   - null outside Tauri.
  *
- * We pass the endpoint override on every check because the tauri-plugin-
- * updater Rust Builder doesn't allow runtime endpoint changes - but the JS
- * `check({ endpoints })` does.
+ * We go through our own `check_update` Rust command rather than the plugin's
+ * JS `check()`. The plugin can only read the single endpoint baked into
+ * tauri.conf.json (stable), and its `CheckOptions` has no endpoint override -
+ * `check({ endpoints })` was silently ignored, so a beta user was always
+ * compared against the stable feed and told "up to date". `check_update`
+ * resolves the user's channel and points the updater at the right endpoint.
+ * It returns the SAME metadata the JS `Update` class expects (incl. the
+ * resource id), so we wrap it and reuse the plugin's download + install path
+ * (progress events + Ed25519 signature verification) unchanged.
  *
  * NB: NO Authorization header. The Effroapp/effro repo is PUBLIC, so release
  * assets download anonymously. Sending a stale Bearer token (left over from
@@ -134,12 +118,11 @@ async function getUpdaterAuthHeader() {
  */
 export async function checkForUpdate() {
   if (!isTauri()) return null
-  const endpoint = await getUpdateEndpoint()
-  const options = {}
-  if (endpoint) options.endpoints = [endpoint]
-  const { check } = await import('@tauri-apps/plugin-updater')
-  const update = await check(Object.keys(options).length ? options : undefined)
-  if (!update) return { available: false }
+  const { invoke: tauriInvoke } = await import('@tauri-apps/api/core')
+  const meta = await tauriInvoke('check_update')
+  if (!meta) return { available: false }
+  const { Update } = await import('@tauri-apps/plugin-updater')
+  const update = new Update(meta)
   return {
     available: true,
     version: update.version,

@@ -23,6 +23,7 @@
     "allow-set-update-channel",
     "allow-get-update-endpoint",
     "allow-get-updater-auth-header",
+    "allow-check-update",
     "allow-app-version",
     "shell:default",
     "shell:allow-execute",
