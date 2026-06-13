@@ -92,6 +92,17 @@ def reindex_folio(db: Session, folio: "models.Folio") -> None:
                     parts.append(sec.get("body") or "")
             except Exception:
                 pass
+            try:
+                for term in json.loads(cur.key_terms or "[]"):
+                    parts.append(term.get("term") or "")
+                    parts.append(term.get("definition") or "")
+            except Exception:
+                pass
+            try:
+                for tn in json.loads(cur.tensions or "[]"):
+                    parts.append(tn.get("point") or "")
+            except Exception:
+                pass
         body = "\n".join(p for p in parts if p)
         db.execute(text("DELETE FROM folio_fts WHERE folio_id = :fid"), {"fid": folio.id})
         db.execute(
@@ -275,6 +286,8 @@ def get_folio(folio_id: int, db: Session = Depends(get_db)):
             "key_points": json.loads(cur.key_points or "[]"),
             "sources": json.loads(cur.sources or "[]"),
             "open_threads": json.loads(cur.open_threads or "[]"),
+            "key_terms": json.loads(cur.key_terms or "[]"),
+            "tensions": json.loads(cur.tensions or "[]"),
             "based_on_capture_ids": json.loads(cur.based_on_capture_ids or "[]"),
             "generated_at": cur.generated_at,
         },
@@ -452,6 +465,8 @@ def _digest_out(d: "models.Digest") -> dict:
         "key_points": json.loads(d.key_points or "[]"),
         "sources": json.loads(d.sources or "[]"),
         "open_threads": json.loads(d.open_threads or "[]"),
+        "key_terms": json.loads(d.key_terms or "[]"),
+        "tensions": json.loads(d.tensions or "[]"),
         "based_on_capture_ids": json.loads(d.based_on_capture_ids or "[]"),
         "generated_at": d.generated_at,
     }
@@ -465,6 +480,8 @@ def _digest_dict(d: "models.Digest") -> dict:
         "key_points": json.loads(d.key_points or "[]"),
         "sources": json.loads(d.sources or "[]"),
         "open_threads": json.loads(d.open_threads or "[]"),
+        "key_terms": json.loads(d.key_terms or "[]"),
+        "tensions": json.loads(d.tensions or "[]"),
     }
 
 
@@ -549,6 +566,8 @@ def pull_together(folio_id: int, db: Session = Depends(get_db)):
                 key_points=json.dumps(result["key_points"]),
                 sources=json.dumps(result["sources"]),
                 open_threads=json.dumps(result["open_threads"]),
+                key_terms=json.dumps(result.get("key_terms", [])),
+                tensions=json.dumps(result.get("tensions", [])),
                 based_on_capture_ids=based_on,
             )
             db.add(digest)
@@ -625,3 +644,67 @@ def restore_digest_version(folio_id: int, body: DigestRestore, db: Session = Dep
     db.refresh(match)
     reindex_folio(db, folio)
     return _digest_out(match)
+
+
+# ── Related threads (workspace connections) ───────────────────────────────────
+
+# Words too generic to carry a connection. Kept small and obvious; the matcher
+# is best-effort, not a search engine.
+_RELATED_STOPWORDS = {
+    "the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "with", "that",
+    "this", "are", "be", "by", "as", "at", "it", "its", "from", "into", "what",
+    "why", "how", "your", "you", "their", "they", "our", "about", "when", "which",
+    "not", "but", "deep", "dive", "digest", "untitled", "notes", "note",
+}
+
+
+def _folio_terms(folio: "models.Folio", digest) -> list[str]:
+    """The dive's distinctive words: topic names + title + the digest headline
+    and summary, reduced to lowercase alphanumerics, stopwords removed."""
+    bits = [t.name for t in folio.topics]
+    if folio.title:
+        bits.append(folio.title)
+    if digest is not None:
+        bits.append(digest.headline or "")
+        bits.append(digest.summary or "")
+    words = re.findall(r"[A-Za-z0-9]{4,}", " ".join(bits).lower())
+    seen, terms = set(), []
+    for w in words:
+        if w in _RELATED_STOPWORDS or w in seen:
+            continue
+        seen.add(w)
+        terms.append(w)
+    return terms[:14]
+
+
+@router.get("/folios/{folio_id}/related")
+def related_threads(folio_id: int, db: Session = Depends(get_db)):
+    """Threads in the workspace that share language with this dive. Best-effort
+    keyword overlap (there is no thread FTS); a same-area thread gets a small
+    boost. Grounded entirely in the user's own threads, capped at five. Returns
+    [] when nothing overlaps, so the rail widget simply hides itself."""
+    folio = _require_folio(db, folio_id)
+    cur = next((d for d in folio.digests if d.is_current), None)
+    terms = _folio_terms(folio, cur)
+    if not terms:
+        return []
+    scored = []
+    for th in db.query(models.Thread).all():
+        hay = " ".join([th.title or "", th.summary or "", th.description or ""]).lower()
+        score = sum(1 for t in terms if t in hay)
+        if folio.area_id and th.area_id == folio.area_id:
+            score += 1
+        if score <= 0:
+            continue
+        scored.append((score, th.updated_at or th.created_at, th))
+    scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    return [
+        {
+            "id": th.id,
+            "title": th.title,
+            "status": th.status,
+            "area": th.area.name if th.area else None,
+            "updated_at": th.updated_at,
+        }
+        for _score, _ts, th in scored[:5]
+    ]

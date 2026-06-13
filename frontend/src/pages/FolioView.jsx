@@ -8,6 +8,7 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import { useToast } from '../components/Toast'
 import PageHeader from '../components/PageHeader'
+import FolioRail from '../components/FolioRail'
 import { folioApi } from '../api/client'
 import { BionicText } from '../utils/bionic.jsx'
 import { parseUTC } from '../utils/time.js'
@@ -48,6 +49,7 @@ export default function FolioView() {
   const [folio, setFolio] = useState(null)
   const [view, setView] = useState('read')       // read | captures
   const [pulling, setPulling] = useState(false)
+  const [related, setRelated] = useState([])
   const noteRef = useRef(null)
 
   const load = useCallback(() => {
@@ -56,6 +58,14 @@ export default function FolioView() {
       .catch((e) => { toast(e.message || 'Could not open this folio', 'error'); navigate('/folios') })
   }, [folioId, navigate, toast])
   useEffect(() => { load() }, [load])
+
+  // Related threads power one rail widget; fetched lazily so the digest never
+  // waits on the workspace scan. Refreshed after a pull (new digest text can
+  // change the matches).
+  const loadRelated = useCallback(() => {
+    folioApi.related(folioId).then((r) => setRelated(r || [])).catch(() => {})
+  }, [folioId])
+  useEffect(() => { loadRelated() }, [loadRelated])
 
   const focusAdd = () => {
     setView('captures')
@@ -68,6 +78,7 @@ export default function FolioView() {
       await folioApi.pullTogether(folioId)
       await new Promise((r) => setTimeout(r, 30))
       load()
+      loadRelated()
       setView('read')
       toast('Pulled together. This is your work.')
     } catch (e) {
@@ -86,6 +97,17 @@ export default function FolioView() {
   }
 
   const capCount = folio.captures.length
+
+  // The rail only earns its column when it has something to show. Computed here
+  // (not inside the rail) so an empty rail doesn't reserve dead grid space.
+  const dg = folio.digest
+  const railHasContent = !!dg && (
+    (dg.tensions || []).length > 0 ||
+    (dg.key_points || []).length > 0 ||
+    (dg.key_terms || []).length > 0 ||
+    folio.captures.some((c) => c.type === 'link' && c.raw_content) ||
+    related.length > 0
+  )
 
   return (
     <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
@@ -141,14 +163,26 @@ export default function FolioView() {
           />
         </div>
 
-        {/* Reading / working column: a comfortable measure centred in the page,
-            so the sheet sits like a magazine spread instead of hugging the left
-            edge with all the spare width on one side. */}
-        <div className="max-w-4xl mx-auto">
-          {view === 'read'
-            ? <ReadView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} onGoCaptures={focusAdd} />
-            : <CapturesView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} noteRef={noteRef} />}
-        </div>
+        {/* Read view with a populated rail becomes a magazine spread: the digest
+            on the left, grounded widgets filling the right. The rail is sticky
+            on wide screens and drops below the digest on narrow ones. Everything
+            else (captures, the empty/edit states) keeps the centred measure. */}
+        {view === 'read' && railHasContent ? (
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_19rem] gap-6 items-start">
+            <div className="min-w-0">
+              <ReadView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} onGoCaptures={focusAdd} />
+            </div>
+            <div className="xl:sticky xl:top-6">
+              <FolioRail folio={folio} related={related} />
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-4xl mx-auto">
+            {view === 'read'
+              ? <ReadView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} onGoCaptures={focusAdd} />
+              : <CapturesView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} noteRef={noteRef} />}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -651,6 +651,13 @@ class Digest(Base):
     # synthesis time; images reference the folio's own image captures. Empty
     # for digests pulled before sections existed - those render the flat way.
     sections = Column(Text, default="[]")
+    # Glossary of the dive's jargon: JSON list of {term, definition}. A term is
+    # kept only if it appears in a capture (grounded). Empty = legacy/none.
+    key_terms = Column(Text, default="[]")
+    # Where the captures disagree: JSON list of
+    # {point, sides:[{source, stance}]}. Empty when sources broadly agree or
+    # for digests pulled before this existed.
+    tensions = Column(Text, default="[]")
     based_on_capture_ids = Column(Text, default="[]")
     generated_at = Column(DateTime, server_default=func.now())
 

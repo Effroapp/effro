@@ -138,6 +138,8 @@ export const folioApi = {
   editDigest: (id, payload) => request(`/folios/${id}/digest`, { method: 'PATCH', body: payload }),
   digestVersions: (id) => request(`/folios/${id}/digest/versions`),
   restoreDigest: (id, version) => request(`/folios/${id}/digest/restore`, { method: 'POST', body: { version } }),
+  // Workspace connections for the reading rail (best-effort keyword match).
+  related: (id) => request(`/folios/${id}/related`),
 }
 
 // ─── Areas ────────────────────────────────────────────────────────────────────

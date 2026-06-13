@@ -234,6 +234,9 @@ def _init_db():
             "ALTER TABLE digests ADD COLUMN sections TEXT",
             # The piece's own grounded headline (empty = legacy digest).
             "ALTER TABLE digests ADD COLUMN headline TEXT",
+            # Reading-rail synthesis: glossary terms + where sources disagree.
+            "ALTER TABLE digests ADD COLUMN key_terms TEXT",
+            "ALTER TABLE digests ADD COLUMN tensions TEXT",
             # ── Suggester corrections log ───────────────────────────────────────
             # The AI's original area call, preserved on the signal row (accept and
             # reassign overwrite suggested_area_id, so this is the honest record).
