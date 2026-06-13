@@ -79,6 +79,14 @@
   .pcf-dot:first-child { opacity: .6; }   /* one quiet static dot */
 }
 
+/* Folio reading: a calm entrance for the digest sheet and rail cards. The
+   rail staggers via inline animation-delay. Suppressed under reduced-motion. */
+@keyframes effroRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.effro-rise { animation: effroRise .45s cubic-bezier(.2,.8,.3,1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .effro-rise { animation: none; }
+}
+
 /* Bionic reading: emboldened word-prefixes. Kept strong even where prose
    styles would otherwise normalise weight. */
 .bionic-fix { font-weight: 700; }

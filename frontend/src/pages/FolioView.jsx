@@ -5,13 +5,31 @@ import {
   RefreshCw, Sparkles, Link2, PenLine, FileText, Image as ImageIcon,
   Loader2, Trash2, Layers, History,
 } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, format } from 'date-fns'
 import { useToast } from '../components/Toast'
 import PageHeader from '../components/PageHeader'
 import FolioRail from '../components/FolioRail'
+import Logo from '../components/Logo'
 import { folioApi } from '../api/client'
 import { BionicText } from '../utils/bionic.jsx'
 import { parseUTC } from '../utils/time.js'
+
+// Brand tones cycled across section kickers and topic chips, so the piece has
+// a little colour variety while mint stays the lead accent (first in the cycle).
+const SECTION_TONES = [
+  { bar: 'bg-mint', text: 'text-mint-700 dark:text-mint-300' },
+  { bar: 'bg-sage', text: 'text-sage' },
+  { bar: 'bg-sky-muted', text: 'text-sky-muted' },
+  { bar: 'bg-mustard', text: 'text-mustard' },
+  { bar: 'bg-lavender', text: 'text-lavender' },
+]
+const TOPIC_TONES = [
+  'bg-mint/10 border-mint/20 text-mint-700 dark:text-mint-300',
+  'bg-sage/10 border-sage/25 text-sage',
+  'bg-sky-muted/10 border-sky-muted/25 text-sky-muted',
+  'bg-mustard/10 border-mustard/25 text-mustard',
+  'bg-lavender/10 border-lavender/25 text-lavender',
+]
 
 // Subtle paper grain for the reading sheet (a generic fractal-noise SVG, used
 // only as a faint texture, never content).
@@ -132,9 +150,8 @@ export default function FolioView() {
             title={<TitleField folio={folio} onSaved={setFolio} />}
             subtitle={
               <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 font-mono text-2xs text-paper-500 dark:text-pitch-200">
-                {(folio.topics || []).map((t) => (
-                  <span key={t.id} className="px-2 py-0.5 rounded-full bg-paper-200 dark:bg-pitch-700
-                                              border border-paper-300 dark:border-pitch-400 text-paper-700 dark:text-pitch-100">
+                {(folio.topics || []).map((t, i) => (
+                  <span key={t.id} className={`px-2 py-0.5 rounded-full border ${TOPIC_TONES[i % TOPIC_TONES.length]}`}>
                     {t.name}
                   </span>
                 ))}
@@ -285,7 +302,7 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
 
   return (
     <article
-      className="relative mt-5 rounded-2xl bg-paper-50 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
+      className="effro-rise relative mt-5 rounded-2xl bg-paper-50 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
                  shadow-sm px-7 sm:px-11 py-9 overflow-hidden"
     >
       <div aria-hidden className="absolute inset-0 pointer-events-none opacity-[0.045] dark:opacity-[0.03] mix-blend-multiply dark:mix-blend-screen"
@@ -294,10 +311,11 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
           reads like a magazine column rather than text pinned to the left
           edge of a wide card. */}
       <div className="relative max-w-[42rem] mx-auto">
-        {/* Masthead */}
+        {/* Masthead: the Effro mark + kicker, the headline, then an issue line
+            (when it was pulled together, read time, sources drawn on). */}
         <div className="flex items-start justify-between gap-3">
-          <span className="font-mono text-2xs uppercase tracking-[0.22em] text-mint-700 dark:text-mint-300">
-            Deep dive digest <span className="text-paper-500 dark:text-pitch-200">· {mins} min read</span>
+          <span className="group inline-flex items-center gap-2 font-mono text-2xs uppercase tracking-[0.22em] text-mint-700 dark:text-mint-300">
+            <Logo size={15} /> Deep dive digest
           </span>
           <button onClick={() => setEditing(true)}
             className="inline-flex items-center gap-1.5 text-xs text-paper-500 dark:text-pitch-200
@@ -306,11 +324,22 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
             <Pencil size={13} /> Edit
           </button>
         </div>
-        <h1 className="font-display font-semibold text-[1.75rem] leading-[1.2] tracking-[-0.02em] text-pitch-800 dark:text-pitch-50 mt-2">
+        <h1 className="font-display font-semibold text-[1.75rem] leading-[1.2] tracking-[-0.02em] text-pitch-800 dark:text-pitch-50 mt-3">
           {digest.headline || 'Your deep dive, pulled together'}
         </h1>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2.5 font-mono text-2xs text-paper-500 dark:text-pitch-200">
+          {digest.generated_at && (
+            <>
+              <span>{format(parseUTC(digest.generated_at), 'd MMM yyyy')}</span>
+              <span className="opacity-40">·</span>
+            </>
+          )}
+          <span>{mins} min read</span>
+          <span className="opacity-40">·</span>
+          <span>{folio.captures.length} source{folio.captures.length === 1 ? '' : 's'}</span>
+        </div>
         <div className="border-t-2 border-pitch-800/80 dark:border-pitch-50/70 mt-4 mb-0.5" />
-        <div className="border-t border-paper-300 dark:border-pitch-400 mb-5" />
+        <div className="border-t border-paper-300 dark:border-pitch-400 mb-6" />
 
         {folio.new_capture_count > 0 && (
           <div className="flex items-center gap-2.5 mb-5 font-mono text-2xs text-paper-700 dark:text-pitch-100">
@@ -322,17 +351,20 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
           </div>
         )}
 
-        {/* Hero: the dive's first image, full width of the reading column */}
+        {/* Hero: the dive's first image, full-bleed to the sheet's edges for an
+            editorial cover feel (negative margins cancel the card padding). */}
         {hero && (
-          <figure className="mb-6 -mx-1">
+          <figure className="-mx-7 sm:-mx-11 mb-7">
             <img
               src={`/uploads/${hero.raw_content}`}
               alt={captureLabel(hero) || ''}
               loading="lazy"
-              className="w-full max-h-80 object-cover rounded-xl border border-paper-300 dark:border-pitch-400"
+              className="w-full max-h-[24rem] object-cover border-y border-paper-300 dark:border-pitch-400"
             />
             {hero.source_meta?.original_name && (
-              <figcaption className="mt-1.5 font-mono text-2xs text-paper-500 dark:text-pitch-200">
+              <figcaption className="px-7 sm:px-11 mt-2 flex items-center gap-2 font-mono text-2xs text-paper-500 dark:text-pitch-200">
+                <span className="text-mint-700 dark:text-mint-300">Figure</span>
+                <span className="opacity-40">·</span>
                 {hero.source_meta.original_name}
               </figcaption>
             )}
@@ -355,11 +387,11 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
           <section key={i} className="mb-8">
             {sec.heading && (
               <>
-                {/* A numbered mint kicker lifts each section title off the page
-                    without shouting - the accent stays scarce elsewhere. */}
+                {/* A numbered kicker lifts each section title off the page; the
+                    tone cycles through the brand palette for gentle variety. */}
                 <div className="flex items-center gap-2.5 mb-2" aria-hidden>
-                  <span className="h-[3px] w-7 rounded-full bg-mint" />
-                  <span className="font-mono text-2xs tracking-[0.18em] text-mint-700 dark:text-mint-300">
+                  <span className={`h-[3px] w-7 rounded-full ${SECTION_TONES[i % SECTION_TONES.length].bar}`} />
+                  <span className={`font-mono text-2xs tracking-[0.18em] ${SECTION_TONES[i % SECTION_TONES.length].text}`}>
                     {String(i + 1).padStart(2, '0')}
                   </span>
                 </div>
@@ -386,7 +418,7 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
               </blockquote>
             )}
             {sec.image && capturesById[sec.image]?.raw_content && (
-              <figure className="my-5">
+              <figure className="my-6">
                 <img
                   src={`/uploads/${capturesById[sec.image].raw_content}`}
                   alt={captureLabel(capturesById[sec.image]) || ''}
@@ -394,7 +426,9 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
                   className="w-full max-h-72 object-cover rounded-xl border border-paper-300 dark:border-pitch-400"
                 />
                 {capturesById[sec.image].source_meta?.original_name && (
-                  <figcaption className="mt-1.5 font-mono text-2xs text-paper-500 dark:text-pitch-200">
+                  <figcaption className="mt-2 flex items-center gap-2 font-mono text-2xs text-paper-500 dark:text-pitch-200">
+                    <span className="text-mint-700 dark:text-mint-300">Figure</span>
+                    <span className="opacity-40">·</span>
                     {capturesById[sec.image].source_meta.original_name}
                   </figcaption>
                 )}
