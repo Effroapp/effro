@@ -547,6 +547,26 @@ function DigestEditor({ folio, onDone, onCancel }) {
   const [sources, setSources] = useState(d.sources || [])
   const [openThreads, setOpenThreads] = useState(d.open_threads || [])
   const [saving, setSaving] = useState(false)
+  // Image captures available to place in sections (plus any uploaded mid-edit).
+  const [imgs, setImgs] = useState(() => (folio.captures || []).filter((c) => c.type === 'image' && c.raw_content))
+  const [uploadingFor, setUploadingFor] = useState(null)
+  const imgById = Object.fromEntries(imgs.map((c) => [c.id, c]))
+  const imgName = (c) => c.source_meta?.original_name || 'Image'
+  const setImage = (i, captureId) =>
+    setSections((prev) => prev.map((s, j) => (j === i ? { ...s, image: captureId || undefined } : s)))
+  const uploadFor = async (i, file) => {
+    if (!file) return
+    setUploadingFor(i)
+    try {
+      const cap = await folioApi.uploadCapture(folio.id, file)
+      setImgs((prev) => [...prev, cap])
+      setImage(i, cap.id)
+    } catch (e) {
+      toast(e.message || 'Could not add that image', 'error')
+    } finally {
+      setUploadingFor(null)
+    }
+  }
 
   const save = async () => {
     setSaving(true)
@@ -625,11 +645,36 @@ function DigestEditor({ folio, onDone, onCancel }) {
                            bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-400
                            text-pitch-800 dark:text-pitch-50 focus:outline-none focus:ring-2 focus:ring-mint-500"
               />
-              {(sec.quote?.text || sec.image) && (
-                <p className="mt-1.5 font-mono text-2xs text-paper-500 dark:text-pitch-200">
-                  Keeps its {sec.quote?.text ? 'pull quote' : ''}{sec.quote?.text && sec.image ? ' and ' : ''}{sec.image ? 'figure' : ''}.
-                </p>
-              )}
+              {/* Figure: pick which captured image sits in this section, swap
+                  it, clear it, or upload a new one straight into the section.
+                  An image left unplaced becomes the digest's hero. */}
+              <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                {sec.image && imgById[sec.image] && (
+                  <img src={`/uploads/${imgById[sec.image].raw_content}`} alt=""
+                    className="w-12 h-9 rounded object-contain bg-paper-200 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-400" />
+                )}
+                <select
+                  value={sec.image || ''}
+                  onChange={(e) => setImage(i, Number(e.target.value) || undefined)}
+                  aria-label="Section image"
+                  className="font-mono text-2xs px-2 py-1.5 rounded-md bg-paper-100 dark:bg-pitch-800
+                             border border-paper-300 dark:border-pitch-400 text-pitch-800 dark:text-pitch-50
+                             focus:outline-none focus:ring-2 focus:ring-mint-500"
+                >
+                  <option value="">No image</option>
+                  {imgs.map((c) => <option key={c.id} value={c.id}>{imgName(c)}</option>)}
+                </select>
+                <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md cursor-pointer font-mono text-2xs
+                                  border border-paper-300 dark:border-pitch-400 text-paper-600 dark:text-pitch-100
+                                  hover:border-mint/40 hover:text-pitch-800 dark:hover:text-pitch-50 transition-colors">
+                  <ImageIcon size={12} /> {uploadingFor === i ? 'Uploading…' : 'Upload'}
+                  <input type="file" accept="image/*" className="hidden" disabled={uploadingFor !== null}
+                    onChange={(e) => { uploadFor(i, e.target.files?.[0]); e.target.value = '' }} />
+                </label>
+                {sec.quote?.text && (
+                  <span className="font-mono text-2xs text-paper-500 dark:text-pitch-200">keeps its pull quote</span>
+                )}
+              </div>
             </div>
           ))}
           <button onClick={() => setSections([...sections, { heading: '', body: '' }])}
