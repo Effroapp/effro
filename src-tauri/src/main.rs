@@ -11,6 +11,7 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_shell::{process::CommandChild, ShellExt};
 use tauri_plugin_store::StoreExt;
+use tauri_plugin_updater::UpdaterExt;
 
 /// Stable channel - `latest` redirects to the most recent non-prerelease.
 const STABLE_UPDATE_ENDPOINT: &str =
@@ -312,10 +313,10 @@ fn get_update_channel(app: AppHandle) -> String {
     resolve_update_channel(&app)
 }
 
-/// Persists the chosen update channel. Takes effect on next launch (the
-/// updater plugin's endpoint is wired at plugin-init time; we don't try to
-/// hot-swap because the user has to relaunch for the channel change to be
-/// meaningful anyway).
+/// Persists the chosen update channel. Takes effect on the NEXT check: the
+/// `check_update` command resolves the channel from the store on every call,
+/// so the frontend re-checks right after switching and the change is live with
+/// no relaunch.
 #[tauri::command]
 fn set_update_channel(app: AppHandle, channel: String) -> Result<(), String> {
     if channel != "stable" && channel != "beta" {
@@ -373,6 +374,62 @@ fn get_update_endpoint(app: AppHandle) -> String {
 #[tauri::command]
 fn get_updater_auth_header() -> Option<String> {
     None
+}
+
+/// Update metadata returned to the frontend. The camelCase field names match
+/// what the JS `Update` class reads, so the frontend can wrap this directly and
+/// reuse the plugin's existing download/install path (the `rid` points at the
+/// Update we stash in the webview resource table below, which is the same table
+/// the plugin's `download_and_install` command reads from).
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateMeta {
+    rid: tauri::ResourceId,
+    version: String,
+    current_version: String,
+    body: Option<String>,
+    raw_json: serde_json::Value,
+}
+
+/// Check for an update on the user's CURRENT channel.
+///
+/// Why this exists instead of the JS plugin's `check()`: tauri-plugin-updater
+/// 2.x reads its endpoints only from tauri.conf.json, and the JS `check()` has
+/// no endpoint override (the `CheckOptions` type has none, and the Rust `check`
+/// command does not accept one). So an in-app check ALWAYS hit the single
+/// stable endpoint baked into the config - a beta user comparing against the
+/// stable feed (an older version) was told "up to date", and beta auto-update
+/// never worked. This command builds a per-call updater pointed at the chosen
+/// channel's endpoint via `UpdaterBuilder::endpoints` (which overrides the
+/// config), then stashes the resulting Update in the webview resource table and
+/// returns its id, so the unchanged JS `downloadAndInstall` (progress events +
+/// signature verification) installs it.
+#[tauri::command]
+async fn check_update(webview: tauri::Webview) -> Result<Option<UpdateMeta>, String> {
+    let channel = resolve_update_channel(webview.app_handle());
+    let endpoint = endpoint_for_channel(&channel);
+    let url: tauri::Url = endpoint
+        .parse()
+        .map_err(|e| format!("Bad update endpoint {endpoint}: {e}"))?;
+    let updater = webview
+        .updater_builder()
+        .endpoints(vec![url])
+        .map_err(|e| e.to_string())?
+        .build()
+        .map_err(|e| e.to_string())?;
+    match updater.check().await.map_err(|e| e.to_string())? {
+        Some(update) => {
+            // Clone the fields out before handing the Update to the resource
+            // table (which takes ownership).
+            let version = update.version.clone();
+            let current_version = update.current_version.clone();
+            let body = update.body.clone();
+            let raw_json = update.raw_json.clone();
+            let rid = webview.resources_table().add(update);
+            Ok(Some(UpdateMeta { rid, version, current_version, body, raw_json }))
+        }
+        None => Ok(None),
+    }
 }
 
 
@@ -471,15 +528,11 @@ fn main() {
     let sidecar_child_for_exit = sidecar_child.clone();
     let sidecar_child_for_close = sidecar_child.clone();
 
-    // The updater plugin's default endpoint (in tauri.conf.json) is the
-    // stable URL. The frontend reads the chosen channel via
-    // `get_update_endpoint` and passes the resolved URL to
-    // `check({ endpoints: [url] })` on each check, so the plugin only ever
-    // sees the right URL for the current channel.
-    //
-    // (The tauri-plugin-updater 2.x Rust Builder doesn't expose an
-    // `.endpoints()` override; runtime channel switching has to happen on
-    // the JS side.)
+    // The updater plugin is registered for its download/install commands and
+    // its managed state (pubkey + target), which our `check_update` command
+    // reads via `updater_builder()`. We do NOT rely on the plugin's own
+    // `check` (it can only read the single stable endpoint from
+    // tauri.conf.json); `check_update` overrides the endpoint per channel.
     let updater = tauri_plugin_updater::Builder::new().build();
 
     tauri::Builder::default()
@@ -509,6 +562,7 @@ fn main() {
             set_update_channel,
             get_update_endpoint,
             get_updater_auth_header,
+            check_update,
             app_version,
         ])
         .setup(move |app| {
