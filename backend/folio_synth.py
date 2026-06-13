@@ -56,6 +56,16 @@ _INSTRUCTIONS = (
     '  "open_threads": an array of short strings, the real questions or gaps '
     "the captures leave to resolve. Use this for anything uncertain rather than "
     "guessing.\n"
+    '  "key_terms": an array of at most six objects {"term", "definition"}. '
+    "Include only genuinely non-obvious jargon or acronyms that actually appear "
+    "in the captures, and define each in one short plain sentence grounded in "
+    "the captures. Empty array if the material is not jargon-heavy.\n"
+    '  "tensions": an array of at most four objects {"point", "sides"} naming '
+    "where the captures DISAGREE. point is a short phrase for the contested "
+    'question; sides is an array of two or three objects {"source", "stance"} '
+    "where source names the capture (its domain or type) and stance is a few "
+    "words on that source's position. Only real disagreements grounded in the "
+    "captures. Empty array if they broadly agree.\n"
     "Use only what is in the captures. Return only the JSON object, nothing else."
 )
 
@@ -148,8 +158,58 @@ def _parse_sections(value) -> list[dict]:
     return out[:6]
 
 
+def _parse_key_terms(value) -> list[dict]:
+    """Tolerant parse of key_terms: {term, definition} string pairs. Drops any
+    entry missing either side; caps at six."""
+    if not isinstance(value, list):
+        return []
+    out = []
+    for v in value:
+        if not isinstance(v, dict):
+            continue
+        term = v.get("term") if isinstance(v.get("term"), str) else ""
+        definition = v.get("definition") if isinstance(v.get("definition"), str) else ""
+        if term.strip() and definition.strip():
+            out.append({"term": term.strip()[:60], "definition": definition.strip()[:240]})
+    return out[:6]
+
+
+def _parse_tensions(value) -> list[dict]:
+    """Tolerant parse of tensions: {point, sides:[{source, stance}]}. Keeps only
+    tensions with at least two well-formed sides; caps at four (and three sides)."""
+    if not isinstance(value, list):
+        return []
+    out = []
+    for v in value:
+        if not isinstance(v, dict):
+            continue
+        point = v.get("point") if isinstance(v.get("point"), str) else ""
+        if not point.strip():
+            continue
+        sides = []
+        if isinstance(v.get("sides"), list):
+            for s in v["sides"]:
+                if not isinstance(s, dict):
+                    continue
+                source = s.get("source") if isinstance(s.get("source"), str) else ""
+                stance = s.get("stance") if isinstance(s.get("stance"), str) else ""
+                if stance.strip():
+                    sides.append({"source": source.strip()[:60], "stance": stance.strip()[:140]})
+        if len(sides) >= 2:
+            out.append({"point": point.strip()[:140], "sides": sides[:3]})
+    return out[:4]
+
+
 def _norm(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "")).strip().lower()
+
+
+def _verify_key_terms(terms: list[dict], captures: list[dict]) -> list[dict]:
+    """Keep a term only if it actually appears in a capture's text (whitespace-
+    normalised, case-insensitive). Definitions are prompt-grounded prose; this
+    guards against the model inventing jargon that is not in the material."""
+    blob = _norm(" ".join((c.get("extracted_text") or "") for c in captures))
+    return [t for t in terms if _norm(t["term"]) and _norm(t["term"]) in blob]
 
 
 def _verify_sections(sections: list[dict], captures: list[dict]) -> list[dict]:
@@ -206,6 +266,8 @@ def _parse(text: str) -> dict:
         "key_points": _coerce(obj.get("key_points")),
         "sources": _coerce(obj.get("sources")),
         "open_threads": _coerce(obj.get("open_threads")),
+        "key_terms": _parse_key_terms(obj.get("key_terms")),
+        "tensions": _parse_tensions(obj.get("tensions")),
     }
 
 
@@ -233,6 +295,8 @@ def synthesize(provider, captures: list[dict], prior: dict | None = None,
             "key_points": prior.get("key_points", []),
             "sources": prior.get("sources", []),
             "open_threads": prior.get("open_threads", []),
+            "key_terms": prior.get("key_terms", []),
+            "tensions": prior.get("tensions", []),
         }, ensure_ascii=False, indent=2)
         body = _REGEN_PREFIX.format(prior=prior_json) + _captures_block(feed)
     else:
@@ -244,4 +308,6 @@ def synthesize(provider, captures: list[dict], prior: dict | None = None,
     # Quotes and image references are verified against the captures at runtime,
     # not just prompt-enforced - fabricated ones are dropped before render.
     result["sections"] = _verify_sections(result["sections"], captures)
+    # Glossary terms must actually occur in the captures (guards invented jargon).
+    result["key_terms"] = _verify_key_terms(result["key_terms"], captures)
     return result
