@@ -111,7 +111,7 @@ export default function FolioView() {
 
   return (
     <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
-      <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
+      <div className="max-w-6xl mx-auto px-6 md:px-10 py-8">
         {/* Back */}
         <button
           onClick={() => navigate('/folios')}
@@ -122,11 +122,13 @@ export default function FolioView() {
           <ChevronLeft size={15} /> Folios
         </button>
 
-        {/* The same PageHeader every main view uses, with the title editable
-            in place and the dive's meta as the subtitle line. */}
+        {/* Header: the dive's icon (mint accent chip) + editable title + meta.
+            The view toggle and Add live on their own row below, so the title
+            gets the full width instead of being squeezed by the actions. */}
         <div className="mt-4">
           <PageHeader
             icon={BookOpen}
+            accent
             title={<TitleField folio={folio} onSaved={setFolio} />}
             subtitle={
               <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 font-mono text-2xs text-paper-500 dark:text-pitch-200">
@@ -141,26 +143,26 @@ export default function FolioView() {
                 <span>updated {formatDistanceToNow(parseUTC(folio.updated_at), { addSuffix: true })}</span>
               </span>
             }
-            right={
-              <>
-                <div className="inline-flex bg-paper-200 dark:bg-pitch-700 rounded-lg p-0.5 gap-0.5">
-                  <Tab on={view === 'read'} onClick={() => setView('read')}><BookOpen size={13} /> Read</Tab>
-                  <Tab on={view === 'captures'} onClick={() => setView('captures')}>
-                    Captures <span className="text-paper-500 dark:text-pitch-200">{capCount}</span>
-                  </Tab>
-                </div>
-                <button
-                  onClick={focusAdd}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium
-                             bg-paper-50 dark:bg-pitch-600 border border-paper-400 dark:border-pitch-400
-                             text-pitch-800 dark:text-pitch-50 hover:border-mint/40 hover:bg-mint/5
-                             transition-colors"
-                >
-                  <Plus size={15} className="text-mint" /> Add
-                </button>
-              </>
-            }
           />
+        </div>
+
+        {/* Toolbar: view toggle + always-visible Add, full width under the header. */}
+        <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+          <div className="inline-flex bg-paper-200 dark:bg-pitch-700 rounded-lg p-0.5 gap-0.5">
+            <Tab on={view === 'read'} onClick={() => setView('read')}><BookOpen size={13} /> Read</Tab>
+            <Tab on={view === 'captures'} onClick={() => setView('captures')}>
+              Captures <span className="text-paper-500 dark:text-pitch-200">{capCount}</span>
+            </Tab>
+          </div>
+          <button
+            onClick={focusAdd}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium
+                       bg-paper-50 dark:bg-pitch-600 border border-paper-400 dark:border-pitch-400
+                       text-pitch-800 dark:text-pitch-50 hover:border-mint/40 hover:bg-mint/5
+                       transition-colors"
+          >
+            <Plus size={15} className="text-mint" /> Add
+          </button>
         </div>
 
         {/* Read view with a populated rail becomes a magazine spread: the digest
