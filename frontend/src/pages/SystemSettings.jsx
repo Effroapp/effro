@@ -862,14 +862,24 @@ function UpdateSection({ updater }) {
       )}
 
       {updater?.status === 'downloading' && (
-        <div className="rounded-lg p-3 mb-4 bg-mint-50 dark:bg-mint-900/20 border border-mint/40 flex items-center gap-2">
-          <Download size={12} className="text-mint animate-pulse" />
-          <p className="text-xs text-pitch-700 dark:text-paper-300">
-            Downloading update
-            {updater.progress?.contentLength
-              ? ` (${Math.round(100 * updater.progress.downloaded / updater.progress.contentLength)}%)`
-              : '…'}
-          </p>
+        <div className="rounded-lg p-3 mb-4 bg-mint-50 dark:bg-mint-900/20 border border-mint/40">
+          <div className="flex items-center gap-2">
+            <Download size={12} className="flex-shrink-0 text-mint animate-pulse" />
+            <p className="flex-1 text-xs text-pitch-700 dark:text-paper-300">Downloading update</p>
+            {updater.progress?.contentLength != null && (
+              <span className="text-xs font-mono text-mint-700 dark:text-mint-300">
+                {Math.min(100, Math.round(100 * updater.progress.downloaded / updater.progress.contentLength))}%
+              </span>
+            )}
+          </div>
+          {/* Slim progress bar: light-grey track, mint fill that grows with the
+              download. Indeterminate sweep until the content length is known. */}
+          <div className="mt-2 h-[3px] rounded-full bg-paper-300 dark:bg-pitch-500 overflow-hidden">
+            {updater.progress?.contentLength != null
+              ? <div className="h-full rounded-full bg-mint transition-[width] duration-300"
+                     style={{ width: `${Math.min(100, Math.round(100 * updater.progress.downloaded / updater.progress.contentLength))}%` }} />
+              : <div className="h-full w-1/3 rounded-full bg-mint animate-pulse" />}
+          </div>
         </div>
       )}
 

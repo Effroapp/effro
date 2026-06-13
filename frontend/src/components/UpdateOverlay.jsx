@@ -71,7 +71,7 @@ export default function UpdateOverlay({ updater }) {
 
             {/* Progress: a real bar while downloading, an indeterminate sweep
                 while the installer applies it. */}
-            <div className="mt-5 h-1.5 rounded-full bg-paper-300 dark:bg-pitch-600 overflow-hidden">
+            <div className="mt-5 h-[3px] rounded-full bg-paper-300 dark:bg-pitch-500 overflow-hidden">
               {status === 'downloading' && pct != null
                 ? <div className="h-full rounded-full bg-mint transition-[width] duration-300" style={{ width: `${pct}%` }} />
                 : <div className="h-full w-1/3 rounded-full bg-mint animate-pulse" />}
