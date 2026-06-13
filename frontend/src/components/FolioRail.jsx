@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Split, Lightbulb, BookText, Link2, Network, ArrowRight, ExternalLink,
+  Split, Lightbulb, BookText, Link2, Network, ArrowRight, ExternalLink, ChevronDown,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { openExternal } from '../api/tauri'
@@ -74,6 +75,26 @@ const SIDE_TONES = [
   { dot: 'bg-mustard', text: 'text-mustard' },
 ]
 
+// Long lists stay calm: show the first `limit`, with a quiet toggle for the
+// rest. Used by the unbounded widgets (Good to know, Sources).
+function useCapped(items, limit) {
+  const [open, setOpen] = useState(false)
+  const shown = open ? items : items.slice(0, limit)
+  return { shown, extra: items.length - limit, open, toggle: () => setOpen((o) => !o) }
+}
+
+function MoreToggle({ extra, open, onToggle }) {
+  if (extra <= 0) return null
+  return (
+    <button onClick={onToggle}
+      className="mt-2.5 inline-flex items-center gap-1 font-mono text-2xs uppercase tracking-wider
+                 text-paper-500 dark:text-pitch-200 hover:text-pitch-800 dark:hover:text-pitch-50 transition-colors">
+      <ChevronDown size={12} className={`transition-transform motion-reduce:transition-none ${open ? 'rotate-180' : ''}`} />
+      {open ? 'Show less' : `Show ${extra} more`}
+    </button>
+  )
+}
+
 // ─── Widgets ──────────────────────────────────────────────────────────────────
 
 function TensionsCard({ tensions }) {
@@ -105,15 +126,17 @@ function TensionsCard({ tensions }) {
 }
 
 function GoodToKnowCard({ points }) {
+  const { shown, extra, open, toggle } = useCapped(points, 5)
   return (
     <Card icon={Lightbulb} iconClass="text-mustard" title="Good to know">
       <div className="mt-2.5 flex flex-col gap-2.5">
-        {points.map((p, i) => (
+        {shown.map((p, i) => (
           <div key={i} className="flex gap-2.5 font-lexend text-[12.5px] leading-snug text-pitch-800 dark:text-pitch-50">
             <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-sage mt-[6px]" />{p}
           </div>
         ))}
       </div>
+      <MoreToggle extra={extra} open={open} onToggle={toggle} />
     </Card>
   )
 }
@@ -134,10 +157,11 @@ function KeyTermsCard({ terms }) {
 }
 
 function SourcesCard({ sources }) {
+  const { shown, extra, open, toggle } = useCapped(sources, 5)
   return (
     <Card icon={Link2} iconClass="text-sky-muted" title="Sources" count={sources.length} tight>
       <div className="mt-2">
-        {sources.map((c) => {
+        {shown.map((c) => {
           const m = c.source_meta || {}
           const domain = m.domain || c.raw_content
           return (
@@ -160,6 +184,7 @@ function SourcesCard({ sources }) {
           )
         })}
       </div>
+      {extra > 0 && <div className="px-1.5 pb-1"><MoreToggle extra={extra} open={open} onToggle={toggle} /></div>}
     </Card>
   )
 }
