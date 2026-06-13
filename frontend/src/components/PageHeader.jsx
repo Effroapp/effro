@@ -18,7 +18,7 @@ export default function PageHeader({ icon: Icon, title, subtitle, accent = false
   return (
     <div className="mb-6">
       <div className="flex items-start justify-between gap-4 pr-14">
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {Icon && (
             accent ? (
               <span className="flex-shrink-0 w-7 h-7 rounded-md flex items-center justify-center
@@ -33,7 +33,7 @@ export default function PageHeader({ icon: Icon, title, subtitle, accent = false
               />
             )
           )}
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="font-display font-semibold text-xl tracking-[-0.01em]
                            text-paper-900 dark:text-pitch-50 leading-tight truncate">
               {title}
