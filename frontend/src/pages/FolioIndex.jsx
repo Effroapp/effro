@@ -238,7 +238,7 @@ function Hero({ folio, onOpen }) {
           <MetaLine folio={folio} />
         </div>
         {folio.snippet && (
-          <p className="font-lexend text-sm leading-relaxed text-paper-700 dark:text-pitch-100 mb-3 max-w-[56ch]">
+          <p className="font-lexend text-sm leading-relaxed text-paper-700 dark:text-pitch-100 mb-3 line-clamp-3">
             {folio.snippet}
           </p>
         )}
