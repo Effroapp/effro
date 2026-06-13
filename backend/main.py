@@ -237,6 +237,8 @@ def _init_db():
             # Reading-rail synthesis: glossary terms + where sources disagree.
             "ALTER TABLE digests ADD COLUMN key_terms TEXT",
             "ALTER TABLE digests ADD COLUMN tensions TEXT",
+            # Optional thread link on a folio (area_id already exists on the model).
+            "ALTER TABLE folios ADD COLUMN thread_id INTEGER",
             # ── Suggester corrections log ───────────────────────────────────────
             # The AI's original area call, preserved on the signal row (accept and
             # reassign overwrite suggested_area_id, so this is the honest record).

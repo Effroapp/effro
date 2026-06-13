@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { areasApi } from '../api/client'
 import StatusBadge from '../components/StatusBadge'
 import ThreadCard from '../components/ThreadCard'
+import AreaFolios from '../components/AreaFolios'
 import Modal from '../components/Modal'
 import IconPicker, { AreaIcon } from '../components/IconPicker'
 import OverviewCard from '../components/OverviewCard'
@@ -407,6 +408,9 @@ export default function AreaView() {
           )}
         </div>
       </div>
+
+      {/* Deep dives filed under this area */}
+      <AreaFolios areaId={areaId} />
 
       {/* Audit panel */}
       <AreaAuditPanel areaId={areaId} />
