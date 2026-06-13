@@ -172,7 +172,9 @@ export default function FolioView() {
             <div className="min-w-0">
               <ReadView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} onGoCaptures={focusAdd} />
             </div>
-            <div className="xl:sticky xl:top-6">
+            {/* mt-5 matches the article card's own top margin so the rail and
+                the digest share a baseline (they're separate grid columns). */}
+            <div className="mt-5 xl:sticky xl:top-6">
               <FolioRail folio={folio} related={related} />
             </div>
           </div>
