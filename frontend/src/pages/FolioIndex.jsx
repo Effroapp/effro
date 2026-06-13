@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import {
   Library, Plus, Search, ArrowRight, Tag, Layers,
   FileText, Image as ImageIcon, PenLine, Link2, Loader2,
+  LayoutGrid, Grid2x2, Grid3x3, Rows3,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import PageHeader from '../components/PageHeader'
+import IntroPanel, { Key } from '../components/IntroPanel'
 import { useToast } from '../components/Toast'
 import { folioApi } from '../api/client'
 import { BionicText } from '../utils/bionic.jsx'
@@ -26,7 +28,13 @@ export default function FolioIndex() {
   const [query, setQuery] = useState('')
   const [activeTopic, setActiveTopic] = useState('all')
   const [creating, setCreating] = useState(false)
+  // View + sort persist per-user, so the shelf opens how they left it.
+  const [view, setView] = useState(() => { try { return localStorage.getItem('folioView') || 'tiles' } catch { return 'tiles' } })
+  const [sort, setSort] = useState(() => { try { return localStorage.getItem('folioSort') || 'updated' } catch { return 'updated' } })
   const debounce = useRef(null)
+
+  useEffect(() => { try { localStorage.setItem('folioView', view) } catch { /* ignore */ } }, [view])
+  useEffect(() => { try { localStorage.setItem('folioSort', sort) } catch { /* ignore */ } }, [sort])
 
   const load = useCallback((q) => {
     folioApi.list(q)
@@ -61,11 +69,24 @@ export default function FolioIndex() {
   const topics = Object.keys(topicCounts).sort()
 
   const searching = query.trim().length > 0
-  const shown = (folios || []).filter(
+  const filtered = (folios || []).filter(
     (f) => activeTopic === 'all' || (f.topics || []).some((t) => t.name === activeTopic),
   )
-  const featured = !searching && activeTopic === 'all' ? shown[0] : null
+  const shown = [...filtered].sort((a, b) => {
+    if (sort === 'title') return (a.title || 'Untitled deep dive').localeCompare(b.title || 'Untitled deep dive')
+    const key = sort === 'created' ? 'created_at' : 'updated_at'
+    return (parseUTC(b[key]) || 0) - (parseUTC(a[key]) || 0)
+  })
+  // The "pick up where you left off" hero is a Details-view flourish; the other
+  // views are an even grid with no featured item.
+  const featured = view === 'details' && !searching && activeTopic === 'all' ? shown[0] : null
   const rest = featured ? shown.slice(1) : shown
+  const GRID_COLS = {
+    tiles: 'repeat(auto-fill, minmax(230px, 1fr))',
+    large: 'repeat(auto-fill, minmax(300px, 1fr))',
+    small: 'repeat(auto-fill, minmax(190px, 1fr))',
+    details: 'repeat(auto-fill, minmax(300px, 1fr))',
+  }
 
   return (
     <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
@@ -86,6 +107,12 @@ export default function FolioIndex() {
             </button>
           }
         />
+
+        <IntroPanel icon={Library} title="A place for deep dives" storageKey="folioIntroDismissed">
+          Folios are where you <Key>go deep</Key>. Capture the links, notes, files and images from a
+          research rabbit hole into one place, then <Key>pull them together</Key> into one grounded,
+          reading-first digest. It stays your work, <Key>drawn only from your own material</Key>.
+        </IntroPanel>
 
         {/* Search */}
         <div className="flex items-center gap-2.5 max-w-md mb-5 px-3.5 py-2.5 rounded-xl
@@ -126,20 +153,39 @@ export default function FolioIndex() {
             : <EmptyState onStart={newDive} creating={creating} />
         ) : (
           <>
-            {featured && <Hero folio={featured} onOpen={() => navigate(`/folios/${featured.id}`)} />}
-            {rest.length > 0 && (
+            {/* Sort + view controls */}
+            <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+              <SortSelect value={sort} onChange={setSort} />
+              <ViewSwitch view={view} onChange={setView} />
+            </div>
+
+            {view === 'details' ? (
               <>
-                {featured && (
-                  <p className="font-mono text-2xs uppercase tracking-widest text-paper-500 dark:text-pitch-200 mt-7 mb-3 ml-0.5">
-                    More deep dives
-                  </p>
+                {featured && <Hero folio={featured} onOpen={() => navigate(`/folios/${featured.id}`)} />}
+                {rest.length > 0 && (
+                  <>
+                    {featured && (
+                      <p className="font-mono text-2xs uppercase tracking-widest text-paper-500 dark:text-pitch-200 mt-7 mb-3 ml-0.5">
+                        More deep dives
+                      </p>
+                    )}
+                    <div className="grid gap-3.5" style={{ gridTemplateColumns: GRID_COLS.details }}>
+                      {rest.map((f) => (
+                        <DiveCard key={f.id} folio={f} onOpen={() => navigate(`/folios/${f.id}`)} />
+                      ))}
+                    </div>
+                  </>
                 )}
-                <div className="grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-                  {rest.map((f) => (
-                    <DiveCard key={f.id} folio={f} onOpen={() => navigate(`/folios/${f.id}`)} />
-                  ))}
-                </div>
               </>
+            ) : (
+              <div className="grid gap-3.5" style={{ gridTemplateColumns: GRID_COLS[view] }}>
+                {shown.map((f) => {
+                  const onOpen = () => navigate(`/folios/${f.id}`)
+                  if (view === 'tiles') return <TileCard key={f.id} folio={f} onOpen={onOpen} />
+                  if (view === 'small') return <SmallCard key={f.id} folio={f} onOpen={onOpen} />
+                  return <DiveCard key={f.id} folio={f} onOpen={onOpen} />
+                })}
+              </div>
             )}
           </>
         )}
@@ -160,6 +206,101 @@ function Chip({ on, onClick, children }) {
       }`}
     >
       {children}
+    </button>
+  )
+}
+
+const SORTS = [
+  { value: 'updated', label: 'Recently updated' },
+  { value: 'created', label: 'Recently created' },
+  { value: 'title', label: 'A to Z' },
+]
+
+function SortSelect({ value, onChange }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label="Sort deep dives"
+      className="font-mono text-2xs uppercase tracking-wide px-3 py-2 rounded-lg cursor-pointer
+                 bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
+                 text-paper-700 dark:text-pitch-100 focus:outline-none focus:ring-2 focus:ring-mint-500"
+    >
+      {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+    </select>
+  )
+}
+
+const VIEW_OPTS = [
+  { key: 'tiles', Icon: LayoutGrid, label: 'Tiles' },
+  { key: 'large', Icon: Grid2x2, label: 'Large cards' },
+  { key: 'small', Icon: Grid3x3, label: 'Small cards' },
+  { key: 'details', Icon: Rows3, label: 'Details' },
+]
+
+function ViewSwitch({ view, onChange }) {
+  return (
+    <div className="inline-flex bg-paper-200 dark:bg-pitch-700 rounded-lg p-0.5 gap-0.5
+                    border border-paper-300 dark:border-pitch-400">
+      {VIEW_OPTS.map(({ key, Icon, label }) => (
+        <button
+          key={key}
+          onClick={() => onChange(key)}
+          title={label}
+          aria-label={label}
+          aria-pressed={view === key}
+          className={`p-1.5 rounded-md transition-colors ${
+            view === key
+              ? 'bg-paper-50 dark:bg-pitch-500 text-pitch-800 dark:text-pitch-50 shadow-sm'
+              : 'text-paper-500 dark:text-pitch-200 hover:text-pitch-700 dark:hover:text-pitch-100'
+          }`}
+        >
+          <Icon size={15} />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// Tiles view: cover-forward card - the whole thumbnail (contained, never
+// cropped) over the title. The visual shelf.
+function TileCard({ folio, onOpen }) {
+  return (
+    <button
+      onClick={onOpen}
+      className="group text-left flex flex-col rounded-2xl overflow-hidden
+                 bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
+                 shadow-sm hover:-translate-y-0.5 hover:shadow-md hover:border-paper-400 dark:hover:border-pitch-500
+                 transition-all motion-reduce:transform-none motion-reduce:transition-none"
+    >
+      <div className="h-32 bg-paper-100 dark:bg-pitch-800 border-b border-paper-300 dark:border-pitch-400">
+        {folio.thumb_url
+          ? <img src={folio.thumb_url} alt="" loading="lazy" className="w-full h-full object-contain p-2" />
+          : <div className="w-full h-full bg-gradient-to-br from-sky-muted to-sage opacity-80" />}
+      </div>
+      <div className="p-3.5 flex flex-col gap-1.5 flex-1">
+        <span className="font-display font-semibold text-sm leading-snug text-pitch-800 dark:text-pitch-50 line-clamp-2">
+          <BionicText>{folio.title || 'Untitled deep dive'}</BionicText>
+        </span>
+        <div className="mt-auto pt-1"><MetaLine folio={folio} /></div>
+      </div>
+    </button>
+  )
+}
+
+// Small view: dense, title + meta only, many per screen.
+function SmallCard({ folio, onOpen }) {
+  return (
+    <button
+      onClick={onOpen}
+      className="text-left flex flex-col gap-1.5 rounded-xl p-3
+                 bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
+                 shadow-sm hover:border-paper-400 dark:hover:border-pitch-500 transition-colors"
+    >
+      <span className="font-display font-semibold text-sm leading-snug text-pitch-800 dark:text-pitch-50 line-clamp-2">
+        {folio.title || 'Untitled deep dive'}
+      </span>
+      <MetaLine folio={folio} />
     </button>
   )
 }
