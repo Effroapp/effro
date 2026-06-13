@@ -58,6 +58,7 @@ class FolioCreate(BaseModel):
 class FolioUpdate(BaseModel):
     title: Optional[str] = None
     area_id: Optional[int] = None
+    thread_id: Optional[int] = None
     topic_ids: Optional[list[int]] = None
 
 
@@ -161,6 +162,8 @@ def _folio_summary(f: "models.Folio") -> dict:
         "id": f.id,
         "title": f.title,
         "area_id": f.area_id,
+        "area": {"id": f.area.id, "name": f.area.name} if f.area else None,
+        "thread": {"id": f.thread.id, "title": f.thread.title} if f.thread else None,
         "capture_count": len(caps),
         "has_digest": cur is not None,
         "snippet": snippet,
@@ -227,9 +230,11 @@ def _apply_topics(db: Session, folio: "models.Folio", topic_ids: Optional[list[i
 
 
 @router.get("/folios")
-def list_folios(q: Optional[str] = None, db: Session = Depends(get_db)):
+def list_folios(q: Optional[str] = None, area_id: Optional[int] = None, db: Session = Depends(get_db)):
     """List folios, most-recently-touched first. With ?q=, return FTS matches
-    in rank order instead (search is the primary way back to a quiet folio)."""
+    in rank order instead (search is the primary way back to a quiet folio).
+    With ?area_id=, restrict to folios filed under that area (the Area view's
+    "Deep dives" list)."""
     if q and q.strip():
         ids = _search_ids(db, q)
         if not ids:
@@ -239,6 +244,8 @@ def list_folios(q: Optional[str] = None, db: Session = Depends(get_db)):
         folios.sort(key=lambda f: order.get(f.id, 1_000_000))
     else:
         folios = db.query(models.Folio).order_by(models.Folio.updated_at.desc()).all()
+    if area_id:
+        folios = [f for f in folios if f.area_id == area_id]
     return [_folio_summary(f) for f in folios]
 
 
@@ -302,7 +309,14 @@ def update_folio(folio_id: int, body: FolioUpdate, db: Session = Depends(get_db)
     if body.title is not None:
         folio.title = body.title.strip() or None
     if body.area_id is not None:
-        folio.area_id = body.area_id or None
+        new_area = body.area_id or None
+        # Moving to a different area (or clearing it) drops a thread that
+        # belonged to the old area - unless this same request sets a new thread.
+        if new_area != folio.area_id and body.thread_id is None:
+            folio.thread_id = None
+        folio.area_id = new_area
+    if body.thread_id is not None:
+        folio.thread_id = body.thread_id or None
     _apply_topics(db, folio, body.topic_ids)
     db.commit()
     db.refresh(folio)

@@ -597,11 +597,16 @@ class Folio(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=True)        # can be set later / auto-drafted
     area_id = Column(Integer, ForeignKey("areas.id"), nullable=True)
+    # Optional thread link, within the area. Areas rarely close; threads
+    # conclude often - so a folio files primarily to an area, optionally to a
+    # thread. SET NULL so deleting the thread just unlinks the dive.
+    thread_id = Column(Integer, ForeignKey("threads.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     # Recency (the index's "recent vs earlier" grouping) comes from updated_at.
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     area = relationship("Area")
+    thread = relationship("Thread")
     captures = relationship("Capture", back_populates="folio", cascade="all, delete-orphan")
     digests = relationship("Digest", back_populates="folio", cascade="all, delete-orphan")
     topics = relationship("Topic", secondary=folio_topics, back_populates="folios")

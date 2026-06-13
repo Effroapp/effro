@@ -9,6 +9,7 @@ import { formatDistanceToNow, format } from 'date-fns'
 import { useToast } from '../components/Toast'
 import PageHeader from '../components/PageHeader'
 import FolioRail from '../components/FolioRail'
+import FolioFiledUnder from '../components/FolioFiledUnder'
 import Logo from '../components/Logo'
 import { folioApi } from '../api/client'
 import { BionicText } from '../utils/bionic.jsx'
@@ -163,13 +164,16 @@ export default function FolioView() {
           />
         </div>
 
-        {/* Toolbar: view toggle + always-visible Add, full width under the header. */}
+        {/* Toolbar: view toggle + where the dive is filed + always-visible Add. */}
         <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
-          <div className="inline-flex bg-paper-200 dark:bg-pitch-700 rounded-lg p-0.5 gap-0.5">
-            <Tab on={view === 'read'} onClick={() => setView('read')}><BookOpen size={13} /> Read</Tab>
-            <Tab on={view === 'captures'} onClick={() => setView('captures')}>
-              Captures <span className="text-paper-500 dark:text-pitch-200">{capCount}</span>
-            </Tab>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="inline-flex bg-paper-200 dark:bg-pitch-700 rounded-lg p-0.5 gap-0.5">
+              <Tab on={view === 'read'} onClick={() => setView('read')}><BookOpen size={13} /> Read</Tab>
+              <Tab on={view === 'captures'} onClick={() => setView('captures')}>
+                Captures <span className="text-paper-500 dark:text-pitch-200">{capCount}</span>
+              </Tab>
+            </div>
+            <FolioFiledUnder folio={folio} onSaved={setFolio} />
           </div>
           <button
             onClick={focusAdd}

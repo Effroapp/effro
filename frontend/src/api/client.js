@@ -112,6 +112,7 @@ export const adminApi = {
 
 export const folioApi = {
   list: (q) => request(`/folios${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  byArea: (areaId) => request(`/folios?area_id=${areaId}`),
   create: (payload) => request('/folios', { method: 'POST', body: payload }),
   get: (id) => request(`/folios/${id}`),
   update: (id, payload) => request(`/folios/${id}`, { method: 'PATCH', body: payload }),
