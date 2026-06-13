@@ -52,6 +52,7 @@ _IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".heic", ".heif
 class FolioCreate(BaseModel):
     title: Optional[str] = None
     area_id: Optional[int] = None
+    thread_id: Optional[int] = None
     topic_ids: Optional[list[int]] = None
 
 
@@ -251,7 +252,8 @@ def list_folios(q: Optional[str] = None, area_id: Optional[int] = None, db: Sess
 
 @router.post("/folios")
 def create_folio(body: FolioCreate, db: Session = Depends(get_db)):
-    folio = models.Folio(title=(body.title or "").strip() or None, area_id=body.area_id)
+    folio = models.Folio(title=(body.title or "").strip() or None,
+                         area_id=body.area_id, thread_id=body.thread_id)
     db.add(folio)
     db.flush()
     _apply_topics(db, folio, body.topic_ids)

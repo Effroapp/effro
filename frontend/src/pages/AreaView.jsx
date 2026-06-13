@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Plus, Check, X, Edit3, RefreshCw, History, ChevronDown, ChevronUp, Sparkles, Clock, Wand2, GripVertical } from 'lucide-react'
-import { format } from 'date-fns'
+import { Plus, Check, X, Edit3, RefreshCw, History, ChevronDown, ChevronUp, Sparkles, Clock, Wand2, GripVertical, Gauge } from 'lucide-react'
+import { format, formatDistanceToNow } from 'date-fns'
 import { areasApi } from '../api/client'
+import { parseUTC } from '../utils/time.js'
 import StatusBadge from '../components/StatusBadge'
 import ThreadCard from '../components/ThreadCard'
 import AreaFolios from '../components/AreaFolios'
@@ -13,6 +14,10 @@ import { useToast } from '../components/Toast'
 import { useAIConfigured } from '../hooks/useAIConfigured'
 import { AREA_STATUSES, THREAD_STATUSES } from '../utils/status'
 import { SECTION_ICONS } from '../utils/entityIcons'
+
+// Threads group by status; active work first, concluded work tucked away.
+// Any status not listed here still renders (appended), so none are dropped.
+const THREAD_GROUP_ORDER = ['in-progress', 'open', 'blocked', 'resolved', 'parked']
 
 export default function AreaView() {
   const { areaId } = useParams()
@@ -67,6 +72,19 @@ export default function AreaView() {
   // ── Drag-to-reorder threads ──────────────────────────────────────────────────
   const [dragIndex, setDragIndex] = useState(null)
   const [overIndex, setOverIndex] = useState(null)
+  // Concluded groups (resolved, parked) start tucked away.
+  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set(['resolved', 'parked']))
+  const toggleGroup = (s) => setCollapsedGroups((prev) => {
+    const n = new Set(prev)
+    if (n.has(s)) n.delete(s); else n.add(s)
+    return n
+  })
+
+  // Rail "at a glance" facts (safe before area/threads load).
+  const activeThreadCount = threads.filter((t) => t.status === 'in-progress').length
+  const lastActivity = threads.length
+    ? threads.map((t) => parseUTC(t.updated_at)).filter(Boolean).sort((a, b) => b - a)[0]
+    : (area ? parseUTC(area.updated_at) : null)
 
   const handleDragStart = (e, index) => {
     setDragIndex(index)
@@ -330,7 +348,10 @@ export default function AreaView() {
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-8 py-6">
+      <div className="max-w-6xl mx-auto px-8 py-6">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_19rem] gap-6 items-start">
+        {/* Main column: overview + threads grouped by status */}
+        <div className="min-w-0 flex flex-col gap-6">
         {/* Overview - shared OverviewCard (identical for areas and threads) */}
         <OverviewCard
           data={area}
@@ -370,47 +391,94 @@ export default function AreaView() {
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {threads.map((thread, index) => (
-                <div
-                  key={thread.id}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDrop={(e) => handleDrop(e, index)}
-                  className={`group/row flex items-stretch gap-1 rounded-lg transition-all ${
-                    dragIndex === index ? 'opacity-40' : ''
-                  } ${
-                    overIndex === index && dragIndex !== null && dragIndex !== index
-                      ? 'ring-2 ring-mint/50'
-                      : ''
-                  }`}
-                >
-                  {/* Reorder handle - invisible until the row is hovered */}
-                  <div
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, index)}
-                    onDragEnd={handleDragEnd}
-                    title="Drag to reorder"
-                    className="
-                      flex-shrink-0 flex items-center justify-center w-5
-                      cursor-grab active:cursor-grabbing
-                      text-paper-400 dark:text-paper-600
-                      opacity-0 group-hover/row:opacity-100 transition-opacity
-                    "
-                  >
-                    <GripVertical size={16} />
+            <div className="flex flex-col gap-5">
+              {[...new Set([...THREAD_GROUP_ORDER, ...threads.map((t) => t.status)])].map((status) => {
+                const items = threads.filter((t) => t.status === status)
+                if (!items.length) return null
+                const cfg = THREAD_STATUSES[status] || { label: status, dot: '#888888' }
+                const collapsed = collapsedGroups.has(status)
+                return (
+                  <div key={status}>
+                    {/* Group header: status dot + label + count, collapsible */}
+                    <button onClick={() => toggleGroup(status)} className="flex items-center gap-2 mb-2.5 w-full text-left">
+                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.dot }} />
+                      <span className="font-mono text-2xs uppercase tracking-widest" style={{ color: cfg.dot }}>{cfg.label}</span>
+                      <span className="font-mono text-2xs text-paper-400 dark:text-paper-700">{items.length}</span>
+                      <ChevronDown size={13} className={`ml-0.5 text-paper-400 dark:text-paper-700 transition-transform motion-reduce:transition-none ${collapsed ? '-rotate-90' : ''}`} />
+                    </button>
+                    {!collapsed && (
+                      <div className="flex flex-col gap-2">
+                        {items.map((thread) => {
+                          const index = threads.indexOf(thread)
+                          const sameStatusDrag = dragIndex !== null && threads[dragIndex]?.status === status
+                          return (
+                            <div
+                              key={thread.id}
+                              onDragOver={(e) => { if (sameStatusDrag) handleDragOver(e, index) }}
+                              onDrop={(e) => { if (sameStatusDrag) handleDrop(e, index) }}
+                              className={`group/row flex items-stretch gap-1 rounded-lg transition-all ${
+                                dragIndex === index ? 'opacity-40' : ''
+                              } ${
+                                overIndex === index && sameStatusDrag && dragIndex !== index ? 'ring-2 ring-mint/50' : ''
+                              }`}
+                            >
+                              {/* Reorder handle - reorders within this status group */}
+                              <div
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, index)}
+                                onDragEnd={handleDragEnd}
+                                title="Drag to reorder within this group"
+                                className="flex-shrink-0 flex items-center justify-center w-5 cursor-grab active:cursor-grabbing
+                                           text-paper-400 dark:text-paper-600 opacity-0 group-hover/row:opacity-100 transition-opacity"
+                              >
+                                <GripVertical size={16} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <ThreadCard thread={thread} areaId={areaId} />
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <ThreadCard thread={thread} areaId={areaId} />
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
-      </div>
+        </div>
 
-      {/* Deep dives filed under this area */}
-      <AreaFolios areaId={areaId} />
+        {/* Right rail: area facts + the dives filed here */}
+        <aside className="xl:sticky xl:top-6 flex flex-col gap-3">
+          <div className="rounded-xl bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400 p-3.5">
+            <div className="flex items-center gap-2 font-mono text-2xs uppercase tracking-[0.13em] text-paper-500 dark:text-pitch-200">
+              <Gauge size={14} className="text-mint" /> At a glance
+            </div>
+            <div className="mt-3 flex flex-col gap-2.5 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-paper-500 dark:text-pitch-200">Status</span>
+                <StatusBadge status={area.status} type="area" size="xs" />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-paper-500 dark:text-pitch-200">Threads</span>
+                <span className="text-pitch-800 dark:text-pitch-50">
+                  {threads.length}
+                  {activeThreadCount > 0 && <span className="font-mono text-2xs text-paper-400 dark:text-pitch-300"> · {activeThreadCount} active</span>}
+                </span>
+              </div>
+              {lastActivity && (
+                <div className="flex items-center justify-between gap-2 border-t border-paper-200 dark:border-pitch-600 pt-2.5">
+                  <span className="text-paper-500 dark:text-pitch-200">Last activity</span>
+                  <span className="font-mono text-2xs text-paper-600 dark:text-pitch-100">{formatDistanceToNow(lastActivity, { addSuffix: true })}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <AreaFolios areaId={areaId} />
+        </aside>
+      </div>
+      </div>
 
       {/* Audit panel */}
       <AreaAuditPanel areaId={areaId} />

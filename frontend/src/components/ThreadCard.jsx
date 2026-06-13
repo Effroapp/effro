@@ -1,11 +1,15 @@
 import { Link } from 'react-router-dom'
 import { MessageSquare, Paperclip, ChevronRight } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import StatusBadge from './StatusBadge'
 import { getThreadStatus } from '../utils/status'
 import { BionicText } from '../utils/bionic.jsx'
 import { parseUTC } from '../utils/time.js'
 
+/**
+ * Dense thread row for the Area page. Status is carried by the group header and
+ * the coloured left border, so the row itself stays tight: title + an optional
+ * one-line description, with counts and recency on the right.
+ */
 export default function ThreadCard({ thread, areaId }) {
   const config = getThreadStatus(thread.status)
   const relativeTime = formatDistanceToNow(parseUTC(thread.updated_at), { addSuffix: true })
@@ -14,64 +18,33 @@ export default function ThreadCard({ thread, areaId }) {
     <Link
       to={`/thread/${thread.id}`}
       draggable={false}
-      className="
-        group block rounded-lg border transition-all duration-200
-        bg-white dark:bg-pitch-700
-        border-paper-300 dark:border-pitch-500
-        hover:border-paper-400 dark:hover:border-paper-700
-        hover:shadow-md dark:hover:shadow-pitch-800/50
-        hover:-translate-y-px
-      "
+      style={{ borderLeftColor: config.dot }}
+      className="group block rounded-lg border border-l-[3px]
+                 border-paper-300 dark:border-pitch-500
+                 bg-white dark:bg-pitch-700
+                 hover:border-paper-400 dark:hover:border-pitch-400
+                 hover:bg-paper-50 dark:hover:bg-pitch-600/50
+                 transition-colors"
     >
-      {/* Status accent line */}
-      <div
-        className="h-0.5 rounded-t-lg"
-        style={{ backgroundColor: config.dot }}
-      />
-
-      <div className="p-4">
-        {/* Title row */}
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <h3 className="font-display font-semibold text-sm text-pitch-800 dark:text-white group-hover:text-paper-700 dark:group-hover:text-paper-200 transition-colors leading-snug">
+      <div className="px-3.5 py-2.5 flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="font-display font-semibold text-sm text-pitch-800 dark:text-white truncate
+                         group-hover:text-paper-700 dark:group-hover:text-paper-200 transition-colors">
             <BionicText>{thread.title}</BionicText>
           </h3>
-          <ChevronRight
-            size={14}
-            className="text-paper-400 dark:text-paper-700 flex-shrink-0 mt-0.5 group-hover:text-paper-700 group-hover:translate-x-0.5 transition-all"
-          />
+          {thread.description && (
+            <p className="text-xs text-paper-600 dark:text-paper-500 line-clamp-1 leading-relaxed mt-0.5">
+              {thread.description}
+            </p>
+          )}
         </div>
-
-        {/* Description */}
-        {thread.description && (
-          <p className="text-xs text-paper-600 dark:text-paper-500 line-clamp-2 mb-3 leading-relaxed">
-            <BionicText>{thread.description}</BionicText>
-          </p>
-        )}
-
-        {/* Footer */}
-        <div className="flex items-center justify-between gap-2">
-          <StatusBadge status={thread.status} type="thread" size="xs" />
-
-          <div className="flex items-center gap-3">
-            {/* Entry count */}
-            <span className="flex items-center gap-1 text-xs text-paper-500 dark:text-paper-600">
-              <MessageSquare size={11} />
-              <span className="font-mono">{thread.entry_count}</span>
-            </span>
-
-            {/* Attachment count */}
-            {thread.attachment_count > 0 && (
-              <span className="flex items-center gap-1 text-xs text-paper-500 dark:text-paper-600">
-                <Paperclip size={11} />
-                <span className="font-mono">{thread.attachment_count}</span>
-              </span>
-            )}
-
-            {/* Last updated */}
-            <span className="text-xs font-mono text-paper-400 dark:text-paper-700">
-              {relativeTime}
-            </span>
-          </div>
+        <div className="flex-shrink-0 flex items-center gap-3 font-mono text-2xs text-paper-500 dark:text-paper-600">
+          <span className="flex items-center gap-1"><MessageSquare size={11} />{thread.entry_count}</span>
+          {thread.attachment_count > 0 && (
+            <span className="flex items-center gap-1"><Paperclip size={11} />{thread.attachment_count}</span>
+          )}
+          <span className="text-paper-400 dark:text-paper-700">{relativeTime}</span>
+          <ChevronRight size={14} className="text-paper-400 dark:text-paper-700 group-hover:translate-x-0.5 transition-transform" />
         </div>
       </div>
     </Link>
