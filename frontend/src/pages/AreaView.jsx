@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Plus, Check, X, Edit3, RefreshCw, History, ChevronDown, ChevronUp, Sparkles, Clock, Wand2, GripVertical, Gauge } from 'lucide-react'
+import { Plus, Check, X, Edit3, RefreshCw, History, ChevronDown, ChevronUp, Sparkles, Clock, Wand2, GripVertical, Gauge, FolderPlus, Folder, Pencil, Trash2 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { areasApi } from '../api/client'
 import { parseUTC } from '../utils/time.js'
@@ -27,6 +27,7 @@ export default function AreaView() {
 
   const [area, setArea] = useState(null)
   const [threads, setThreads] = useState([])
+  const [groups, setGroups] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -44,7 +45,9 @@ export default function AreaView() {
 
   // New thread modal
   const [newThreadOpen, setNewThreadOpen] = useState(false)
-  const [threadForm, setThreadForm] = useState({ title: '', description: '', status: 'open' })
+  // groupId: existing group to file into (null = none). newGroupName: null when
+  // not creating a group; a string (incl. '') means the "new group" input is open.
+  const [threadForm, setThreadForm] = useState({ title: '', description: '', status: 'open', groupId: null, newGroupName: null })
   const [creatingThread, setCreatingThread] = useState(false)
 
   const summaryRef = useRef(null)
@@ -53,13 +56,15 @@ export default function AreaView() {
     setLoading(true)
     setError(null)
     try {
-      const [areaData, threadsData] = await Promise.all([
+      const [areaData, threadsData, groupsData] = await Promise.all([
         areasApi.get(areaId),
         areasApi.listThreads(areaId),
+        areasApi.listThreadGroups(areaId),
       ])
       setArea(areaData)
       setSummaryDraft(areaData.summary || '')
       setThreads(threadsData)
+      setGroups(groupsData)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -69,9 +74,15 @@ export default function AreaView() {
 
   useEffect(() => { load() }, [areaId])
 
-  // ── Drag-to-reorder threads ──────────────────────────────────────────────────
-  const [dragIndex, setDragIndex] = useState(null)
-  const [overIndex, setOverIndex] = useState(null)
+  // ── Drag-to-reorder + group threads ──────────────────────────────────────────
+  // `threads` is the ordered source of truth. Buckets (each custom group + the
+  // ungrouped pile) are derived by filtering, which preserves this order, so a
+  // single flat reorder call keeps every bucket's order consistent.
+  const [dragId, setDragId] = useState(null)
+  // What the pointer is currently over: {type:'thread'|'group'|'newgroup'|'ungrouped', id?}
+  const [dropTarget, setDropTarget] = useState(null)
+  const [renamingGroupId, setRenamingGroupId] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   // Concluded groups (resolved, parked) start tucked away.
   const [collapsedGroups, setCollapsedGroups] = useState(() => new Set(['resolved', 'parked']))
   const toggleGroup = (s) => setCollapsedGroups((prev) => {
@@ -86,32 +97,167 @@ export default function AreaView() {
     ? threads.map((t) => parseUTC(t.updated_at)).filter(Boolean).sort((a, b) => b - a)[0]
     : (area ? parseUTC(area.updated_at) : null)
 
-  const handleDragStart = (e, index) => {
-    setDragIndex(index)
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', String(index))  // Firefox needs a payload
-  }
-  const handleDragOver = (e, index) => {
-    if (dragIndex === null) return
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    if (overIndex !== index) setOverIndex(index)
-  }
-  const handleDragEnd = () => { setDragIndex(null); setOverIndex(null) }
-  const handleDrop = (e, index) => {
-    e.preventDefault()
-    const from = dragIndex
-    setDragIndex(null); setOverIndex(null)
-    if (from === null || from === index) return
-    const next = [...threads]
-    const [moved] = next.splice(from, 1)
-    next.splice(index, 0, moved)
-    setThreads(next)  // optimistic
-    areasApi.reorderThreads(areaId, next.map((t) => t.id)).catch((err) => {
-      toast(err.message || 'Could not save the new order', 'error')
-      load()  // revert to server truth
+  // Persist the flat thread order; revert to server truth on failure.
+  const persistOrder = (next, extraCall = null) => {
+    setThreads(next)
+    const calls = [areasApi.reorderThreads(areaId, next.map((t) => t.id))]
+    if (extraCall) calls.push(extraCall)
+    Promise.all(calls).catch((err) => {
+      toast(err.message || 'Could not save the change', 'error')
+      load()
     })
   }
+
+  const handleDragStart = (e, id) => {
+    setDragId(id)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', String(id))  // Firefox needs a payload
+  }
+  const handleDragEnd = () => { setDragId(null); setDropTarget(null) }
+
+  // Drop one thread just before another; the dragged thread inherits the
+  // target's group (so dropping onto a card in a group files it there too).
+  const dropOnThread = (e, targetId) => {
+    e.preventDefault(); e.stopPropagation()
+    const from = dragId
+    setDragId(null); setDropTarget(null)
+    if (from == null || from === targetId) return
+    const dragged = threads.find((t) => t.id === from)
+    const target = threads.find((t) => t.id === targetId)
+    if (!dragged || !target) return
+    const groupChanged = dragged.group_id !== target.group_id
+    const rest = threads.filter((t) => t.id !== from)
+    const ti = rest.findIndex((t) => t.id === targetId)
+    const updated = { ...dragged, group_id: target.group_id }
+    const next = [...rest.slice(0, ti), updated, ...rest.slice(ti)]
+    persistOrder(next, groupChanged ? areasApi.setThreadGroup(from, target.group_id) : null)
+  }
+
+  // File a thread into a group (or null to ungroup), appended after that
+  // bucket's current members. Used by drops onto a group and the row menu.
+  const assignToGroup = (threadId, groupId) => {
+    const dragged = threads.find((t) => t.id === threadId)
+    if (!dragged) return
+    const groupChanged = dragged.group_id !== groupId
+    const rest = threads.filter((t) => t.id !== threadId)
+    let insertAt = rest.length
+    if (groupId != null) {
+      const lastIdx = rest.map((t) => t.group_id).lastIndexOf(groupId)
+      insertAt = lastIdx === -1 ? rest.length : lastIdx + 1
+    }
+    const updated = { ...dragged, group_id: groupId }
+    const next = [...rest.slice(0, insertAt), updated, ...rest.slice(insertAt)]
+    persistOrder(next, groupChanged ? areasApi.setThreadGroup(threadId, groupId) : null)
+  }
+
+  const dropOnGroup = (e, groupId) => {
+    e.preventDefault()
+    const id = dragId
+    setDragId(null); setDropTarget(null)
+    if (id != null) assignToGroup(id, groupId)
+  }
+
+  const dropOnNewGroup = async (e) => {
+    e.preventDefault()
+    const id = dragId
+    setDragId(null); setDropTarget(null)
+    if (id == null) return
+    try {
+      const g = await areasApi.createThreadGroup(areaId, 'New group')
+      setGroups((prev) => [...prev, g])
+      assignToGroup(id, g.id)
+      setRenamingGroupId(g.id)  // let the user name it straight away
+    } catch (err) {
+      toast(err.message || 'Could not make the group', 'error')
+    }
+  }
+
+  // ── Group management ──────────────────────────────────────────────────────────
+  const addGroup = async () => {
+    try {
+      const g = await areasApi.createThreadGroup(areaId, 'New group')
+      setGroups((prev) => [...prev, g])
+      setRenamingGroupId(g.id)
+    } catch (err) {
+      toast(err.message || 'Could not make the group', 'error')
+    }
+  }
+
+  const renameGroup = (groupId, name) => {
+    setRenamingGroupId(null)
+    const clean = (name || '').trim()
+    const current = groups.find((g) => g.id === groupId)
+    if (!clean || (current && current.name === clean)) return
+    setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, name: clean } : g)))
+    areasApi.renameThreadGroup(groupId, clean).catch((err) => {
+      toast(err.message || 'Could not rename the group', 'error')
+      load()
+    })
+  }
+
+  const removeGroup = (groupId) => {
+    setConfirmDeleteId(null)
+    setGroups((prev) => prev.filter((g) => g.id !== groupId))
+    setThreads((prev) => prev.map((t) => (t.group_id === groupId ? { ...t, group_id: null } : t)))
+    areasApi.deleteThreadGroup(groupId).catch((err) => {
+      toast(err.message || 'Could not remove the group', 'error')
+      load()
+    })
+  }
+
+  const createGroupAndAssign = async (threadId) => {
+    try {
+      const g = await areasApi.createThreadGroup(areaId, 'New group')
+      setGroups((prev) => [...prev, g])
+      assignToGroup(threadId, g.id)
+      setRenamingGroupId(g.id)
+    } catch (err) {
+      toast(err.message || 'Could not make the group', 'error')
+    }
+  }
+
+  const ungrouped = threads.filter((t) => t.group_id == null)
+
+  // One thread row: drag handle + card + "move to group" menu. Shared by the
+  // custom groups and the ungrouped status groups so behaviour stays identical.
+  const renderRow = (thread) => (
+    <div
+      key={thread.id}
+      onDragOver={(e) => {
+        if (dragId != null && dragId !== thread.id) {
+          e.preventDefault(); e.stopPropagation()
+          setDropTarget({ type: 'thread', id: thread.id })
+        }
+      }}
+      onDrop={(e) => dropOnThread(e, thread.id)}
+      className={`group/row flex items-stretch gap-1 rounded-lg transition-all ${
+        dragId === thread.id ? 'opacity-40' : ''
+      } ${
+        dropTarget?.type === 'thread' && dropTarget.id === thread.id && dragId !== thread.id ? 'ring-2 ring-mint/50' : ''
+      }`}
+    >
+      {/* Reorder handle - drag to reorder, or onto a group to file it */}
+      <div
+        draggable
+        onDragStart={(e) => handleDragStart(e, thread.id)}
+        onDragEnd={handleDragEnd}
+        title="Drag to reorder, or onto a group to file it"
+        className="flex-shrink-0 flex items-center justify-center w-5 cursor-grab active:cursor-grabbing
+                   text-paper-400 dark:text-paper-600 opacity-0 group-hover/row:opacity-100 transition-opacity"
+      >
+        <GripVertical size={16} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <ThreadCard thread={thread} areaId={areaId} />
+      </div>
+      <MoveToGroupMenu
+        groups={groups}
+        currentGroupId={thread.group_id}
+        onAssign={(gid) => assignToGroup(thread.id, gid)}
+        onCreateAndAssign={() => createGroupAndAssign(thread.id)}
+      />
+    </div>
+  )
 
   useEffect(() => {
     if (editingSummary && summaryRef.current) {
@@ -215,11 +361,26 @@ export default function AreaView() {
   const createThread = async () => {
     if (!threadForm.title.trim()) return
     setCreatingThread(true)
+    const wantsGroup = (threadForm.newGroupName != null && threadForm.newGroupName.trim()) || threadForm.groupId != null
     try {
-      const thread = await areasApi.createThread(areaId, threadForm)
+      const payload = {
+        title: threadForm.title,
+        description: threadForm.description,
+        status: threadForm.status,
+      }
+      if (threadForm.newGroupName != null && threadForm.newGroupName.trim()) {
+        payload.new_group_name = threadForm.newGroupName.trim()
+      } else if (threadForm.groupId != null) {
+        payload.group_id = threadForm.groupId
+      }
+      const thread = await areasApi.createThread(areaId, payload)
       setThreads((t) => [thread, ...t])
+      // A thread can mint a new group server-side; refresh the group list so it shows.
+      if (wantsGroup) {
+        areasApi.listThreadGroups(areaId).then(setGroups).catch(() => {})
+      }
       setNewThreadOpen(false)
-      setThreadForm({ title: '', description: '', status: 'open' })
+      setThreadForm({ title: '', description: '', status: 'open', groupId: null, newGroupName: null })
       toast('Thread created')
     } catch (e) {
       toast(e.message, 'error')
@@ -377,6 +538,17 @@ export default function AreaView() {
                 ({threads.length})
               </span>
             </h2>
+            {threads.length > 0 && (
+              <button
+                onClick={addGroup}
+                title="Make a group to file threads under"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-md text-2xs font-display uppercase tracking-wide
+                           text-paper-500 dark:text-paper-500 hover:text-paper-700 dark:hover:text-paper-300
+                           hover:bg-paper-200/60 dark:hover:bg-pitch-700 transition-colors"
+              >
+                <FolderPlus size={13} /> New group
+              </button>
+            )}
           </div>
 
           {threads.length === 0 ? (
@@ -391,59 +563,135 @@ export default function AreaView() {
               </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-5">
-              {[...new Set([...THREAD_GROUP_ORDER, ...threads.map((t) => t.status)])].map((status) => {
-                const items = threads.filter((t) => t.status === status)
-                if (!items.length) return null
-                const cfg = THREAD_STATUSES[status] || { label: status, dot: '#888888' }
-                const collapsed = collapsedGroups.has(status)
+            <div className="flex flex-col gap-6">
+              {/* Custom groups - a calm editable heading + splitter per group */}
+              {groups.map((group) => {
+                const items = threads.filter((t) => t.group_id === group.id)
+                const collapsed = collapsedGroups.has(`grp-${group.id}`)
+                const isRenaming = renamingGroupId === group.id
+                const isDropOver = dropTarget?.type === 'group' && dropTarget.id === group.id
                 return (
-                  <div key={status}>
-                    {/* Group header: status dot + label + count, collapsible */}
-                    <button onClick={() => toggleGroup(status)} className="flex items-center gap-2 mb-2.5 w-full text-left">
-                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.dot }} />
-                      <span className="font-mono text-2xs uppercase tracking-widest" style={{ color: cfg.dot }}>{cfg.label}</span>
-                      <span className="font-mono text-2xs text-paper-400 dark:text-paper-700">{items.length}</span>
-                      <ChevronDown size={13} className={`ml-0.5 text-paper-400 dark:text-paper-700 transition-transform motion-reduce:transition-none ${collapsed ? '-rotate-90' : ''}`} />
-                    </button>
+                  <div
+                    key={group.id}
+                    onDragOver={(e) => { if (dragId != null) { e.preventDefault(); setDropTarget({ type: 'group', id: group.id }) } }}
+                    onDrop={(e) => dropOnGroup(e, group.id)}
+                    className={`rounded-xl transition-all ${isDropOver ? 'ring-2 ring-mint/50 bg-mint/5' : ''}`}
+                  >
+                    {/* Group header: chevron, name (editable), count, splitter, remove */}
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <button onClick={() => toggleGroup(`grp-${group.id}`)} title={collapsed ? 'Expand' : 'Collapse'} className="flex-shrink-0 text-paper-400 dark:text-paper-700">
+                        <ChevronDown size={14} className={`transition-transform motion-reduce:transition-none ${collapsed ? '-rotate-90' : ''}`} />
+                      </button>
+                      <Folder size={13} className="flex-shrink-0 text-paper-400 dark:text-paper-600" />
+                      {isRenaming ? (
+                        <input
+                          autoFocus
+                          defaultValue={group.name}
+                          onBlur={(e) => renameGroup(group.id, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') e.target.blur()
+                            if (e.key === 'Escape') setRenamingGroupId(null)
+                          }}
+                          className="min-w-0 flex-shrink px-1.5 py-0.5 text-sm font-display font-semibold rounded
+                                     bg-paper-100 dark:bg-pitch-700 text-pitch-800 dark:text-white
+                                     border border-mint-500 focus:outline-none focus:ring-1 focus:ring-mint-500"
+                        />
+                      ) : (
+                        <button onClick={() => setRenamingGroupId(group.id)} title="Rename group" className="group/name flex items-center gap-1.5 min-w-0">
+                          <span className="font-display font-semibold text-sm text-paper-700 dark:text-paper-200 truncate">{group.name}</span>
+                          <Pencil size={11} className="flex-shrink-0 opacity-0 group-hover/name:opacity-100 text-paper-400 dark:text-paper-600 transition-opacity" />
+                        </button>
+                      )}
+                      <span className="font-mono text-2xs text-paper-400 dark:text-paper-700 flex-shrink-0">{items.length}</span>
+                      <div className="flex-1 h-px bg-paper-200 dark:bg-pitch-600" />
+                      {confirmDeleteId === group.id ? (
+                        <span className="flex items-center gap-1.5 text-2xs flex-shrink-0">
+                          <span className="text-paper-500 dark:text-paper-500">Remove group?</span>
+                          <button onClick={() => removeGroup(group.id)} className="font-medium text-terracotta">Yes</button>
+                          <button onClick={() => setConfirmDeleteId(null)} className="text-paper-400 dark:text-paper-600">No</button>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteId(group.id)}
+                          title="Remove group (threads are kept)"
+                          className="flex-shrink-0 text-paper-400 dark:text-paper-700 hover:text-terracotta transition-colors"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
                     {!collapsed && (
-                      <div className="flex flex-col gap-2">
-                        {items.map((thread) => {
-                          const index = threads.indexOf(thread)
-                          const sameStatusDrag = dragIndex !== null && threads[dragIndex]?.status === status
-                          return (
-                            <div
-                              key={thread.id}
-                              onDragOver={(e) => { if (sameStatusDrag) handleDragOver(e, index) }}
-                              onDrop={(e) => { if (sameStatusDrag) handleDrop(e, index) }}
-                              className={`group/row flex items-stretch gap-1 rounded-lg transition-all ${
-                                dragIndex === index ? 'opacity-40' : ''
-                              } ${
-                                overIndex === index && sameStatusDrag && dragIndex !== index ? 'ring-2 ring-mint/50' : ''
-                              }`}
-                            >
-                              {/* Reorder handle - reorders within this status group */}
-                              <div
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, index)}
-                                onDragEnd={handleDragEnd}
-                                title="Drag to reorder within this group"
-                                className="flex-shrink-0 flex items-center justify-center w-5 cursor-grab active:cursor-grabbing
-                                           text-paper-400 dark:text-paper-600 opacity-0 group-hover/row:opacity-100 transition-opacity"
-                              >
-                                <GripVertical size={16} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <ThreadCard thread={thread} areaId={areaId} />
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
+                      items.length === 0 ? (
+                        <div className="text-center py-4 border border-dashed border-paper-300 dark:border-pitch-500 rounded-lg text-2xs text-paper-400 dark:text-paper-700">
+                          Empty. Drag a thread here, or use the folder menu on any thread.
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          {items.map((thread) => renderRow(thread))}
+                        </div>
+                      )
                     )}
                   </div>
                 )
               })}
+
+              {/* Make-a-new-group drop zone, shown only while dragging a thread */}
+              {dragId != null && (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDropTarget({ type: 'newgroup' }) }}
+                  onDrop={dropOnNewGroup}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-xs transition-colors ${
+                    dropTarget?.type === 'newgroup'
+                      ? 'border-mint bg-mint/5 text-mint-600 dark:text-mint-300'
+                      : 'border-paper-300 dark:border-pitch-500 text-paper-400 dark:text-paper-700'
+                  }`}
+                >
+                  <FolderPlus size={14} /> Drop here to make a new group
+                </div>
+              )}
+
+              {/* Ungrouped pile - grouped by status, exactly as before when no
+                  custom groups exist. Droppable to lift a thread out of a group. */}
+              <div
+                onDragOver={(e) => { if (dragId != null && groups.length > 0) { e.preventDefault(); setDropTarget({ type: 'ungrouped' }) } }}
+                onDrop={(e) => {
+                  if (groups.length === 0) return
+                  e.preventDefault()
+                  const id = dragId
+                  setDragId(null); setDropTarget(null)
+                  if (id != null) assignToGroup(id, null)
+                }}
+                className={`flex flex-col gap-5 rounded-xl transition-all ${dropTarget?.type === 'ungrouped' ? 'ring-2 ring-mint/40' : ''}`}
+              >
+                {groups.length > 0 && ungrouped.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-2xs uppercase tracking-widest text-paper-400 dark:text-paper-700">Ungrouped</span>
+                    <div className="flex-1 h-px bg-paper-200 dark:bg-pitch-600" />
+                  </div>
+                )}
+                {[...new Set([...THREAD_GROUP_ORDER, ...ungrouped.map((t) => t.status)])].map((status) => {
+                  const items = ungrouped.filter((t) => t.status === status)
+                  if (!items.length) return null
+                  const cfg = THREAD_STATUSES[status] || { label: status, dot: '#888888' }
+                  const collapsed = collapsedGroups.has(status)
+                  return (
+                    <div key={status}>
+                      {/* Group header: status dot + label + count, collapsible */}
+                      <button onClick={() => toggleGroup(status)} className="flex items-center gap-2 mb-2.5 w-full text-left">
+                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.dot }} />
+                        <span className="font-mono text-2xs uppercase tracking-widest" style={{ color: cfg.dot }}>{cfg.label}</span>
+                        <span className="font-mono text-2xs text-paper-400 dark:text-paper-700">{items.length}</span>
+                        <ChevronDown size={13} className={`ml-0.5 text-paper-400 dark:text-paper-700 transition-transform motion-reduce:transition-none ${collapsed ? '-rotate-90' : ''}`} />
+                      </button>
+                      {!collapsed && (
+                        <div className="flex flex-col gap-2">
+                          {items.map((thread) => renderRow(thread))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -486,7 +734,7 @@ export default function AreaView() {
       {/* New Thread Modal */}
       <Modal
         isOpen={newThreadOpen}
-        onClose={() => { setNewThreadOpen(false); setThreadForm({ title: '', description: '', status: 'open' }) }}
+        onClose={() => { setNewThreadOpen(false); setThreadForm({ title: '', description: '', status: 'open', groupId: null, newGroupName: null }) }}
         title="New Thread"
         isDirty={Boolean(threadForm.title.trim() || threadForm.description.trim())}
       >
@@ -557,6 +805,63 @@ export default function AreaView() {
             </div>
           </div>
 
+          <div>
+            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+              Group
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {(() => {
+                const pill = (active) => `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display uppercase tracking-wide border transition-colors ${
+                  active
+                    ? 'text-mint-700 dark:text-mint-300 bg-mint/10 border-mint-500'
+                    : 'text-paper-600 dark:text-paper-500 border-paper-300 dark:border-pitch-500 hover:border-paper-400 dark:hover:border-paper-700'
+                }`
+                return (
+                  <>
+                    <button
+                      onClick={() => setThreadForm((f) => ({ ...f, groupId: null, newGroupName: null }))}
+                      className={pill(threadForm.groupId == null && threadForm.newGroupName == null)}
+                    >
+                      No group
+                    </button>
+                    {groups.map((g) => (
+                      <button
+                        key={g.id}
+                        onClick={() => setThreadForm((f) => ({ ...f, groupId: g.id, newGroupName: null }))}
+                        className={pill(threadForm.groupId === g.id && threadForm.newGroupName == null)}
+                      >
+                        <Folder size={12} /> {g.name}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setThreadForm((f) => ({ ...f, groupId: null, newGroupName: f.newGroupName == null ? '' : f.newGroupName }))}
+                      className={pill(threadForm.newGroupName != null)}
+                    >
+                      <FolderPlus size={12} /> New group
+                    </button>
+                  </>
+                )
+              })()}
+            </div>
+            {threadForm.newGroupName != null && (
+              <input
+                type="text"
+                value={threadForm.newGroupName}
+                autoFocus
+                onChange={(e) => setThreadForm((f) => ({ ...f, newGroupName: e.target.value }))}
+                placeholder="Name the new group..."
+                className="
+                  mt-2 w-full px-3 py-2 text-sm rounded-lg
+                  bg-paper-100 dark:bg-pitch-700
+                  border border-paper-300 dark:border-paper-700
+                  text-pitch-800 dark:text-white
+                  placeholder:text-paper-400 dark:placeholder:text-paper-700
+                  focus:outline-none focus:ring-2 focus:ring-mint-500
+                "
+              />
+            )}
+          </div>
+
           <div className="flex justify-end gap-2 pt-1">
             <button
               onClick={() => setNewThreadOpen(false)}
@@ -574,6 +879,66 @@ export default function AreaView() {
           </div>
         </div>
       </Modal>
+    </div>
+  )
+}
+
+// ─── Move-to-group menu ───────────────────────────────────────────────────────
+// The precision path for filing a thread (drag is the quick path). Revealed on
+// row hover; lists the area's groups, remove-from-group, and make-a-new-group.
+
+function MoveToGroupMenu({ groups, currentGroupId, onAssign, onCreateAndAssign }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="relative flex-shrink-0 flex items-center">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Move to group"
+        className={`flex items-center justify-center w-6 h-6 rounded-md transition-all
+                    text-paper-400 dark:text-paper-600 hover:text-paper-600 dark:hover:text-paper-300
+                    hover:bg-paper-100 dark:hover:bg-pitch-600
+                    ${open ? 'opacity-100' : 'opacity-0 group-hover/row:opacity-100'}`}
+      >
+        <Folder size={14} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-20 min-w-[11rem] py-1 bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 rounded-lg shadow-xl">
+            <div className="px-3 py-1.5 font-mono text-2xs uppercase tracking-widest text-paper-400 dark:text-paper-600">
+              Move to group
+            </div>
+            {groups.length === 0 && (
+              <div className="px-3 py-1.5 text-xs italic text-paper-400 dark:text-paper-700">No groups yet</div>
+            )}
+            {groups.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => { onAssign(g.id); setOpen(false) }}
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-left text-xs text-paper-700 dark:text-paper-200 hover:bg-paper-100 dark:hover:bg-pitch-600 transition-colors"
+              >
+                <Check size={12} className={currentGroupId === g.id ? 'text-mint' : 'opacity-0'} />
+                <span className="truncate">{g.name}</span>
+              </button>
+            ))}
+            {currentGroupId != null && (
+              <button
+                onClick={() => { onAssign(null); setOpen(false) }}
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-left text-xs text-paper-600 dark:text-paper-400 hover:bg-paper-100 dark:hover:bg-pitch-600 transition-colors"
+              >
+                <X size={12} /> Remove from group
+              </button>
+            )}
+            <div className="my-1 h-px bg-paper-200 dark:bg-pitch-600" />
+            <button
+              onClick={() => { onCreateAndAssign(); setOpen(false) }}
+              className="flex items-center gap-2 w-full px-3 py-1.5 text-left text-xs text-mint-600 dark:text-mint-300 hover:bg-paper-100 dark:hover:bg-pitch-600 transition-colors"
+            >
+              <FolderPlus size={12} /> New group
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }

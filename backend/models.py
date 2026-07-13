@@ -30,6 +30,30 @@ class Area(Base):
     threads = relationship(
         "Thread", back_populates="area", cascade="all, delete-orphan"
     )
+    thread_groups = relationship(
+        "ThreadGroup",
+        back_populates="area",
+        cascade="all, delete-orphan",
+        order_by="ThreadGroup.position",
+    )
+
+
+class ThreadGroup(Base):
+    """A user-defined, named collection of threads within an area. Optional -
+    an area with no groups renders threads exactly as before. Deleting a group
+    ungroups its threads (it never deletes them; the router nulls group_id)."""
+    __tablename__ = "thread_groups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    area_id = Column(Integer, ForeignKey("areas.id"), nullable=False)
+    name = Column(String(120), nullable=False, default="New group")
+    # Display order of groups within the area.
+    position = Column(Integer, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    area = relationship("Area", back_populates="thread_groups")
+    # Note: no delete cascade - removing a group must not remove its threads.
+    threads = relationship("Thread", back_populates="group")
 
 
 class Thread(Base):
@@ -43,6 +67,9 @@ class Thread(Base):
     # Manual sort order within the area (set by drag-to-reorder). NULL = never
     # reordered; such threads fall back to most-recent-activity ordering.
     position = Column(Integer, nullable=True)
+    # Optional custom group this thread belongs to. NULL = ungrouped (the
+    # default; renders under the automatic status groups as before).
+    group_id = Column(Integer, ForeignKey("thread_groups.id"), nullable=True)
     description = Column(Text, default="")
     # AI Overview — same shape as Area.summary. `description` stays the user's
     # own one-liner; `summary` is the generated/editable status overview.
@@ -54,6 +81,7 @@ class Thread(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     area = relationship("Area", back_populates="threads")
+    group = relationship("ThreadGroup", back_populates="threads")
     entries = relationship(
         "Entry",
         back_populates="thread",
