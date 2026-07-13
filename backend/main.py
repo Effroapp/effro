@@ -207,6 +207,10 @@ def _init_db():
             "ALTER TABLE threads ADD COLUMN summary_auto_generated BOOLEAN DEFAULT 0",
             "ALTER TABLE threads ADD COLUMN summary_auto_update BOOLEAN DEFAULT 0",
             "ALTER TABLE threads ADD COLUMN position INTEGER",
+            # Optional user-defined thread groups within an area (calm, opt-in).
+            "CREATE TABLE IF NOT EXISTS thread_groups (id INTEGER PRIMARY KEY, area_id INTEGER NOT NULL REFERENCES areas(id) ON DELETE CASCADE, name VARCHAR(120) NOT NULL DEFAULT 'New group', position INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)",
+            "ALTER TABLE threads ADD COLUMN group_id INTEGER REFERENCES thread_groups(id) ON DELETE SET NULL",
+            "CREATE INDEX IF NOT EXISTS idx_threads_group ON threads(group_id)",
             # Work sessions - heartbeat-derived presence, powers the Insights wind-down
             "CREATE TABLE IF NOT EXISTS work_sessions (id INTEGER PRIMARY KEY, started_at DATETIME NOT NULL, ended_at DATETIME NOT NULL, ping_count INTEGER DEFAULT 1)",
             # ── Authentication (flag-gated via EFFRO_AUTH_ENABLED) ──────────────

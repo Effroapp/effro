@@ -306,6 +306,7 @@ def list_area_threads(area_id: int, db: Session = Depends(get_db)):
                 title=t.title,
                 status=t.status,
                 description=t.description or "",
+                group_id=t.group_id,
                 created_at=t.created_at,
                 updated_at=t.updated_at,
                 entry_count=entry_count,
@@ -321,15 +322,39 @@ def create_thread(area_id: int, payload: schemas.ThreadCreate, db: Session = Dep
     if not area:
         raise HTTPException(status_code=404, detail="Area not found")
 
-    valid = {"open", "in-progress", "resolved", "parked"}
+    valid = {"open", "in-progress", "resolved", "parked", "blocked"}
     if payload.status not in valid:
         raise HTTPException(status_code=422, detail=f"status must be one of {valid}")
+
+    # Resolve the group to file this thread into (optional). new_group_name wins
+    # if provided; otherwise an existing group_id is validated against this area.
+    group_id = None
+    if payload.new_group_name and payload.new_group_name.strip():
+        group = models.ThreadGroup(
+            area_id=area_id,
+            name=payload.new_group_name.strip()[:120],
+            position=_next_group_position(db, area_id),
+        )
+        db.add(group)
+        db.flush()
+        group_id = group.id
+    elif payload.group_id is not None:
+        group = (
+            db.query(models.ThreadGroup)
+            .filter(models.ThreadGroup.id == payload.group_id,
+                    models.ThreadGroup.area_id == area_id)
+            .first()
+        )
+        if not group:
+            raise HTTPException(status_code=404, detail="Group not found in this area")
+        group_id = group.id
 
     thread = models.Thread(
         area_id=area_id,
         title=payload.title,
         description=payload.description or "",
         status=payload.status or "open",
+        group_id=group_id,
     )
     db.add(thread)
     db.flush()  # ensure thread.id is assigned before logging event
@@ -350,6 +375,7 @@ def create_thread(area_id: int, payload: schemas.ThreadCreate, db: Session = Dep
         title=thread.title,
         status=thread.status,
         description=thread.description or "",
+        group_id=thread.group_id,
         created_at=thread.created_at,
         updated_at=thread.updated_at,
         entry_count=0,
@@ -376,6 +402,92 @@ def reorder_threads(area_id: int, payload: schemas.ThreadReorder, db: Session = 
             thread.position = index
     db.commit()
     return {"ok": True, "count": len(payload.ordered_ids)}
+
+
+# ── Thread groups ─────────────────────────────────────────────────────────────
+# Optional, per-area. An area with no groups behaves exactly as before; threads
+# carry a nullable group_id and ungrouped threads keep their status grouping.
+
+def _next_group_position(db: Session, area_id: int) -> int:
+    highest = (
+        db.query(func.max(models.ThreadGroup.position))
+        .filter(models.ThreadGroup.area_id == area_id)
+        .scalar()
+    )
+    return 0 if highest is None else highest + 1
+
+
+@router.get("/areas/{area_id}/thread-groups", response_model=list[schemas.ThreadGroupOut])
+def list_thread_groups(area_id: int, db: Session = Depends(get_db)):
+    area = db.query(models.Area).filter(models.Area.id == area_id).first()
+    if not area:
+        raise HTTPException(status_code=404, detail="Area not found")
+    return (
+        db.query(models.ThreadGroup)
+        .filter(models.ThreadGroup.area_id == area_id)
+        .order_by(models.ThreadGroup.position.asc().nulls_last(), models.ThreadGroup.id.asc())
+        .all()
+    )
+
+
+@router.post("/areas/{area_id}/thread-groups", response_model=schemas.ThreadGroupOut, status_code=201)
+def create_thread_group(area_id: int, payload: schemas.ThreadGroupCreate, db: Session = Depends(get_db)):
+    area = db.query(models.Area).filter(models.Area.id == area_id).first()
+    if not area:
+        raise HTTPException(status_code=404, detail="Area not found")
+    name = (payload.name or "New group").strip()[:120] or "New group"
+    group = models.ThreadGroup(
+        area_id=area_id, name=name, position=_next_group_position(db, area_id)
+    )
+    db.add(group)
+    db.commit()
+    db.refresh(group)
+    return group
+
+
+@router.put("/areas/{area_id}/thread-groups/reorder", status_code=200)
+def reorder_thread_groups(area_id: int, payload: schemas.ThreadGroupReorder, db: Session = Depends(get_db)):
+    by_id = {
+        g.id: g
+        for g in db.query(models.ThreadGroup).filter(models.ThreadGroup.area_id == area_id).all()
+    }
+    for index, group_id in enumerate(payload.ordered_ids):
+        group = by_id.get(group_id)
+        if group is not None:
+            group.position = index
+    db.commit()
+    return {"ok": True, "count": len(payload.ordered_ids)}
+
+
+@router.patch("/thread-groups/{group_id}", response_model=schemas.ThreadGroupOut)
+def rename_thread_group(group_id: int, payload: schemas.ThreadGroupUpdate, db: Session = Depends(get_db)):
+    group = db.query(models.ThreadGroup).filter(models.ThreadGroup.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    name = (payload.name or "").strip()[:120]
+    if not name:
+        raise HTTPException(status_code=422, detail="Group name cannot be empty")
+    group.name = name
+    db.commit()
+    db.refresh(group)
+    return group
+
+
+@router.delete("/thread-groups/{group_id}", status_code=200)
+def delete_thread_group(group_id: int, db: Session = Depends(get_db)):
+    """Remove a group. Its threads are ungrouped (group_id -> NULL), never
+    deleted - FK enforcement is off in SQLite so we clear them explicitly."""
+    group = db.query(models.ThreadGroup).filter(models.ThreadGroup.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    freed = (
+        db.query(models.Thread)
+        .filter(models.Thread.group_id == group_id)
+        .update({models.Thread.group_id: None}, synchronize_session=False)
+    )
+    db.delete(group)
+    db.commit()
+    return {"ok": True, "ungrouped": freed}
 
 
 def _build_audit_context(rows):

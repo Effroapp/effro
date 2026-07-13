@@ -173,6 +173,25 @@ export const areasApi = {
   reorderThreads: (areaId, orderedIds) =>
     request(`/areas/${areaId}/threads/reorder`, { method: 'PUT', body: { ordered_ids: orderedIds } }),
 
+  // Thread groups (optional per-area organisation)
+  listThreadGroups: (areaId) =>
+    request(`/areas/${areaId}/thread-groups`),
+
+  createThreadGroup: (areaId, name) =>
+    request(`/areas/${areaId}/thread-groups`, { method: 'POST', body: { name } }),
+
+  reorderThreadGroups: (areaId, orderedIds) =>
+    request(`/areas/${areaId}/thread-groups/reorder`, { method: 'PUT', body: { ordered_ids: orderedIds } }),
+
+  renameThreadGroup: (groupId, name) =>
+    request(`/thread-groups/${groupId}`, { method: 'PATCH', body: { name } }),
+
+  deleteThreadGroup: (groupId) =>
+    request(`/thread-groups/${groupId}`, { method: 'DELETE' }),
+
+  setThreadGroup: (threadId, groupId) =>
+    request(`/threads/${threadId}/group`, { method: 'PUT', body: { group_id: groupId } }),
+
   getActivity: (limit = 10) =>
     request(`/activity?limit=${limit}`),
 

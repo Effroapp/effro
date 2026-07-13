@@ -193,11 +193,14 @@ jobs:
         shell: bash
         env:
           TAG: ${{ steps.tag.outputs.name }}
-          # Drop the leading "v" - Tauri version strings don't include it.
-          VERSION: ${{ steps.tag.outputs.name }}
         run: |
           set -euo pipefail
-          VERSION="${VERSION#v}"
+          # The NSIS bundle is named from the app version in tauri.conf.json,
+          # which stays clean (e.g. 0.14.0) even for -rcN prerelease tags so the
+          # identical commit can be promoted to the final tag. Derive the
+          # expected filename from that, NOT the tag (a -rcN tag would look for a
+          # file Tauri never produced and fail the build).
+          VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
           # Exact name only - a glob with head -1 once picked a STALE exe left
           # in the cached target dir, pointing the updater at the wrong binary.
           NSIS_EXE="artifacts/Effro_${VERSION}_x64-setup.exe"
