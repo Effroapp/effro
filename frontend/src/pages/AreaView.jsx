@@ -212,6 +212,12 @@ export default function AreaView() {
     }
   }
 
+  // Open the New Thread modal, optionally pre-filed into a group.
+  const openNewThread = (groupId = null) => {
+    setThreadForm({ title: '', description: '', status: 'open', groupId, newGroupName: null })
+    setNewThreadOpen(true)
+  }
+
   const ungrouped = threads.filter((t) => t.group_id == null)
 
   // One thread row: drag handle + card + "move to group" menu. Shared by the
@@ -490,7 +496,7 @@ export default function AreaView() {
           </div>
 
           <button
-            onClick={() => setNewThreadOpen(true)}
+            onClick={() => openNewThread()}
             className="
               flex-shrink-0 self-start whitespace-nowrap
               flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display font-medium uppercase tracking-wide
@@ -551,7 +557,7 @@ export default function AreaView() {
             <div className="text-center py-16 border-2 border-dashed border-paper-300 dark:border-pitch-500 rounded-xl">
               <p className="text-sm text-paper-500 dark:text-paper-700 mb-4">No threads yet for this area.</p>
               <button
-                onClick={() => setNewThreadOpen(true)}
+                onClick={() => openNewThread()}
                 className="flex items-center gap-2 px-4 py-2 rounded-md bg-mint-700 hover:bg-mint-800 text-white text-sm mx-auto transition-colors"
               >
                 <Plus size={14} />
@@ -600,6 +606,13 @@ export default function AreaView() {
                       )}
                       <span className="font-mono text-2xs text-paper-400 dark:text-paper-700 flex-shrink-0">{items.length}</span>
                       <div className="flex-1 h-px bg-paper-200 dark:bg-pitch-600" />
+                      <button
+                        onClick={() => openNewThread(group.id)}
+                        title="New thread in this group"
+                        className="flex-shrink-0 text-paper-400 dark:text-paper-700 hover:text-mint-600 dark:hover:text-mint-300 transition-colors"
+                      >
+                        <Plus size={14} />
+                      </button>
                       {confirmDeleteId === group.id ? (
                         <span className="flex items-center gap-1.5 text-2xs flex-shrink-0">
                           <span className="text-paper-500 dark:text-paper-500">Remove group?</span>
@@ -618,8 +631,15 @@ export default function AreaView() {
                     </div>
                     {!collapsed && (
                       items.length === 0 ? (
-                        <div className="text-center py-4 border border-dashed border-paper-300 dark:border-pitch-500 rounded-lg text-2xs text-paper-400 dark:text-paper-700">
-                          Empty. Drag a thread here, or use the folder menu on any thread.
+                        <div className="flex flex-col items-center gap-2.5 py-5 border border-dashed border-paper-300 dark:border-pitch-500 rounded-lg">
+                          <p className="text-2xs text-paper-400 dark:text-paper-700">Empty. Drag a thread here, or use the folder menu on any thread.</p>
+                          <button
+                            onClick={() => openNewThread(group.id)}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-2xs font-display uppercase tracking-wide
+                                       text-mint-700 dark:text-mint-300 bg-mint/10 hover:bg-mint/20 transition-colors"
+                          >
+                            <Plus size={12} /> New thread
+                          </button>
                         </div>
                       ) : (
                         <div className="flex flex-col gap-2">
