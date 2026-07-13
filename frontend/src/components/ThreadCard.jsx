@@ -39,6 +39,10 @@ export default function ThreadCard({ thread, areaId }) {
           )}
         </div>
         <div className="flex-shrink-0 flex items-center gap-3 font-mono text-2xs text-paper-500 dark:text-paper-600">
+          <span className={`hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded uppercase tracking-wide ${config.bgClass} ${config.textClass}`}>
+            <span className="w-1 h-1 rounded-full" style={{ backgroundColor: config.dot }} />
+            {config.label}
+          </span>
           <span className="flex items-center gap-1"><MessageSquare size={11} />{thread.entry_count}</span>
           {thread.attachment_count > 0 && (
             <span className="flex items-center gap-1"><Paperclip size={11} />{thread.attachment_count}</span>

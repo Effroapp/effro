@@ -15,10 +15,6 @@ import { useAIConfigured } from '../hooks/useAIConfigured'
 import { AREA_STATUSES, THREAD_STATUSES } from '../utils/status'
 import { SECTION_ICONS } from '../utils/entityIcons'
 
-// Threads group by status; active work first, concluded work tucked away.
-// Any status not listed here still renders (appended), so none are dropped.
-const THREAD_GROUP_ORDER = ['in-progress', 'open', 'blocked', 'resolved', 'parked']
-
 export default function AreaView() {
   const { areaId } = useParams()
   const navigate = useNavigate()
@@ -83,8 +79,8 @@ export default function AreaView() {
   const [dropTarget, setDropTarget] = useState(null)
   const [renamingGroupId, setRenamingGroupId] = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
-  // Concluded groups (resolved, parked) start tucked away.
-  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set(['resolved', 'parked']))
+  // Collapsed custom groups, keyed by `grp-<id>`.
+  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set())
   const toggleGroup = (s) => setCollapsedGroups((prev) => {
     const n = new Set(prev)
     if (n.has(s)) n.delete(s); else n.add(s)
@@ -669,28 +665,12 @@ export default function AreaView() {
                     <div className="flex-1 h-px bg-paper-200 dark:bg-pitch-600" />
                   </div>
                 )}
-                {[...new Set([...THREAD_GROUP_ORDER, ...ungrouped.map((t) => t.status)])].map((status) => {
-                  const items = ungrouped.filter((t) => t.status === status)
-                  if (!items.length) return null
-                  const cfg = THREAD_STATUSES[status] || { label: status, dot: '#888888' }
-                  const collapsed = collapsedGroups.has(status)
-                  return (
-                    <div key={status}>
-                      {/* Group header: status dot + label + count, collapsible */}
-                      <button onClick={() => toggleGroup(status)} className="flex items-center gap-2 mb-2.5 w-full text-left">
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.dot }} />
-                        <span className="font-mono text-2xs uppercase tracking-widest" style={{ color: cfg.dot }}>{cfg.label}</span>
-                        <span className="font-mono text-2xs text-paper-400 dark:text-paper-700">{items.length}</span>
-                        <ChevronDown size={13} className={`ml-0.5 text-paper-400 dark:text-paper-700 transition-transform motion-reduce:transition-none ${collapsed ? '-rotate-90' : ''}`} />
-                      </button>
-                      {!collapsed && (
-                        <div className="flex flex-col gap-2">
-                          {items.map((thread) => renderRow(thread))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
+                {/* One flat, freely-reorderable list - drag any thread above or
+                    below any other, the same as inside a group. Status shows on
+                    each card, so no status splitting to get in the way. */}
+                <div className="flex flex-col gap-2">
+                  {ungrouped.map((thread) => renderRow(thread))}
+                </div>
               </div>
             </div>
           )}
