@@ -259,12 +259,14 @@ def suggest_area_summary(area_id: int, db: Session = Depends(get_db)):
         "Output exactly 2 sentences. No preamble, no formatting, no bullet points.\n"
         "Sentence 1: the current state - what's happening right now, what's in motion.\n"
         "Sentence 2: what's next or blocking - risks, pending decisions, what to watch.\n"
+        "You are given a description of what the area is. Use it as background context to interpret the activity accurately, but summarise the activity, not the description.\n"
         "Tone: direct, factual, suitable for a status board. Avoid filler like 'currently' or 'we are', and do not open with \"Overall\", \"It's worth noting\", \"Additionally\" or \"In summary\".\n"
         "Use commas or hyphens for punctuation, never em dashes."
     )
 
     user_msg = (
         f"Area: {area.name}\n"
+        f"What this area is: {area.description or '(none)'}\n"
         f"Current status: {area.status}\n"
         f"Existing summary: {area.summary or '(none)'}\n\n"
         f"Recent activity:\n{context}"
@@ -632,6 +634,7 @@ def get_roundup_data(db: Session = Depends(get_db)):
             area_id=area.id,
             area_name=area.name,
             area_status=area.status,
+            area_description=(area.description or "")[:500],
             active_thread_count=active_thread_count,
             todos_created=todos_created,
             todos_completed=todos_completed,

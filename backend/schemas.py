@@ -383,6 +383,9 @@ class AreaRoundupData(BaseModel):
     area_id: int
     area_name: str
     area_status: str
+    # What the area IS (the stable description) - context for the AI so the
+    # roundup interprets the week's activity accurately.
+    area_description: str = ""
     active_thread_count: int
     todos_created: int
     todos_completed: int
