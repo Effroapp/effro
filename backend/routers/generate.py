@@ -346,6 +346,8 @@ Structure:
    Non-movers: "Area Name - No activity this week."
    Active areas: include status, tasks opened vs completed, any decisions made, key activity.
 
+Each area may carry an "area_description" stating what that area is. Use it as background context to interpret the week's activity accurately. Do not restate it as if it were activity, and do not report on it for areas with nothing happening.
+
 Data for the 7 days ending {payload.generated_at}:
 {json.dumps(payload.areas, indent=2)}"""
 
