@@ -42,6 +42,7 @@ def _thread_detail(thread: models.Thread, db: Session) -> schemas.ThreadDetail:
         status=thread.status,
         description=thread.description or "",
         summary=thread.summary or "",
+        group_id=thread.group_id,
         created_at=thread.created_at,
         updated_at=thread.updated_at,
         entries=[
@@ -290,6 +291,28 @@ def update_thread(
     if payload.auto_update is not None:
         thread.summary_auto_update = bool(payload.auto_update)
 
+    thread.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(thread)
+    return _thread_detail(thread, db)
+
+
+@router.put("/threads/{thread_id}/group", response_model=schemas.ThreadDetail)
+def set_thread_group(thread_id: int, payload: schemas.ThreadGroupAssign, db: Session = Depends(get_db)):
+    """File a thread into a custom group, or clear its group with group_id=null.
+    The group must belong to the same area as the thread."""
+    thread = db.query(models.Thread).filter(models.Thread.id == thread_id).first()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    if payload.group_id is not None:
+        group = db.query(models.ThreadGroup).filter(models.ThreadGroup.id == payload.group_id).first()
+        if not group:
+            raise HTTPException(status_code=404, detail="Group not found")
+        if group.area_id != thread.area_id:
+            raise HTTPException(status_code=422, detail="Group belongs to a different area")
+
+    thread.group_id = payload.group_id
     thread.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(thread)

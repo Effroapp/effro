@@ -22,7 +22,8 @@
         "resizable": true,
         "decorations": true,
         "visible": false,
-        "url": "about:blank"
+        "url": "about:blank",
+        "dragDropEnabled": false
       }
     ],
     "security": {

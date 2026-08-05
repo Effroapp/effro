@@ -109,6 +109,10 @@ class ThreadCreate(BaseModel):
     title: str
     description: Optional[str] = ""
     status: Optional[str] = "open"
+    # File the new thread straight into a group. Provide group_id for an
+    # existing group, or new_group_name to create one on the fly. None = no group.
+    group_id: Optional[int] = None
+    new_group_name: Optional[str] = None
 
 
 class ThreadUpdate(BaseModel):
@@ -124,6 +128,34 @@ class ThreadReorder(BaseModel):
     ordered_ids: List[int]
 
 
+# ── Thread groups (optional per-area organisation) ─────────────────────────────
+
+class ThreadGroupCreate(BaseModel):
+    name: Optional[str] = "New group"
+
+
+class ThreadGroupUpdate(BaseModel):
+    name: str
+
+
+class ThreadGroupReorder(BaseModel):
+    ordered_ids: List[int]
+
+
+class ThreadGroupAssign(BaseModel):
+    """Set (or clear, with null) the group a thread belongs to."""
+    group_id: Optional[int] = None
+
+
+class ThreadGroupOut(BaseModel):
+    id: int
+    area_id: int
+    name: str
+    position: Optional[int] = None
+
+    model_config = {"from_attributes": True}
+
+
 class ThreadSummary(BaseModel):
     """Lightweight thread representation used in area views."""
     id: int
@@ -131,6 +163,7 @@ class ThreadSummary(BaseModel):
     title: str
     status: str
     description: str
+    group_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
     entry_count: int
@@ -162,6 +195,7 @@ class ThreadDetail(_SummaryMeta):
     status: str
     description: str
     summary: str = ""
+    group_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
     entries: List[EntryOut] = []
