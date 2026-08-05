@@ -8,7 +8,9 @@ import {
   MessageSquare, ListTodo, Activity, Library, Loader2
 } from 'lucide-react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
-import ReactMarkdown from 'react-markdown'
+import Markdown, { InlineMarkdown } from '../components/Markdown'
+import MarkdownArea from '../components/MarkdownArea'
+import { stripMarkdown } from '../utils/markdownEditing'
 import { threadsApi, entriesApi, attachmentsApi, areasApi, folioApi } from '../api/client'
 import { openExternal } from '../api/tauri'
 import { useAuth } from '../contexts/AuthContext'
@@ -24,8 +26,6 @@ import { useEntryAI } from '../hooks/useEntryAI'
 import { useAIConfigured } from '../hooks/useAIConfigured'
 import ActionSuggestionBanner from '../components/ActionSuggestionBanner'
 import SubtaskList from '../components/SubtaskList'
-import { useBionic } from '../hooks/useBionic'
-import { bionicizeReact, rehypeBionic } from '../utils/bionic.jsx'
 import TaskDecompositionDrawer from '../components/TaskDecompositionDrawer'
 
 import { ENTITY, ENTITY_TYPES, entityFor, SECTION_ICONS } from '../utils/entityIcons'
@@ -730,7 +730,7 @@ export default function ThreadView() {
                 onClick={() => setEditingDescription(true)}
               >
                 <p className="text-sm text-paper-600 dark:text-paper-500 flex-1">
-                  {thread.description || (
+                  {thread.description ? <InlineMarkdown>{thread.description}</InlineMarkdown> : (
                     <span className="italic text-paper-400 dark:text-paper-700">Add a description…</span>
                   )}
                 </p>
@@ -803,22 +803,16 @@ export default function ThreadView() {
               ))}
             </div>
 
-            <textarea
+            <MarkdownArea
               value={newEntryContent}
-              onChange={(e) => setNewEntryContent(e.target.value)}
+              onChange={setNewEntryContent}
               placeholder={
                 entryType === 'todo'     ? 'Describe the task…' :
                 entryType === 'decision' ? 'State the decision and rationale…' :
                 'What\'s happening? Document findings, decisions, blockers…'
               }
               rows={4}
-              className="
-                w-full bg-white dark:bg-pitch-700 border border-paper-300 dark:border-paper-700
-                rounded-lg px-3 py-2.5 text-sm resize-none
-                text-pitch-800 dark:text-white
-                placeholder:text-paper-400 dark:placeholder:text-paper-700
-                focus:outline-none focus:ring-2 focus:ring-mint-500
-              "
+              className="bg-white dark:bg-pitch-700 border-paper-300 dark:border-paper-700"
             />
 
             {/* Due date row for To Do */}
@@ -910,7 +904,7 @@ export default function ThreadView() {
                       onToggle={(e) => { e.preventDefault(); toggleEntryComplete(task.id, true) }}
                     />
                     <span className="flex-1 text-xs text-pitch-500 dark:text-paper-300 truncate group-hover:text-pitch-800 dark:group-hover:text-white">
-                      {task.content}
+                      {stripMarkdown(task.content)}
                     </span>
                     {task.due_date && (
                       <span className={`font-mono text-xs flex-shrink-0 ${getDueDateClass(task.due_date)}`}>
@@ -1438,7 +1432,6 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
   const isTodo = entry.type === 'todo'
   const isMeeting = entry.type === 'meeting'
   const isBlockage = entry.type === 'blockage'
-  const bionic = useBionic()
 
   // Inline meeting-edit state (independent of the regular content edit path)
   const [editingMeeting, setEditingMeeting] = useState(false)
@@ -1525,17 +1518,12 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
         <div className={`px-4 py-3 ${(isDecision || isMeeting) ? 'pl-5' : ''}`}>
           {editing ? (
             <div>
-              <textarea
+              <MarkdownArea
                 autoFocus
                 value={draft}
-                onChange={(e) => onDraftChange(e.target.value)}
+                onChange={onDraftChange}
                 rows={6}
-                className="
-                  w-full bg-paper-100 dark:bg-pitch-700 border border-paper-300 dark:border-paper-700
-                  rounded-lg px-3 py-2 text-sm resize-none font-mono
-                  text-pitch-800 dark:text-white
-                  focus:outline-none focus:ring-2 focus:ring-mint-500
-                "
+                className="bg-paper-100 dark:bg-pitch-700 border-paper-300 dark:border-paper-700"
               />
               <div className="flex justify-end gap-2 mt-2">
                 <button onClick={onCancel} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded text-paper-600 hover:bg-paper-200 dark:hover:bg-pitch-500 transition-colors">
@@ -1558,7 +1546,7 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
                     ? 'line-through text-paper-500 dark:text-paper-600'
                     : 'text-pitch-500 dark:text-paper-300'
                 }`}>
-                  {bionic ? bionicizeReact(entry.content) : entry.content}
+                  <InlineMarkdown>{entry.content}</InlineMarkdown>
                 </p>
                 {entry.due_date && !entry.completed && (
                   <p className={`font-mono text-xs mt-1 ${getDueDateClass(entry.due_date)}`}>
@@ -1579,9 +1567,7 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
               }}
             />
           ) : (
-            <div className="prose-entry text-pitch-500 dark:text-paper-300">
-              <ReactMarkdown rehypePlugins={bionic ? [rehypeBionic] : []}>{entry.content}</ReactMarkdown>
-            </div>
+            <Markdown className="text-pitch-500 dark:text-paper-300">{entry.content}</Markdown>
           )}
           {/* Notes - collapsible context, on every entry type for consistency. */}
           {!editing && (
@@ -1859,21 +1845,18 @@ function EntryNotes({ initial, onSave }) {
       </button>
 
       {open && (
-        <textarea
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={flush}
-          placeholder="Add context, findings, or links - saved when you click away."
-          rows={3}
-          className="
-            mt-1.5 w-full text-xs leading-relaxed
-            bg-paper-100 dark:bg-pitch-800 border border-paper-200 dark:border-pitch-500
-            rounded-md px-2.5 py-2 resize-y
-            text-pitch-700 dark:text-paper-200
-            placeholder:text-paper-400 dark:placeholder:text-paper-700
-            focus:outline-none focus:ring-2 focus:ring-mint-500
-          "
-        />
+        <div className="mt-1.5">
+          <MarkdownArea
+            value={value}
+            onChange={setValue}
+            onBlur={flush}
+            placeholder="Add context, findings, or links - saved when you click away."
+            rows={3}
+            compact
+            className="bg-paper-100 dark:bg-pitch-800 border-paper-200 dark:border-pitch-500"
+            textClassName="text-xs leading-relaxed"
+          />
+        </div>
       )}
       {saving && (
         <p className="mt-0.5 text-2xs font-mono text-paper-400 dark:text-paper-700">

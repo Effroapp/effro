@@ -257,3 +257,10 @@
   @apply my-3;
   @apply border-paper-300 dark:border-pitch-500;
 }
+
+/* Size modifier: prose at the Overview card's larger reading size. Needed
+   because these rules sit after the utilities layer, so a text-base utility
+   on the same element would lose to the text-sm above. */
+.prose-entry.prose-base {
+  @apply text-base;
+}
