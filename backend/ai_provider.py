@@ -156,6 +156,49 @@ class AIProvider(ABC):
 
 # ─── Anthropic adapter ────────────────────────────────────────────────────────
 
+# Models where thinking runs by default (Fable 5 always thinks; Opus 5 and
+# Sonnet 5 run adaptive thinking when the request doesn't say otherwise).
+# Two consequences for this adapter:
+#   1. response.content can OPEN with thinking blocks, so content[0] is not
+#      the text ("'ThinkingBlock' object has no attribute 'text'").
+#   2. max_tokens caps thinking + answer TOGETHER, so a budget sized for the
+#      visible answer alone can be eaten by thinking and truncate the reply.
+_THINKING_DEFAULT_MODELS = (
+    "claude-fable-5", "claude-mythos-5", "claude-opus-5", "claude-sonnet-5",
+)
+
+# Models with safety classifiers that can decline a request (HTTP 200 with
+# stop_reason "refusal"). For these we opt into Anthropic's server-side
+# fallback: a declined request is re-run on the recommended fallback model in
+# the same call, so the user gets an answer instead of an error.
+_REFUSAL_FALLBACK_MODELS = ("claude-fable-5", "claude-mythos-5", "claude-opus-5")
+
+
+def _extract_text(response) -> str:
+    """Join the text blocks of a Messages API response.
+
+    Never index content[0] blindly - thinking-enabled models put thinking
+    blocks before the text, and a refused request can have no text at all.
+    """
+    text = "".join(
+        block.text for block in (response.content or [])
+        if getattr(block, "type", None) == "text"
+    )
+    if text:
+        return text
+    stop = getattr(response, "stop_reason", None)
+    if stop == "refusal":
+        raise RuntimeError(
+            "Claude declined this request (safety filters). "
+            "Reword it and try again."
+        )
+    if stop == "max_tokens":
+        raise RuntimeError(
+            "The model ran out of room before finishing its answer. Try again."
+        )
+    return ""
+
+
 class AnthropicProvider(AIProvider):
     """Claude via the official `anthropic` SDK."""
 
@@ -163,6 +206,23 @@ class AnthropicProvider(AIProvider):
         self._api_key = api_key
         self._model = model
         self._base_url = base_url
+
+    def _request_extras(self) -> dict:
+        """Per-model request additions, passed via extra_* so they work
+        regardless of the installed SDK version's typed surface."""
+        extras: dict = {}
+        if self._model.startswith(_REFUSAL_FALLBACK_MODELS):
+            extras["extra_headers"] = {"anthropic-beta": "server-side-fallback-2026-07-01"}
+            extras["extra_body"] = {"fallbacks": "default"}
+        return extras
+
+    def _effective_max_tokens(self, max_tokens: int) -> int:
+        # Headroom for thinking-by-default models: max_tokens is a cap, not a
+        # target, so raising it costs nothing unless the model actually needs
+        # the room - and without it, thinking can swallow the whole budget.
+        if self._model.startswith(_THINKING_DEFAULT_MODELS):
+            return max(max_tokens, 8192)
+        return max_tokens
 
     def complete(self, system: str, messages: list[dict], max_tokens: int = 1000) -> str:
         try:
@@ -176,13 +236,16 @@ class AnthropicProvider(AIProvider):
             client = Anthropic(**kwargs)
             response = client.messages.create(
                 model=self._model,
-                max_tokens=max_tokens,
+                max_tokens=self._effective_max_tokens(max_tokens),
                 system=system,
                 messages=messages,
+                **self._request_extras(),
             )
-            return response.content[0].text
+            return _extract_text(response)
         except ImportError:
             raise RuntimeError("Anthropic SDK not installed. Run: pip install anthropic")
+        except RuntimeError:
+            raise  # already user-readable (refusal / truncation from _extract_text)
         except Exception as e:
             raise RuntimeError(_friendly_error(e))
 
@@ -195,7 +258,7 @@ class AnthropicProvider(AIProvider):
         client = Anthropic(**kwargs)
         resp = client.messages.create(
             model=self._model,
-            max_tokens=2000,
+            max_tokens=self._effective_max_tokens(2000),
             messages=[{
                 "role": "user",
                 "content": [
@@ -206,8 +269,9 @@ class AnthropicProvider(AIProvider):
                     {"type": "text", "text": _OCR_PROMPT},
                 ],
             }],
+            **self._request_extras(),
         )
-        return resp.content[0].text
+        return _extract_text(resp)
 
 
 # ─── OpenAI-compatible adapter ────────────────────────────────────────────────
