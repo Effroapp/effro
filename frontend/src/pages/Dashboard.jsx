@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MessageSquare, ArrowRight, RefreshCw, Clock, Sparkles, RotateCcw, Leaf, ChevronDown, X } from 'lucide-react'
+import { MessageSquare, ArrowRight, RefreshCw, Clock, Sparkles, RotateCcw, Leaf, ChevronDown, X, Plus, LayoutGrid } from 'lucide-react'
 import { formatDistanceToNow, format, differenceInDays, differenceInCalendarDays, parseISO } from 'date-fns'
 import { parseUTC } from '../utils/time.js'
 import { areasApi, entriesApi } from '../api/client'
 import { getTodayNudge, getRandomNudge } from '../api/nudges'
 import StatusBadge from '../components/StatusBadge'
 import WeeklyRoundupModal from '../components/WeeklyRoundupModal'
+import NewAreaModal from '../components/NewAreaModal'
 import { AreaIcon } from '../components/IconPicker'
 import { getAreaStatus } from '../utils/status'
+import { stripMarkdown } from '../utils/markdownEditing'
 import { useDisplayName } from '../hooks/useDisplayName'
 import { useAIConfigured } from '../hooks/useAIConfigured'
 import { BionicText } from '../utils/bionic.jsx'
@@ -55,6 +57,7 @@ export default function Dashboard() {
   const { configured: aiConfigured } = useAIConfigured()
 
   const [roundupOpen, setRoundupOpen] = useState(false)
+  const [newAreaOpen, setNewAreaOpen] = useState(false)
   // { id, text } | null — store id too so the "show another" button can
   // ask the backend for a nudge that isn't the one currently on screen.
   const [nudge, setNudge] = useState(null)
@@ -158,6 +161,9 @@ export default function Dashboard() {
             </p>
           </div>
 
+          {/* View + roundup controls only make sense once at least one area
+              exists; on a fresh install the empty state below carries the page. */}
+          {areas.length > 0 && (
           <div className="flex items-center gap-2 flex-shrink-0 pt-1">
             <ViewSegmentedControl viewMode={viewMode} onChange={handleViewMode} />
             <button
@@ -175,6 +181,7 @@ export default function Dashboard() {
               <span className="text-xs font-display uppercase tracking-wide">Weekly Roundup</span>
             </button>
           </div>
+          )}
         </div>
 
         {filterNotice && (
@@ -202,7 +209,7 @@ export default function Dashboard() {
         {/* Daily insight - ambient by design: one muted, italic line on the
             page background (no box, no tint), a small leaf mark, and quiet
             controls that surface on hover. Minimal real-estate. */}
-        {nudge?.text && !nudgeDismissed && (
+        {areas.length > 0 && nudge?.text && !nudgeDismissed && (
           <div className="group flex items-start gap-2 mb-5 text-sm leading-snug text-paper-500 dark:text-pitch-100">
             <Leaf size={13} className="flex-shrink-0 mt-[3px] text-mint-600/70 dark:text-mint-400/60" />
             <p className="flex-1 italic">{nudge.text}</p>
@@ -228,14 +235,24 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div
-          className="grid gap-4"
-          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}
-        >
-          {displayAreas.map((area) => (
-            <AreaCard key={area.id} area={area} />
-          ))}
-        </div>
+        {areas.length === 0 ? (
+          <EmptyState onCreate={() => setNewAreaOpen(true)} />
+        ) : displayAreas.length === 0 ? (
+          /* Focus mode with every area stable - a good day, not an error. */
+          <p className="py-10 text-center text-sm italic text-paper-500 dark:text-paper-600">
+            Everything is stable right now. Nothing needs your focus.
+          </p>
+        ) : (
+          <div
+            className="grid gap-4"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}
+          >
+            {displayAreas.map((area) => (
+              <AreaCard key={area.id} area={area} />
+            ))}
+            <NewAreaTile onClick={() => setNewAreaOpen(true)} />
+          </div>
+        )}
       </main>
 
       {/* ── Below-fold sections ── */}
@@ -244,6 +261,61 @@ export default function Dashboard() {
       </div>
 
       <WeeklyRoundupModal isOpen={roundupOpen} onClose={() => setRoundupOpen(false)} />
+      <NewAreaModal isOpen={newAreaOpen} onClose={() => setNewAreaOpen(false)} />
+    </div>
+  )
+}
+
+// ─── New-area affordances ─────────────────────────────────────────────────────
+
+// Ghost tile at the end of the grid - a quiet, always-present way to add an
+// area without leaving the dashboard. Dashed border keeps it clearly distinct
+// from real area cards.
+function NewAreaTile({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="
+        group flex flex-col items-center justify-center gap-2 rounded-xl
+        min-h-[11rem] border-2 border-dashed
+        border-paper-300 dark:border-pitch-500
+        text-paper-500 dark:text-paper-600
+        hover:border-mint-500/60 dark:hover:border-mint-400/40
+        hover:text-mint-700 dark:hover:text-mint-300
+        hover:bg-mint-50/40 dark:hover:bg-mint-900/10
+        transition-colors animate-fade-in
+      "
+    >
+      <Plus size={18} className="transition-transform duration-200 group-hover:scale-110" />
+      <span className="text-xs font-display uppercase tracking-wide">New area</span>
+    </button>
+  )
+}
+
+// First-run empty state. Explains what an area is before asking the user to
+// make one, in the calm what -> how format. The sidebar's add row still works,
+// but this is the affordance a brand-new user actually sees.
+function EmptyState({ onCreate }) {
+  return (
+    <div className="max-w-md mx-auto mt-16 text-center animate-fade-in">
+      <div className="w-12 h-12 mx-auto mb-5 rounded-xl bg-mint-50 dark:bg-mint-900/20 flex items-center justify-center text-mint-700 dark:text-mint-300">
+        <LayoutGrid size={20} />
+      </div>
+      <h2 className="font-display font-bold text-lg text-pitch-800 dark:text-white mb-2">
+        Set up your first area
+      </h2>
+      <p className="text-sm text-paper-600 dark:text-paper-500 leading-relaxed mb-6">
+        Areas are the big buckets your work lives in, like a product, a team or
+        a client. Threads and updates sit inside them, so everything you capture
+        has a home.
+      </p>
+      <button
+        onClick={onCreate}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-mint-700 hover:bg-mint-800 text-white transition-colors"
+      >
+        <Plus size={15} />
+        Create your first area
+      </button>
     </div>
   )
 }
@@ -322,11 +394,15 @@ function AreaCard({ area }) {
           <StatusBadge status={area.status} type="area" size="xs" />
         </div>
 
-        {/* Summary */}
+        {/* Card text: the current overview when there is one, else the stable
+            description - a freshly created area shows its description here
+            until an overview is written or generated. */}
         <p className="text-sm text-paper-600 dark:text-paper-500 leading-relaxed flex-1 line-clamp-3 mb-4">
-          {area.summary ? <BionicText>{area.summary}</BionicText> : (
+          {(area.summary || area.description) ? (
+            <BionicText>{stripMarkdown(area.summary || area.description)}</BionicText>
+          ) : (
             <span className="italic text-paper-400 dark:text-paper-700">
-              No summary yet - click to add one.
+              No overview yet - click to add one.
             </span>
           )}
         </p>
@@ -505,7 +581,7 @@ function ComingUpStrip() {
                       </span>
                       <span className="text-paper-400 dark:text-paper-700 text-xs flex-shrink-0">/</span>
                       <span className="flex-1 text-xs text-pitch-600 dark:text-paper-300 truncate">
-                        <BionicText>{t.content}</BionicText>
+                        <BionicText>{stripMarkdown(t.content)}</BionicText>
                       </span>
                       {t.due_date && (
                         <span className="font-mono text-xs text-paper-500 dark:text-paper-600 flex-shrink-0">
