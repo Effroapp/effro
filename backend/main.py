@@ -245,6 +245,9 @@ def _init_db():
             # The signal_resolutions table itself is an ORM model (create_all).
             "ALTER TABLE signal_items ADD COLUMN ai_suggested_area_id INTEGER",
             "ALTER TABLE signal_items ADD COLUMN ai_suggested_at DATETIME",
+            # Area description - stable "what this area is", distinct from
+            # summary (the Current Overview, which tracks the live situation).
+            "ALTER TABLE areas ADD COLUMN description TEXT DEFAULT ''",
         ]:
             try:
                 conn.execute(text(sql))

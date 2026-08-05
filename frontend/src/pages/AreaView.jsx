@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Plus, Check, X, Edit3, RefreshCw, History, ChevronDown, ChevronUp, Sparkles, Clock, Wand2, GripVertical, Gauge } from 'lucide-react'
+import { Plus, Check, X, Edit3, RefreshCw, History, ChevronDown, ChevronUp, Sparkles, Clock, Wand2, GripVertical, Gauge, AlignLeft } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { areasApi } from '../api/client'
 import { parseUTC } from '../utils/time.js'
@@ -14,6 +14,9 @@ import { useToast } from '../components/Toast'
 import { useAIConfigured } from '../hooks/useAIConfigured'
 import { AREA_STATUSES, THREAD_STATUSES } from '../utils/status'
 import { SECTION_ICONS } from '../utils/entityIcons'
+import Markdown from '../components/Markdown'
+import MarkdownArea from '../components/MarkdownArea'
+import { stripMarkdown } from '../utils/markdownEditing'
 
 // Threads group by status; active work first, concluded work tucked away.
 // Any status not listed here still renders (appended), so none are dropped.
@@ -322,11 +325,12 @@ export default function AreaView() {
               )}
                 </div>
               </div>
-              {/* Subtle description under the title — the same text the
-                  dashboard area card shows, for quick orientation. */}
-              {area.summary && (
+              {/* Subtle line under the title — the stable description ("what
+                  this area is"), for orientation while the header is stuck
+                  mid-scroll. The full text lives in the Description card. */}
+              {area.description && (
                 <p className="font-lexend text-sm leading-snug text-paper-500 dark:text-pitch-100 normal-case tracking-normal mt-1 max-w-2xl line-clamp-2">
-                  {area.summary.split('\n')[0]}
+                  {stripMarkdown(area.description).split('\n')[0]}
                 </p>
               )}
             </div>
@@ -349,6 +353,18 @@ export default function AreaView() {
       </header>
 
       <div className="max-w-6xl mx-auto px-8 py-6">
+        {/* Description - full width, above the Current Overview + rail grid,
+            signifying its hierarchy: what the area IS comes before where it
+            currently stands. Editable, but written to be set once and left. */}
+        <AreaDescription
+          area={area}
+          onSave={async (text) => {
+            const updated = await areasApi.update(areaId, { description: text })
+            setArea(updated)
+          }}
+          onError={(e) => toast(e.message, 'error')}
+        />
+
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_19rem] gap-6 items-start">
         {/* Main column: overview + threads grouped by status */}
         <div className="min-w-0 flex flex-col gap-6">
@@ -517,19 +533,12 @@ export default function AreaView() {
             <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
               Description
             </label>
-            <textarea
+            <MarkdownArea
               value={threadForm.description}
-              onChange={(e) => setThreadForm((f) => ({ ...f, description: e.target.value }))}
+              onChange={(text) => setThreadForm((f) => ({ ...f, description: text }))}
               placeholder="Brief description of what this thread covers…"
               rows={3}
-              className="
-                w-full px-3 py-2.5 text-sm rounded-lg resize-none
-                bg-paper-100 dark:bg-pitch-700
-                border border-paper-300 dark:border-paper-700
-                text-pitch-800 dark:text-white
-                placeholder:text-paper-400 dark:placeholder:text-paper-700
-                focus:outline-none focus:ring-2 focus:ring-mint-500
-              "
+              className="bg-paper-100 dark:bg-pitch-700 border-paper-300 dark:border-paper-700"
             />
           </div>
 
@@ -575,6 +584,108 @@ export default function AreaView() {
         </div>
       </Modal>
     </div>
+  )
+}
+
+// ─── Area description ─────────────────────────────────────────────────────────
+
+// The stable "what this area is" card. Deliberately quiet: no AI, no auto
+// refresh, just the text and a small Edit affordance - it should rarely change
+// after it is first written (not enforced, the user stays in control).
+function AreaDescription({ area, onSave, onError }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(area.description || '')
+  const [saving, setSaving] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (editing && ref.current) {
+      ref.current.focus()
+      ref.current.selectionStart = ref.current.value.length
+    }
+  }, [editing])
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      await onSave(draft)
+      setEditing(false)
+    } catch (e) {
+      onError(e)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const cancel = () => {
+    setDraft(area.description || '')
+    setEditing(false)
+  }
+
+  return (
+    <section className="mb-6 rounded-xl border border-paper-300 dark:border-pitch-600 bg-white dark:bg-pitch-700 overflow-hidden">
+      {/* Header - mirrors the Current Overview card so the two read as siblings */}
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-paper-300/70 dark:border-pitch-600/70">
+        <div className="flex items-center gap-2 min-w-0">
+          <AlignLeft size={13} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
+          <span className="text-xs font-display uppercase tracking-widest text-paper-500 dark:text-pitch-100">
+            Description
+          </span>
+        </div>
+        {!editing && (
+          <button
+            onClick={() => { setDraft(area.description || ''); setEditing(true) }}
+            className="flex items-center gap-1.5 text-xs text-paper-500 dark:text-pitch-100 hover:text-paper-700 dark:hover:text-paper-200 transition-colors flex-shrink-0"
+          >
+            <Edit3 size={12} />
+            Edit
+          </button>
+        )}
+      </div>
+
+      <div className="px-4 py-3">
+        {editing ? (
+          <div>
+            <MarkdownArea
+              textareaRef={ref}
+              value={draft}
+              onChange={setDraft}
+              rows={3}
+              placeholder="What is this area? Its scope, its purpose, what belongs in it."
+              className="bg-paper-100 dark:bg-pitch-700 border-paper-300 dark:border-pitch-500"
+            />
+            <div className="flex justify-end gap-2 mt-2">
+              <button onClick={cancel} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md text-paper-600 dark:text-paper-500 hover:bg-paper-200 dark:hover:bg-pitch-500 transition-colors">
+                <X size={12} /> Cancel
+              </button>
+              <button
+                onClick={save}
+                disabled={saving}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-60 transition-colors"
+              >
+                <Check size={12} />
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            className="cursor-text"
+            onClick={() => { setDraft(area.description || ''); setEditing(true) }}
+          >
+            {area.description ? (
+              <Markdown className="prose-base text-pitch-700 dark:text-paper-200">
+                {area.description}
+              </Markdown>
+            ) : (
+              <p className="text-base leading-relaxed italic text-paper-400 dark:text-paper-700">
+                No description yet. Write one line on what this area is - it rarely needs to change after that.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
   )
 }
 

@@ -2,12 +2,14 @@ import { useState, useRef, useEffect } from 'react'
 import { Sparkles, Edit3, Wand2, Clock, Check, X } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { SECTION_ICONS } from '../utils/entityIcons'
-import { BionicText } from '../utils/bionic.jsx'
 import { parseUTC } from '../utils/time.js'
+import Markdown from './Markdown'
+import MarkdownArea from './MarkdownArea'
 
 /**
- * OverviewCard — the AI "Overview" for an Area or a Thread. One component so
- * both behave identically.
+ * OverviewCard — the AI "Current Overview" for an Area or a Thread. One
+ * component so both behave identically. Tracks the live situation; the stable
+ * "what this is" text lives in the entity's description field, not here.
  *
  * The parent owns the entity and its summary_* fields; this card manages its
  * own edit / generate / save / auto-toggle UI state and calls back through:
@@ -144,7 +146,7 @@ export default function OverviewCard({
         <div className="flex items-center gap-2 min-w-0">
           <OverviewIcon size={13} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
           <span className="text-xs font-display uppercase tracking-widest text-paper-500 dark:text-pitch-100">
-            Overview
+            Current Overview
           </span>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
@@ -156,7 +158,7 @@ export default function OverviewCard({
                 ? 'Set up an AI engine in Settings to use auto-update'
                 : data.summary_auto_update
                   ? 'Auto-update is on. Click to turn off.'
-                  : 'Keep this Overview refreshed automatically each day'
+                  : 'Keep this overview refreshed automatically each day'
             }
             className={`flex items-center gap-1.5 text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               data.summary_auto_update
@@ -194,7 +196,7 @@ export default function OverviewCard({
       {autoPrompt && (
         <div className="mx-4 mt-3 rounded-lg bg-mint-50/60 dark:bg-mint-900/15 border border-mint/20 px-3 py-2.5">
           <p className="text-xs text-pitch-600 dark:text-paper-300 mb-2">
-            Keep this Overview refreshed automatically each day. Apply to every {scopeNoun} too?
+            Keep this overview refreshed automatically each day. Apply to every {scopeNoun} too?
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -225,20 +227,13 @@ export default function OverviewCard({
       <div className="px-4 py-3">
         {editing ? (
           <div>
-            <textarea
-              ref={ref}
+            <MarkdownArea
+              textareaRef={ref}
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={setDraft}
               rows={4}
               placeholder={placeholder}
-              className="
-                w-full text-sm bg-paper-100 dark:bg-pitch-700
-                border border-paper-300 dark:border-pitch-500
-                rounded-lg px-3 py-2.5 resize-none
-                text-pitch-700 dark:text-paper-200
-                placeholder:text-paper-400 dark:placeholder:text-paper-700
-                focus:outline-none focus:ring-2 focus:ring-mint-500 transition-colors
-              "
+              className="bg-paper-100 dark:bg-pitch-700 border-paper-300 dark:border-pitch-500"
             />
             <div className="flex justify-end gap-2 mt-2">
               <button onClick={cancel} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md text-paper-600 dark:text-paper-500 hover:bg-paper-200 dark:hover:bg-pitch-500 transition-colors">
@@ -265,14 +260,18 @@ export default function OverviewCard({
             </p>
           </div>
         ) : (
-          <p
-            className="text-base text-pitch-700 dark:text-paper-200 leading-relaxed whitespace-pre-wrap cursor-text"
+          <div
+            className="cursor-text"
             onClick={() => { setDraft(data.summary || ''); setEditing(true) }}
           >
-            {data.summary ? <BionicText>{data.summary}</BionicText> : (
-              <span className="italic text-paper-400 dark:text-paper-700">{emptyHint}</span>
+            {data.summary ? (
+              <Markdown className="prose-base text-pitch-700 dark:text-paper-200">
+                {data.summary}
+              </Markdown>
+            ) : (
+              <p className="text-base leading-relaxed italic text-paper-400 dark:text-paper-700">{emptyHint}</p>
             )}
-          </p>
+          </div>
         )}
       </div>
     </section>

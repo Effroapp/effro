@@ -4,12 +4,13 @@ import { areasApi } from '../api/client'
 import { useToast } from './Toast'
 import Modal from './Modal'
 import IconPicker from './IconPicker'
+import MarkdownArea from './MarkdownArea'
 
 export default function NewAreaModal({ isOpen, onClose, onCreated }) {
   const navigate = useNavigate()
   const toast = useToast()
   const [name, setName] = useState('')
-  const [summary, setSummary] = useState('')
+  const [description, setDescription] = useState('')
   const [icon, setIcon] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const inputRef = useRef(null)
@@ -17,7 +18,7 @@ export default function NewAreaModal({ isOpen, onClose, onCreated }) {
   useEffect(() => {
     if (!isOpen) return
     setName('')
-    setSummary('')
+    setDescription('')
     setIcon(null)
     setTimeout(() => inputRef.current?.focus(), 50)
   }, [isOpen])
@@ -27,7 +28,7 @@ export default function NewAreaModal({ isOpen, onClose, onCreated }) {
     if (!trimmed) return
     setSubmitting(true)
     try {
-      const area = await areasApi.create({ name: trimmed, summary: summary.trim(), icon })
+      const area = await areasApi.create({ name: trimmed, description: description.trim(), icon })
       toast(`Created “${area.name}”`)
       onCreated?.(area)
       onClose()
@@ -39,7 +40,7 @@ export default function NewAreaModal({ isOpen, onClose, onCreated }) {
     }
   }
 
-  const isDirty = Boolean(name.trim() || summary.trim() || icon)
+  const isDirty = Boolean(name.trim() || description.trim() || icon)
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="New area" width="max-w-md" isDirty={isDirty}>
@@ -69,21 +70,15 @@ export default function NewAreaModal({ isOpen, onClose, onCreated }) {
 
         <div>
           <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
-            Summary <span className="text-paper-400 dark:text-paper-700 normal-case font-mono">- optional</span>
+            Description <span className="text-paper-400 dark:text-paper-700 normal-case font-mono">- optional</span>
           </label>
-          <textarea
-            value={summary}
-            onChange={(e) => setSummary(e.target.value)}
+          <MarkdownArea
+            value={description}
+            onChange={setDescription}
             rows={3}
             placeholder="What does this area cover?"
             onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submit() }}
-            className="
-              w-full px-3 py-2.5 text-sm rounded-lg resize-none
-              bg-paper-100 dark:bg-pitch-700 border border-paper-300 dark:border-paper-700
-              text-pitch-800 dark:text-white
-              placeholder:text-paper-400 dark:placeholder:text-paper-700
-              focus:outline-none focus:ring-2 focus:ring-mint-500
-            "
+            className="bg-paper-100 dark:bg-pitch-700 border-paper-300 dark:border-paper-700"
           />
         </div>
 
