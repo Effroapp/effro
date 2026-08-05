@@ -73,6 +73,7 @@ def _summary_meta_fields(area: models.Area, db: Session) -> dict:
 def _area_detail(area: models.Area, db: Session) -> schemas.AreaDetail:
     return schemas.AreaDetail(
         id=area.id, name=area.name, slug=area.slug, status=area.status,
+        description=area.description or "",
         summary=area.summary or "", icon=area.icon,
         created_at=area.created_at, updated_at=area.updated_at,
         **_summary_meta_fields(area, db),
@@ -99,6 +100,7 @@ def _area_summary(area: models.Area, db: Session) -> schemas.AreaSummary:
         name=area.name,
         slug=area.slug,
         status=area.status,
+        description=area.description or "",
         summary=area.summary or "",
         icon=area.icon,
         created_at=area.created_at,
@@ -128,6 +130,7 @@ def create_area(payload: schemas.AreaCreate, db: Session = Depends(get_db), curr
         name=name,
         slug=slug,
         status="stable",
+        description=(payload.description or "").strip(),
         summary=(payload.summary or "").strip(),
         icon=(payload.icon or None),
     )
@@ -181,6 +184,13 @@ def update_area(area_id: int, payload: schemas.AreaUpdate, db: Session = Depends
                       action='updated', field='status', old_value=area.status, new_value=payload.status,
                       performed_by=current_user.id)
         area.status = payload.status
+
+    if payload.description is not None and payload.description != (area.description or ""):
+        log_audit(db, entity_type='area', entity_id=area.id, area_id=area.id,
+                  action='updated', field='description',
+                  old_value=(area.description or '')[:200], new_value=payload.description[:200],
+                  performed_by=current_user.id)
+        area.description = payload.description
 
     if payload.summary is not None and payload.summary != area.summary:
         log_audit(db, entity_type='area', entity_id=area.id, area_id=area.id,

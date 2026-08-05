@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns'
 import { threadsApi, entriesApi } from '../api/client'
 import { useToast } from './Toast'
 import Modal from './Modal'
+import MarkdownArea from './MarkdownArea'
 import { DUE_DATE_OPTIONS } from '../utils/status'
 
 const ENTRY_TYPES = [
@@ -112,21 +113,15 @@ export default function QuickCapture() {
           ))}
         </div>
 
-        {/* Content textarea */}
-        <textarea
-          ref={textareaRef}
+        {/* Content box */}
+        <MarkdownArea
+          textareaRef={textareaRef}
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={setContent}
           placeholder="Capture a thought, task, or decision…"
           rows={4}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submit() }}
-          className="
-            w-full bg-paper-100 dark:bg-pitch-700 border border-paper-300 dark:border-paper-700
-            rounded-lg px-3 py-2.5 text-sm resize-none
-            text-pitch-800 dark:text-white
-            placeholder:text-paper-400 dark:placeholder:text-paper-700
-            focus:outline-none focus:ring-2 focus:ring-mint-500
-          "
+          className="bg-paper-100 dark:bg-pitch-700 border-paper-300 dark:border-paper-700"
         />
 
         {/* Thread selector */}

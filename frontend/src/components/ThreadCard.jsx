@@ -4,6 +4,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { getThreadStatus } from '../utils/status'
 import { BionicText } from '../utils/bionic.jsx'
 import { parseUTC } from '../utils/time.js'
+import { stripMarkdown } from '../utils/markdownEditing'
 
 /**
  * Dense thread row for the Area page. Status is carried by the group header and
@@ -34,7 +35,7 @@ export default function ThreadCard({ thread, areaId }) {
           </h3>
           {thread.description && (
             <p className="text-xs text-paper-600 dark:text-paper-500 line-clamp-1 leading-relaxed mt-0.5">
-              {thread.description}
+              {stripMarkdown(thread.description)}
             </p>
           )}
         </div>

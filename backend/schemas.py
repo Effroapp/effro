@@ -210,12 +210,14 @@ class ThreadDetail(_SummaryMeta):
 
 class AreaCreate(BaseModel):
     name: str
+    description: Optional[str] = ""
     summary: Optional[str] = ""
     icon: Optional[str] = None
 
 
 class AreaUpdate(BaseModel):
     status: Optional[str] = None
+    description: Optional[str] = None
     summary: Optional[str] = None
     icon: Optional[str] = None
     auto_update: Optional[bool] = None
@@ -231,6 +233,7 @@ class AreaSummary(_SummaryMeta):
     name: str
     slug: str
     status: str
+    description: str = ""
     summary: str
     icon: Optional[str] = None
     created_at: datetime
@@ -247,6 +250,7 @@ class AreaDetail(_SummaryMeta):
     name: str
     slug: str
     status: str
+    description: str = ""
     summary: str
     icon: Optional[str] = None
     created_at: datetime

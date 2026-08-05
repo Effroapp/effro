@@ -12,6 +12,10 @@ class Area(Base):
     slug = Column(String(100), nullable=False, unique=True, index=True)
     # stable | active | review | blocked
     status = Column(String(50), default="stable", nullable=False)
+    # What the area IS - a stable, user-written statement of scope. Editable but
+    # intended to be set once and rarely touched, unlike summary (the "Current
+    # Overview"), which tracks the live situation and may be AI-refreshed.
+    description = Column(Text, default="")
     summary = Column(Text, default="")
     # When the summary was last (re)generated or saved. Distinct from
     # updated_at (which moves on any field change) so the UI can show how old
