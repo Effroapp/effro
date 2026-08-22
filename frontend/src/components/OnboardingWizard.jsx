@@ -19,7 +19,7 @@
  *   data-onboarding="signals-nav"     — the Signals nav item
  *   data-onboarding="smart-gen-nav"   — the Smart Generate nav item
  */
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react'
 import { X, ArrowRight, Mail, ChevronLeft } from 'lucide-react'
 import { usePrefs, setPref } from '../hooks/usePrefs'
 
@@ -132,31 +132,42 @@ function useSpotlightRect(selector, active) {
 /* ─── Tooltip placement ───────────────────────────────────────────────────── */
 
 const CARD_W = 340
-const CARD_H = 220
-const PAD = 12  // gap between spotlight and card
+// Starting guess for the card height, used only for the first layout pass
+// before the card exists to be measured. Every card is taller than this in
+// practice, because the height follows the step's copy - which is exactly why
+// the real height has to be measured rather than assumed. See MARGIN below.
+const CARD_H_FALLBACK = 300
+const PAD = 12   // gap between the spotlight and the card
+const MARGIN = 12  // smallest gap we will leave between the card and the viewport edge
 
-function calcCardPos(rect, placement) {
+function calcCardPos(rect, placement, cardH = CARD_H_FALLBACK) {
   if (!rect) return { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }
   const vw = window.innerWidth
   const vh = window.innerHeight
 
+  // Never let the clamp push the card off the top while trying to keep it on
+  // at the bottom. If the card is taller than the viewport it pins to the top
+  // and scrolls internally, which the card's own maxHeight handles.
+  const clampTop = (t) => Math.max(MARGIN, Math.min(t, vh - cardH - MARGIN))
+  const clampLeft = (l) => Math.max(MARGIN, Math.min(l, vw - CARD_W - MARGIN))
+
   const pos = {}
   if (placement === 'right') {
-    pos.left = Math.min(rect.right + PAD, vw - CARD_W - 12)
-    pos.top  = Math.max(12, Math.min(rect.top + rect.height / 2 - CARD_H / 2, vh - CARD_H - 12))
+    pos.left = clampLeft(rect.right + PAD)
+    pos.top  = clampTop(rect.top + rect.height / 2 - cardH / 2)
   } else if (placement === 'bottom') {
-    pos.left = Math.max(12, Math.min(rect.left + rect.width / 2 - CARD_W / 2, vw - CARD_W - 12))
-    pos.top  = Math.min(rect.bottom + PAD, vh - CARD_H - 12)
+    pos.left = clampLeft(rect.left + rect.width / 2 - CARD_W / 2)
+    pos.top  = clampTop(rect.bottom + PAD)
   } else {
-    pos.left = Math.max(12, Math.min(rect.left + rect.width / 2 - CARD_W / 2, vw - CARD_W - 12))
-    pos.top  = Math.max(12, rect.top - CARD_H - PAD)
+    pos.left = clampLeft(rect.left + rect.width / 2 - CARD_W / 2)
+    pos.top  = clampTop(rect.top - cardH - PAD)
   }
   return { top: pos.top, left: pos.left }
 }
 
 /* ─── Card component ──────────────────────────────────────────────────────── */
 
-function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }) {
+function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal, cardRef }) {
   const isFirst       = index === 0
   const isLast        = index === total - 1
   const isCommitment  = step.variant === 'commitment'
@@ -164,9 +175,15 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal }
 
   return (
     <div
+      ref={cardRef}
       style={{
         position: asModal ? 'relative' : 'fixed',
         width: CARD_W,
+        // A card is only as tall as its copy, and the largest text-size setting
+        // makes every card taller. Cap it at the viewport so the worst case is
+        // a scroll rather than a card running off the bottom of the screen.
+        maxHeight: `calc(100vh - ${MARGIN * 2}px)`,
+        overflowY: 'auto',
         zIndex: 1002,
         background: 'var(--pitch-2, var(--pitch-2))',
         border: '1px solid var(--stone-dark, var(--stone-dark))',
@@ -332,7 +349,25 @@ export default function OnboardingWizard({ onComplete }) {
   const current = STEPS[step]
   const isSpotlight = current.type === 'spotlight'
   const rect = useSpotlightRect(current.target, isSpotlight)
-  const cardPos = calcCardPos(rect, current.placement)
+
+  // Card height follows the step's copy, so it has to be measured rather than
+  // assumed. useLayoutEffect runs before the browser paints, so the corrected
+  // position is the first thing drawn and there is no visible jump. The
+  // observer catches later changes, such as a font or text-size switch.
+  const cardRef = useRef(null)
+  const [cardH, setCardH] = useState(CARD_H_FALLBACK)
+  useLayoutEffect(() => {
+    const el = cardRef.current
+    if (!el) return undefined
+    const measure = () => setCardH(el.getBoundingClientRect().height)
+    measure()
+    if (typeof ResizeObserver === 'undefined') return undefined
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [step, isSpotlight])
+
+  const cardPos = calcCardPos(rect, current.placement, cardH)
 
   const complete = useCallback(() => {
     setPref(PREF_KEY, WIZARD_VERSION)
@@ -376,6 +411,7 @@ export default function OnboardingWizard({ onComplete }) {
 
         {/* Tooltip card */}
         <StepCard
+          cardRef={cardRef}
           step={current}
           index={step}
           total={STEPS.length}
@@ -402,6 +438,7 @@ export default function OnboardingWizard({ onComplete }) {
       }}>
         <style>{`@keyframes owBgIn { from{opacity:0} to{opacity:1} }`}</style>
         <StepCard
+          cardRef={cardRef}
           step={current}
           index={step}
           total={STEPS.length}
