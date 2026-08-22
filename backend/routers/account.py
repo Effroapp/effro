@@ -27,7 +27,7 @@ from dependencies import get_current_user
 from auth_utils import SESSION_COOKIE, verify_password
 from models import (
     User, UserSession, PasswordResetToken, Area, Thread, Entry, AuditLog,
-    WorkSession, DeletionLog,
+    WorkSession, DeletionLog, UserPref,
 )
 
 router = APIRouter(prefix="/account", tags=["account"])
@@ -77,6 +77,13 @@ def export_data(
         "threads": [_row(t) for t in db.query(Thread).all()],
         "entries": [_row(e) for e in db.query(Entry).all()],
         "work_sessions": [_row(w) for w in db.query(WorkSession).all()],
+        # Per-user UI state (display name, avatar, onboarding, intro
+        # dismissals). Genuinely the user's own, so it is scoped to them even
+        # though content is not yet.
+        "prefs": [
+            _row(p) for p in db.query(UserPref)
+            .filter(UserPref.user_id == current_user.id).all()
+        ],
         "audit_log": [
             _row(x) for x in db.query(AuditLog)
             .filter(AuditLog.user_id == current_user.id).all()
@@ -131,6 +138,9 @@ def delete_account(
     db.query(WorkSession).delete(synchronize_session=False)
     db.query(UserSession).filter(UserSession.user_id == user.id).delete(synchronize_session=False)
     db.query(PasswordResetToken).filter(PasswordResetToken.user_id == user.id).delete(synchronize_session=False)
+    # Prefs carry the display name and profile photo, so erasure has to take
+    # them with it.
+    db.query(UserPref).filter(UserPref.user_id == user.id).delete(synchronize_session=False)
 
     # Hard-delete the user row (not a tombstone): truly erases the person, frees
     # the email for re-use, and - crucially - lets a sole-user erase return the

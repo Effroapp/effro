@@ -6,6 +6,7 @@ import { BionicContext } from './hooks/useBionic'
 import { useDisplayName } from './hooks/useDisplayName'
 import { useTextSize } from './hooks/useTextSize'
 import { useAvatar } from './hooks/useAvatar'
+import { syncPrefsUser } from './hooks/usePrefs'
 import { useUpdater } from './hooks/useUpdater'
 import { useAuth } from './contexts/AuthContext'
 import SettingsMenu from './components/SettingsMenu'
@@ -46,6 +47,12 @@ export default function App() {
   const { textSize, setTextSize } = useTextSize()
   const { avatar, setAvatar } = useAvatar()
   const { user } = useAuth()
+
+  // Point the prefs store at the signed-in user. On the desktop this is always
+  // the synthetic local admin, so it settles on the first render pass. On a
+  // hosted deployment it is null until sign-in and changes when somebody else
+  // signs in, which drops the previous person's cached name and photo.
+  useEffect(() => { syncPrefsUser(user?.id ?? null) }, [user?.id])
   // Enterprise licences disable auto-update (v1: updater is a no-op). Default to
   // enabled until /auth/me loads or when no licence info is present (Pro/desktop).
   const updater = useUpdater({
@@ -199,7 +206,7 @@ function AuthedChrome({
 function Shell({ onOpenSwitcher, onOpenNewArea, systemSettingsBadge }) {
   const [areas, setAreas] = useState([])
   const location = useLocation()
-  const { shouldShow } = useOnboarding()
+  const { shouldShow, hydrated } = useOnboarding()
   const [showOnboarding, setShowOnboarding] = useState(false)
 
   // Record presence while the app is open, powering the Insights working window.
@@ -211,13 +218,17 @@ function Shell({ onOpenSwitcher, onOpenNewArea, systemSettingsBadge }) {
 
   useEffect(() => { loadAreas() }, [location.pathname, loadAreas])
 
-  // Fire wizard after the splash screen has cleared (250ms buffer)
+  // Fire the wizard once prefs have settled, never on a timer alone. Waiting on
+  // hydration is what stops a returning user seeing the welcome again before
+  // their stored completion has loaded. The 250ms buffer stays as a minimum so
+  // the wizard still lands after the splash rather than under it.
   useEffect(() => {
+    if (!hydrated) return undefined
     const t = setTimeout(() => {
       if (shouldShow()) setShowOnboarding(true)
     }, 250)
     return () => clearTimeout(t)
-  }, [shouldShow])
+  }, [hydrated, shouldShow])
 
   return (
     <div className="flex min-h-screen bg-white dark:bg-pitch-800">
