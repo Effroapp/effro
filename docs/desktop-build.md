@@ -246,23 +246,36 @@ Windows / macOS do - AppImages run unsigned. Two practices worth knowing:
 
 We use git tags + a GitHub Actions workflow (`.github/workflows/desktop-release.yml`).
 
+`src-tauri/tauri.conf.json` is the authoritative version. The workflow reads
+it to name the NSIS bundle. The other three carry the same number and should be
+kept in step.
+
 ```bash
 # Bump version in:
-#   - package.json
+#   - src-tauri/tauri.conf.json   <- authoritative, the workflow reads this
 #   - src-tauri/Cargo.toml
-#   - src-tauri/tauri.conf.json
+#   - frontend/package.json
 # Then:
-git tag v1.0.1
+git tag -a v1.0.1 -m "..."
 git push origin v1.0.1
 ```
+
+The root `package.json` deliberately carries no version. It is a private
+package, nothing reads the field, and an unread field is one that drifts.
+
+A tag containing a hyphen (`v1.0.1-rc1`) builds a prerelease and leaves the
+auto-update channel alone. A clean tag becomes the latest release and updates
+existing users. See the build and release section of `CLAUDE.md` for the full
+rules on that.
 
 The workflow:
 
 1. Builds on `windows-latest` (and `macos-latest` / `ubuntu-latest` if you
    enable those matrix legs).
 2. Signs if the relevant secrets are configured (skips silently if not).
-3. Creates a draft GitHub Release with the bundles attached.
-4. You review the draft and click **Publish**.
+3. Publishes a GitHub Release with the bundles attached. It is created
+   directly rather than as a draft (`draft: false` in the workflow), and is
+   marked as a prerelease when the tag contains a hyphen.
 
 ### Required GitHub secrets (all optional)
 

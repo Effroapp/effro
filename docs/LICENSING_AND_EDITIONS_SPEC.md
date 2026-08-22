@@ -1,13 +1,17 @@
 # Effro - Licensing & Editions (spec)
 
-Status: SPEC ONLY (no implementation yet). Target codebase: Effro v0.13.0 (the
-auth layer: `EFFRO_AUTH_ENABLED`, server-side sessions, OIDC SSO, admin user
-management, SMTP invites, GDPR). This document defines the licence + edition
-system that turns "auth works" into a sellable enterprise product, and folds in
-the first-run setup-token that closes the claimable-instance hole.
+Status: **Implemented and on `main`.** This document is the design record, not
+a plan. The build landed with the v0.12.x licensing work: see
+`backend/licence_manager.py` (offline Ed25519 verification, edition and seat
+logic), `backend/connectors.py` (the per-edition connector policy), the licence
+and connector gates in `backend/main.py`, `/api/admin/licence`, the vendor
+keygen tool at `scripts/licence_gen.py`, and the first-run setup token in
+`routers/auth.py`. Where this document and the code disagree, the code wins.
 
-> Consolidation note: at time of writing this lives on `feature/audit-cleanup`
-> (v0.13.0). `main` is still v0.9.1. Implement on a consolidated v0.13.0 `main`.
+It defines the licence and edition system that turns "auth works" into a
+sellable enterprise product, and folds in the first-run setup token that closes
+the claimable-instance hole. It builds on the auth layer: `EFFRO_AUTH_ENABLED`,
+server-side sessions, OIDC SSO, admin user management, SMTP invites and GDPR.
 
 ---
 
@@ -331,7 +335,7 @@ small allowlist is permitted.
 ## 10. Setup token (folded in)
 
 ### 10.1 Problem this closes
-Today (v0.13.0) `/auth/setup` is open to whoever hits a fresh instance first, and
+Before this shipped, `/auth/setup` was open to whoever hit a fresh instance first, and
 two concurrent distinct-email setups can both create an admin (the known race).
 For a provisioned enterprise instance, the admin account must be claimable
 **only by the purchasing customer**.
