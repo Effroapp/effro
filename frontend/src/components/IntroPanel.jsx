@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { X } from 'lucide-react'
+import { usePref } from '../hooks/usePrefs'
 
 /**
  * IntroPanel - the calm, first-run explainer used at the top of Insights and
@@ -10,22 +10,25 @@ import { X } from 'lucide-react'
  * Keep the body to one calm paragraph; wrap keywords in <Key>…</Key> for the
  * same emphasis the Insights welcome uses.
  *
+ * The dismissal is a durable user pref under `intro.<storageKey>` rather than
+ * plain localStorage, so it survives the desktop shell's per-update cache bust
+ * and an explainer the user has already read stays closed. Callers pass the
+ * same `storageKey` they always did.
+ *
  * Props:
  *   icon        - a Lucide icon component (rendered mint, size 17)
  *   title       - short heading, e.g. "Welcome to Insights"
- *   storageKey  - localStorage key that records "dismissed for good"
+ *   storageKey  - key that records "dismissed for good"
  *   children    - the body paragraph
  */
 export default function IntroPanel({ icon: Icon, title, storageKey, children }) {
-  const [seen, setSeen] = useState(() => {
-    try { return localStorage.getItem(storageKey) != null } catch { return false }
-  })
-  if (seen) return null
+  const [seen, setSeen, { hydrated }] = usePref(`intro.${storageKey}`, false)
 
-  const dismiss = () => {
-    try { localStorage.setItem(storageKey, '1') } catch { /* ignore */ }
-    setSeen(true)
-  }
+  // Stay quiet until prefs have settled, so a panel the user dismissed long ago
+  // never flashes back onto the page for a frame.
+  if (!hydrated || seen) return null
+
+  const dismiss = () => setSeen(true)
 
   return (
     <div className="relative rounded-xl bg-gradient-to-br from-mint/10 to-mint/[0.03] dark:from-mint/[0.12] dark:to-mint/[0.03] p-5 pr-10 mb-6 animate-rise motion-reduce:animate-none">

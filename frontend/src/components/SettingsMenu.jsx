@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sun, Moon, Check, Upload, X, Info, ChevronDown, LogOut, ShieldCheck } from 'lucide-react'
+import { Sun, Moon, Check, Upload, X, Info, ChevronDown, LogOut, ShieldCheck, Compass } from 'lucide-react'
 import { getInitials } from '../hooks/useDisplayName'
 import { FONT_OPTIONS } from '../hooks/useFont'
 import { TEXT_SIZES } from '../hooks/useTextSize'
 import { Tooltip } from './Tooltip'
 import { useAuth } from '../contexts/AuthContext'
+import { useOnboarding } from './OnboardingWizard'
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024  // 2 MB
 
@@ -20,6 +21,10 @@ const MAX_AVATAR_BYTES = 2 * 1024 * 1024  // 2 MB
  * The split is by user intent: "how do I want this app to look/feel?" vs
  * "how does the app store/update itself?". Same rationale as macOS putting
  * "System Settings" under the Apple menu and "Preferences" under each app.
+ *
+ * One exception sits at the bottom: replaying the welcome tour. It is a help
+ * action rather than a preference, but this menu is where people look for
+ * anything about themselves, and there is no other help surface yet.
  */
 export default function SettingsMenu({
   avatar,
@@ -40,7 +45,12 @@ export default function SettingsMenu({
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
+  const { resetOnboarding } = useOnboarding()
+
   const goAccount = () => { setOpen(false); navigate('/settings?tab=account') }
+  // Clearing the stored completion is the whole trigger. Shell watches the same
+  // prefs store, so the wizard reopens on its own a beat later.
+  const replayTour = () => { setOpen(false); resetOnboarding() }
   const handleLogout = async () => { setOpen(false); await logout(); navigate('/login', { replace: true }) }
 
   useEffect(() => {
@@ -247,6 +257,18 @@ export default function SettingsMenu({
               onChange={onChangeTextSize}
             />
           </Section>
+
+          {/* Replay the welcome tour */}
+          <button
+            onClick={replayTour}
+            className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs
+                       text-paper-600 dark:text-paper-400
+                       hover:bg-paper-200 dark:hover:bg-pitch-700
+                       hover:text-pitch-700 dark:hover:text-paper-200
+                       font-display uppercase tracking-wide transition-colors"
+          >
+            <Compass size={12} /> Replay the tour
+          </button>
 
           {/* Log out (auth-enabled deployments only) */}
           {user?.auth_enabled && (

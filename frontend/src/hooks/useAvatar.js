@@ -1,20 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useCallback } from 'react'
+import { usePref } from './usePrefs'
 
 /**
- * Profile photo for the top-right avatar. Stored as a base64 data URL in
- * localStorage so it survives refreshes without needing backend storage -
- * fine for a single-user self-hosted app. Clearing the value falls back
- * to the initials-rendered avatar.
+ * Profile photo for the top-right avatar, held as a base64 data URL.
+ *
+ * Stored as a durable user pref rather than plain localStorage, because the
+ * desktop shell clears the webview's browsing data on every version update and
+ * the photo would otherwise vanish each time the app updated. Clearing the
+ * value falls back to the initials-rendered avatar.
  */
 export function useAvatar() {
-  const [avatar, setAvatarState] = useState(() => {
-    return localStorage.getItem('displayAvatar') || ''
-  })
+  const [avatar, setAvatarPref] = usePref('profile.avatar', '')
 
-  useEffect(() => {
-    if (avatar) localStorage.setItem('displayAvatar', avatar)
-    else        localStorage.removeItem('displayAvatar')
-  }, [avatar])
+  const setAvatar = useCallback((next) => {
+    setAvatarPref(next ? next : null)
+  }, [setAvatarPref])
 
-  return { avatar, setAvatar: setAvatarState }
+  return { avatar: avatar || '', setAvatar }
 }

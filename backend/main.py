@@ -102,6 +102,7 @@ from routers import (
     icloud as icloud_router,
     github as github_router,
     presence as presence_router,
+    prefs as prefs_router,
     folio as folio_router,
     telegram as telegram_router,
     mail as mail_router,
@@ -483,7 +484,16 @@ async def connector_gate(request, call_next):
 def _licence_write_allowed(path: str) -> bool:
     # Auth flows (login / logout / set-password / sessions) and pasting a
     # renewal key must work even in read-only.
-    return path.startswith("/api/auth/") or path == "/api/admin/licence"
+    #
+    # User prefs are allowed too. They hold per-person UI state (onboarding
+    # completion, display name, avatar, intro-panel dismissals), not billed
+    # workspace content, and blocking them would re-run the onboarding wizard on
+    # every launch for a workspace whose licence has lapsed.
+    return (
+        path.startswith("/api/auth/")
+        or path == "/api/admin/licence"
+        or path == "/api/prefs"
+    )
 
 
 def _is_connector_get_write(path: str, method: str) -> bool:
@@ -579,6 +589,7 @@ app.include_router(dropbox_router.router, prefix="/api")
 app.include_router(icloud_router.router, prefix="/api")
 app.include_router(github_router.router, prefix="/api")
 app.include_router(presence_router.router, prefix="/api")
+app.include_router(prefs_router.router, prefix="/api")
 app.include_router(folio_router.router, prefix="/api")
 app.include_router(telegram_router.router, prefix="/api")
 app.include_router(mail_router.router, prefix="/api")

@@ -1,20 +1,25 @@
-import { useState, useEffect } from 'react'
+import { useCallback } from 'react'
+import { usePref } from './usePrefs'
 
 /**
  * User's display name - used for the settings avatar's initials and as the
- * identity surface in the sidebar. Persists to localStorage.
+ * identity surface in the sidebar.
+ *
+ * Stored as a durable user pref rather than plain localStorage, because the
+ * desktop shell clears the webview's browsing data on every version update and
+ * the app would otherwise forget the user's name each time it updated. See
+ * hooks/usePrefs.js for how the cache and the backend relate.
  */
 export function useDisplayName() {
-  const [displayName, setDisplayNameState] = useState(() => {
-    return localStorage.getItem('displayName') || ''
-  })
+  const [displayName, setDisplayNamePref] = usePref('profile.display_name', '')
 
-  useEffect(() => {
-    if (displayName) localStorage.setItem('displayName', displayName)
-    else            localStorage.removeItem('displayName')
-  }, [displayName])
+  // An empty name clears the pref rather than storing an empty string, so the
+  // avatar falls cleanly back to its placeholder.
+  const setDisplayName = useCallback((next) => {
+    setDisplayNamePref(next ? next : null)
+  }, [setDisplayNamePref])
 
-  return { displayName, setDisplayName: setDisplayNameState }
+  return { displayName: displayName || '', setDisplayName }
 }
 
 /**

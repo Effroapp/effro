@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Boolean, Date, Table
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Boolean, Date, Table, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import func
 from database import Base
@@ -261,6 +261,40 @@ class AppSettings(Base):
     key = Column(String(100), primary_key=True, index=True)
     value = Column(Text, nullable=True)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class UserPref(Base):
+    """
+    Durable per-user UI state, in the same key-value spirit as AppSettings but
+    scoped to a person.
+
+    Why it exists: the desktop shell clears all webview browsing data on every
+    version update as a deliberate cache bust, and that takes localStorage with
+    it. Anything that must survive an update lives here instead - onboarding
+    completion, the display name, the profile photo, and the intro-panel
+    dismissals. The frontend keeps localStorage as a read-through cache for an
+    instant boot, but this table is the source of truth.
+
+    value holds a JSON-encoded string, so a pref can be a string, a number, a
+    boolean or a small object without a schema change. Avatars arrive as base64
+    data URLs and can approach a megabyte, hence Text.
+
+    user_id is deliberately a plain column with no foreign key. When
+    EFFRO_AUTH_ENABLED is off (the desktop build) the current user is a
+    synthetic local admin with id=1 that is never written to the users table, so
+    a foreign key would reject every desktop write.
+    """
+    __tablename__ = "user_prefs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    key = Column(String(120), nullable=False)
+    value = Column(Text, nullable=True)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "key", name="uq_user_prefs_user_key"),
+    )
 
 
 class StorageSyncLog(Base):

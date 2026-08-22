@@ -1,0 +1,11 @@
+# Development and test dependencies only. Deliberately kept OUT of
+# requirements.txt so neither the PyInstaller bundle nor the Docker image picks
+# them up - the shipped backend stays as small as it is today.
+#
+# Install alongside the runtime deps:
+#   backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
+#
+# Run the suite from the repo root:
+#   backend/.venv/Scripts/python.exe -m pytest backend/tests
+-r requirements.txt
+pytest>=8.0.0

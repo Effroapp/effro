@@ -8,8 +8,10 @@
  *     alongside. The underlying element remains fully interactive.
  *
  * Persistence:
- *   - Completion stored in localStorage under STORAGE_KEY.
- *   - Expose `startOnboarding()` via the hook for replay from the Help drawer.
+ *   - Completion stored as a durable user pref under PREF_KEY, so it survives
+ *     the desktop shell's per-update cache bust (which clears localStorage).
+ *     See hooks/usePrefs.js.
+ *   - Expose `resetOnboarding()` via the hook for replay from the Help drawer.
  *
  * Data attributes required on host elements (added in Sidebar.jsx / App.jsx):
  *   data-onboarding="sidebar-areas"   — the area list section in the sidebar
@@ -19,8 +21,14 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { X, ArrowRight, Mail, ChevronLeft } from 'lucide-react'
+import { usePrefs, setPref } from '../hooks/usePrefs'
 
-const STORAGE_KEY = 'effro_onboarding_v1'
+const PREF_KEY = 'onboarding.completed_version'
+
+// Which wizard the steps below are. Recorded on completion so a future rebuilt
+// wizard can decide whether an existing user should be shown it again. For now
+// any recorded version counts as done.
+const WIZARD_VERSION = 'v1'
 
 /* ─── Step definitions ────────────────────────────────────────────────────── */
 
@@ -327,7 +335,7 @@ export default function OnboardingWizard({ onComplete }) {
   const cardPos = calcCardPos(rect, current.placement)
 
   const complete = useCallback(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ completed: true, completedAt: Date.now() }))
+    setPref(PREF_KEY, WIZARD_VERSION)
     setVisible(false)
     setTimeout(() => onComplete?.(), 280)
   }, [onComplete])
@@ -410,20 +418,22 @@ export default function OnboardingWizard({ onComplete }) {
 /* ─── Hook for external control (Help drawer replay) ─────────────────────── */
 
 export function useOnboarding() {
+  const { prefs, hydrated, trustworthy } = usePrefs()
+  const completedVersion = prefs[PREF_KEY]
+
+  // Only ever true once we know what the backend holds. If the prefs GET failed
+  // and there was no cache to fall back on we say no: re-running the welcome
+  // wizard for an established user on a flaky boot is far worse than a new user
+  // waiting one launch for it.
   const shouldShow = useCallback(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (!stored) return true
-      const parsed = JSON.parse(stored)
-      return !parsed?.completed
-    } catch {
-      return true
-    }
-  }, [])
+    if (!trustworthy) return false
+    return !completedVersion
+  }, [trustworthy, completedVersion])
 
   const resetOnboarding = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY)
+    // Clears the backend copy and the cache in one move.
+    setPref(PREF_KEY, null)
   }, [])
 
-  return { shouldShow, resetOnboarding }
+  return { shouldShow, resetOnboarding, hydrated }
 }
