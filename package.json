@@ -1,6 +1,5 @@
 {
   "name": "effro",
-  "version": "0.13.0",
   "private": true,
   "description": "Effro. - Stay across everything. effro.io. Desktop shell + backend orchestration.",
   "scripts": {

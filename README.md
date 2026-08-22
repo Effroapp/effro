@@ -1,10 +1,21 @@
 # Effro.
 
-> Stay across everything. — [effro.io](https://effro.io)
+> Stay across everything. [effro.io](https://effro.io)
 
-A self-hosted activity log for anyone juggling multiple parallel responsibilities. Organise your world into **areas** (one per spinning plate), break each area into **threads** of focused work, and keep a chronological record of todos, decisions, meetings, blockers, and notes inside every thread. AI surfaces help where they materially save time - parse messy input into structured items, regenerate area summaries automatically, draft a weekly status digest in one click. Self-hosted, single Docker container, your data on a disk you own.
+A desktop-first personal knowledge and work-tracking app, also deployable self-hosted via Docker. Organise your world into **areas** (one per spinning plate), break each area into **threads** of focused work, and keep a chronological record of todos, decisions, meetings, blockers, and notes inside every thread. AI surfaces help where they materially save time - parse messy input into structured items, regenerate area summaries automatically, draft a weekly status digest in one click. Your data stays on a disk you own.
 
 *Effro* is Welsh for "awake, alert" - what the app is meant to keep you.
+
+---
+
+## Two ways to run it
+
+- **Desktop app (Windows).** A Tauri shell that bundles the backend and runs
+  entirely on your machine, with no login. Installers are published on the
+  [releases page](https://github.com/Effroapp/effro/releases). Building one
+  yourself is covered in [docs/desktop-build.md](docs/desktop-build.md).
+- **Self-hosted server.** The Docker image below. Authentication is enforced
+  here, so the first run asks you to create an admin account.
 
 ---
 
@@ -29,7 +40,7 @@ docker compose up --build -d
 # http://localhost:8080
 ```
 
-On first run, the database is created automatically. The app launches empty - add your first area from the sidebar (`+ Add your first area`). All data persists in the `./data/` directory.
+On first run the database is created automatically and the app shows a setup page, because `docker-compose.yml` sets `EFFRO_AUTH_ENABLED=true`. Create the admin account there and everyone after that signs in. The app then launches empty, so add your first area from the sidebar (`+ Add your first area`). All data persists in the `./data/` directory.
 
 ### Stop the container
 
@@ -50,58 +61,24 @@ docker compose up --build -d
 ```
 effro/
 │
-├── backend/                  Python FastAPI application
-│   ├── main.py               App entry point - initialises DB, mounts routers, serves frontend
-│   ├── database.py           SQLAlchemy engine and session factory
-│   ├── models.py             ORM models: Area, Thread, Entry, Attachment
-│   ├── schemas.py            Pydantic schemas for request/response validation
-│   ├── requirements.txt      Python dependencies
-│   └── routers/
-│       ├── areas.py          GET/PUT areas; GET/POST threads per area
-│       ├── threads.py        GET/PUT/DELETE threads
-│       ├── entries.py        POST/PUT/DELETE log entries
-│       └── attachments.py    File upload + link add/delete
+├── backend/        Python FastAPI application, SQLAlchemy models, routers,
+│                   integration clients, storage backends, scheduler
+│   └── tests/      pytest suite (see Development below)
+├── frontend/       React + Vite + Tailwind single-page app
+├── src-tauri/      Tauri v2 desktop shell (Rust): window, updater, sidecar
+├── scripts/        Backend PyInstaller build, icon generation, demo seed
+├── docs/           Build and integration guides, plus design specs
+├── data/           Runtime data (git-ignored, Docker volume mount)
 │
-├── frontend/                 React + Vite application
-│   ├── index.html            HTML entry point (loads Google Fonts)
-│   ├── vite.config.js        Vite config with /api proxy for dev mode
-│   ├── tailwind.config.js    Effro tokens - paper/pitch/accent palettes, Geist + Lexend fonts
-│   ├── postcss.config.js     PostCSS for Tailwind
-│   └── src/
-│       ├── main.jsx          React root mount
-│       ├── App.jsx           Router + theme provider + shell layout
-│       ├── index.css         Tailwind base + custom CSS (grid texture, markdown prose, scrollbars)
-│       ├── api/
-│       │   └── client.js     All API calls - thin fetch wrapper over every endpoint
-│       ├── hooks/
-│       │   └── useTheme.js   Dark/light mode toggle; persists to localStorage
-│       ├── utils/
-│       │   └── status.js     Status config (colours, labels) for areas and threads
-│       ├── components/
-│       │   ├── Sidebar.jsx       Left nav - area list with status dots
-│       │   ├── StatusBadge.jsx   Coloured pill badge for area/thread status
-│       │   ├── ThemeToggle.jsx   Sun/Moon button
-│       │   ├── Modal.jsx         Reusable overlay dialog
-│       │   ├── ConfirmDialog.jsx Destructive action confirmation
-│       │   ├── Toast.jsx         In-app notification system
-│       │   └── ThreadCard.jsx    Area view card linking to a thread
-│       └── pages/
-│           ├── Dashboard.jsx   Area grid with status, counts, AI-generated overviews
-│           ├── AreaView.jsx    Single area - Overview, thread list, new thread modal
-│           ├── ThreadView.jsx  Full thread - entry timeline, files, links, linked threads
-│           ├── LogView.jsx     Audit log viewer
-│           └── ProcessView.jsx Smart Generate - AI extracts items from notes / .eml / .ics / PDFs
-│
-├── data/                     Runtime data (git-ignored, Docker volume mount)
-│   ├── department.db         SQLite database (filename kept for backward compatibility)
-│   └── uploads/              Uploaded files
-│
-├── Dockerfile                Multi-stage: Node builds frontend; Python serves everything
-├── docker-compose.yml        Single-service compose with ./data volume mount
-├── .gitignore
-├── README.md                 This file
-└── REQUIREMENTS.md           Full product specification
+├── Dockerfile          Multi-stage: Node builds frontend, Python serves everything
+├── docker-compose.yml  Single-service compose with ./data volume mount
+├── CLAUDE.md           Engineering orientation, kept current
+└── REQUIREMENTS.md     The original specification, kept as a historical record
 ```
+
+A file-by-file map of the backend, frontend and desktop shell lives in
+[CLAUDE.md](CLAUDE.md). It is the one that is maintained, so this README
+deliberately stops at the top level rather than repeating it.
 
 ---
 
@@ -115,8 +92,8 @@ For local development you run the backend and frontend separately, with Vite pro
 cd backend
 
 # Create a virtual environment
-python -m venv venv
-source venv/bin/activate       # Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -146,42 +123,38 @@ npm run dev
 
 Frontend is available at `http://localhost:5173`
 
+### Tests
+
+The backend has a pytest suite. Test-only dependencies live in a separate file
+so neither the PyInstaller bundle nor the Docker image picks them up.
+
+```bash
+pip install -r backend/requirements-dev.txt
+python -m pytest backend/tests
+```
+
 ---
 
 ## API Reference
 
-All endpoints are prefixed with `/api`.
+All endpoints are prefixed with `/api`. FastAPI generates the full, always
+current reference from the code itself: start the backend and open
+`http://localhost:8000/docs`. There is no hand-maintained copy here, because a
+hand-maintained copy goes stale.
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/areas` | List all areas with thread counts |
-| POST | `/areas` | Create a new area |
-| GET | `/areas/:id` | Get a single area |
-| PUT | `/areas/:id` | Update area status, summary, or icon |
-| POST | `/areas/:id/summary/suggest` | AI-generated 2-sentence Overview |
-| GET | `/areas/:id/threads` | List threads for an area |
-| POST | `/areas/:id/threads` | Create a new thread |
-| GET | `/threads/:id` | Get thread with all entries and attachments |
-| PUT | `/threads/:id` | Update thread title, status, or description |
-| DELETE | `/threads/:id` | Delete thread (cascades to entries and attachments) |
-| POST | `/threads/:id/entries` | Add a log entry |
-| PUT | `/entries/:id` | Edit an entry |
-| DELETE | `/entries/:id` | Delete an entry |
-| POST | `/threads/:id/attachments/file` | Upload a file (multipart) |
-| POST | `/threads/:id/attachments/link` | Add a URL link |
-| POST | `/threads/:id/links` | Link to another thread (blocks / relates_to) |
-| DELETE | `/links/:id` | Remove a thread-to-thread link |
-| DELETE | `/attachments/:id` | Remove an attachment |
-| POST | `/ingest/parse` | Parse a dropped file (PDF / EML / ICS / text) into plain text |
-| POST | `/generate/process` | AI extracts structured items from unstructured text |
-| POST | `/generate/refine` | AI re-suggests a rejected item with feedback |
-| POST | `/generate/roundup` | AI weekly status digest |
-| GET | `/roundup` | Pre-roundup data (stale areas + per-area activity) |
-| GET | `/audit` | Global audit log |
-| GET | `/threads/:id/audit` | Per-thread audit log |
-| GET | `/areas/:id/audit` | Per-area audit log |
-| GET | `/activity` | Recent activity feed |
-| GET | `/todos/upcoming` | Upcoming todos across all areas |
+The routers, grouped by what they cover:
+
+| Group | Covers |
+|-------|--------|
+| `areas`, `threads`, `entries`, `attachments`, `subtasks` | The core Areas to Threads to Entries model, plus files, links and thread groups |
+| `generate`, `ingest`, `ai_features` | Smart Generate, file parsing, the weekly roundup, task decomposition |
+| `insights`, `presence`, `nudges` | The Insights page, the heartbeat-derived working window, daily nudges |
+| `signals` | The triage feed that integrations write into |
+| `folio` | Deep-research dives and their digests |
+| `prefs` | Durable per-user state (onboarding, display name, avatar, intro dismissals) |
+| `auth`, `account`, `admin` | Sessions, GDPR export and erasure, user management, licence and connector policy |
+| `settings`, `storage` | AI provider configuration and the five storage backends |
+| `microsoft`, `jira`, `google`, `dropbox`, `icloud`, `github`, `telegram`, `mail` | Per-integration config, auth and sync |
 
 Uploaded files are served at `/uploads/:stored_name`.
 
@@ -215,13 +188,16 @@ cp -r ./data ./data_backup_$(date +%Y%m%d)
 | ORM | SQLAlchemy 2 | Clean Python models, migrations-ready |
 | Database | SQLite | Zero-config, single file, perfect at this scale |
 | Container | Docker (multi-stage) | Reproducible builds; Node builds frontend, Python serves everything |
+| Desktop shell | Tauri v2 (Rust) | Small installer, native updater, backend runs as a bundled sidecar |
 
 ---
 
 ## Extending
 
-This codebase is designed to be extended in future Claude sessions.
-Start any extension session with:
-> "Read README.md and REQUIREMENTS.md, then [your request]."
+[CLAUDE.md](CLAUDE.md) is the engineering orientation and the file to read
+first. It is loaded automatically by Claude Code and covers the architecture,
+the conventions, the verification loop and the release process.
 
-The `REQUIREMENTS.md` contains the full product specification.
+`REQUIREMENTS.md` is the original specification. It is kept as a historical
+record and no longer describes the current app, so treat it as background
+rather than as a source of truth.

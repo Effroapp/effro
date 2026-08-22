@@ -1,5 +1,12 @@
 # Effro. - Requirements Specification
 
+> **Historical document.** This is the specification for the original build and
+> it is kept for reference only. It was last substantively updated in June 2026
+> and has not tracked the app since. Parts of it are no longer true, for example
+> the dashboard described here has no sidebar and the interface is described
+> around seven fixed areas. For how Effro behaves now, read the code, `CLAUDE.md`
+> for the engineering orientation, and the specs under `docs/`.
+
 **Version:** 1.0.0
 **Prepared by:** Claude (Anthropic)
 **Purpose:** This document captures the full agreed specification. Future Claude sessions should read this before extending the app.
