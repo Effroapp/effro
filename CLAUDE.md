@@ -12,16 +12,16 @@ already use and pull the important bits into one place. Core ideas:
   (note/update), todo, decision, meeting, blockage. Threads can have attachments
   (file/link) and links to other threads.
 - **Signals**: external items (meetings, emails, issues, PRs) pulled from
-  integrations into a triage feed; the user "accepts" one onto a thread (as a
+  integrations into a triage feed. The user "accepts" one onto a thread (as a
   meeting / to-do / note).
 - **Insights**: the flagship reflective page - Reflect (Today / This week),
   Ahead, Balance. Productivity metrics, grounded AI narratives, heartbeat-derived
   working window.
 - **Folio**: a deep-research workspace - capture a dive (links, notes, files,
   images) into a folio, then "pull it together" into one grounded, reading-first
-  digest. Default-on; hideable via `EFFRO_FOLIO_ENABLED=false`.
-- Guiding principles: (1) **Accurate** above all; (2) **Calm & positive** -
-  never overwhelm an ADHD reader; (3) **well-designed, consistent, descriptive**,
+  digest. Default-on, hideable via `EFFRO_FOLIO_ENABLED=false`.
+- Guiding principles: (1) **Accurate** above all. (2) **Calm & positive** -
+  never overwhelm an ADHD reader. (3) **well-designed, consistent, descriptive**,
   with tasteful animation and give-the-user-control affordances (dismissible
   cards, hide toggles).
 
@@ -52,7 +52,7 @@ already use and pull the important bits into one place. Core ideas:
 
 ## Backend (`backend/`)
 - `main.py` - app, router includes, and the migration block in `_init_db()`
-  (additive `ALTER/CREATE TABLE IF NOT EXISTS` strings; also runs
+  (additive `ALTER/CREATE TABLE IF NOT EXISTS` strings, also runs
   `Base.metadata.create_all`). No Alembic.
 - `models.py` (SQLAlchemy models), `schemas.py` (Pydantic).
 - `routers/*.py` - areas, threads, entries, attachments, generate, ingest,
@@ -65,7 +65,7 @@ already use and pull the important bits into one place. Core ideas:
   `routers/<name>.py` (config/profile/test/auth/sync-now). Credential-based
   ones (github, icloud, telegram, mail) persist config through
   `integration_config.py` (shared load/save/clear/set_meta, secrets
-  Fernet-encrypted); frontend cards share `CredentialIntegrationCard.jsx`.
+  Fernet-encrypted). Frontend cards share `CredentialIntegrationCard.jsx`.
 - `routers/prefs.py` + the `user_prefs` table - durable per-user key/value
   state. `GET /api/prefs` returns everything for the current user as one dict,
   `PUT /api/prefs` merges a partial dict where a null value deletes a key. The
@@ -78,7 +78,7 @@ already use and pull the important bits into one place. Core ideas:
   source of truth consumed by the main.py connector gate, the scheduler, the
   admin API (`/admin/connectors`) and `/auth/me` ("connectors" map). On a
   licensed workspace each connector resolves as edition default (Pro: on,
-  Enterprise: off) + per-connector admin override; desktop ignores all of it.
+  Enterprise: off) + per-connector admin override. Desktop ignores all of it.
 - Storage backends: `storage_backend.py` (abstract + factory + Fernet
   `encrypt_secret`/`decrypt_secret`) and
   `storage_{nextcloud,googledrive,dropbox,s3,webdav}.py`. Backups:
@@ -130,7 +130,7 @@ as the authority where the two disagree.
   follows the format **what it is -> how it helps -> why Effro does it**, shown
   as scannable icon-beats (see `IntroPanel`), not walls of text.
 - External links must use `openExternal()` from `api/tauri.js` (the desktop
-  webview blocks `target="_blank"`; only localhost is allow-listed).
+  webview blocks `target="_blank"`, only localhost is allow-listed).
 
 ## Dev workflow & verification
 - Backend venv: `backend/.venv` (run Python as
@@ -139,14 +139,14 @@ as the authority where the two disagree.
   cryptography, apscheduler, icalendar, pypdf...). Avoid adding heavy new deps -
   the integrations deliberately use `httpx`/stdlib so the PyInstaller bundle
   stays clean (e.g. S3 is hand-rolled SigV4, no boto3).
-- Frontend: `cd frontend` then `npm ci` / `npm install`; build with
+- Frontend: `cd frontend` then `npm ci` / `npm install`. Build with
   `npm run build` (CI uses `npm ci`, so keep `package-lock.json` in sync if you
   add deps).
 - **How to verify without a full desktop run** (the preferred loop, since the
   Windows installer and live third-party accounts aren't reachable from the dev
   env):
   - Backend: `ast.parse` for syntax, then FastAPI `TestClient` against a temp DB
-    (set `DB_PATH` to a temp file; the lifespan runs migrations). For services,
+    (set `DB_PATH` to a temp file, the lifespan runs migrations). For services,
     seed a throwaway DB and call functions directly.
   - Frontend: `npm run build` must pass.
 - **Backend tests** live in `backend/tests` and run under pytest. Install the
@@ -193,11 +193,11 @@ as the authority where the two disagree.
 - When done, give a tight summary and the installer/build link if a build was cut.
 
 ## Known constraints & gotchas
-- Timezones: the client sends `tz_offset_min`; `meeting_at` is stored as naive
+- Timezones: the client sends `tz_offset_min`. `meeting_at` is stored as naive
   **local** wall-clock, while `created_at/completed_at/occurred_at` are naive
   **UTC**. Be careful comparing them.
 - iCloud **Drive** is not a viable storage target (Apple exposes no third-party
-  API); iCloud Calendar/Mail work via CalDAV/IMAP with an app-specific password.
+  API). iCloud Calendar/Mail work via CalDAV/IMAP with an app-specific password.
 - No telemetry exists yet. It sits under the next theme in the roadmap below,
   not against any shipped version. Don't write copy claiming usage data is
   collected until it is.
@@ -238,10 +238,10 @@ stays login-free, and **on** for hosted/Docker deployments. The switch is the
 - **Off (unset/false - the Tauri desktop build):** `get_current_user` returns a
   synthetic local admin (`User(id=1, email="local@effro", display_name="Local
   user", role="admin")`) instead of 401. The dependency is still on every route,
-  so audit attribution and every auth code path runs; the gate is simply open,
+  so audit attribution and every auth code path runs. The gate is simply open,
   and no login/setup UI is shown.
 - **On (set in the Dockerfile - any server deployment):** real sessions are
-  required. First run shows a setup page that creates the admin; everyone else
+  required. First run shows a setup page that creates the admin. Everyone else
   logs in. Admins invite users from Settings -> Users. Optional Entra OIDC SSO.
 - **Files:** backend `auth_utils.py` (argon2 hashing + session tokens),
   `routers/auth.py` (setup/login/logout/me/sessions/change-password),
@@ -260,6 +260,6 @@ stays login-free, and **on** for hosted/Docker deployments. The switch is the
   logout, oidc/config + oidc/login + oidc/callback).
 - **Cookies:** `effro_session`, HttpOnly + SameSite. Credentialed cross-origin
   requests need a concrete CORS origin (set via `EFFRO_CORS_ORIGINS` when auth is
-  on), not `*`; desktop is same-origin so this only matters when hosted. On the
+  on), not `*`. Desktop is same-origin so this only matters when hosted. On the
   desktop the backend port drifts (8000-8010) and clearing the WebView2 cache
   logs the cookie out - another reason desktop keeps the gate off.
