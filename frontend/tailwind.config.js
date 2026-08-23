@@ -53,6 +53,28 @@ export default {
         // ── Brand signature · mint ─────────────────────────────────────────
         // Used sparingly: the dot in "Effro.", the splash animation, and
         // "selected/active" state indicators. Never as a hover or focus colour.
+        // ── Brand colour · clay ────────────────────────────────────────────
+        // The person, not the product: avatars, the greeting by name, the
+        // Areas grouping. Never on a control, never in a status context.
+        // See the long note in tokens.css for why, and pick the step by the
+        // job rather than by eye. The `fill` / `text` / `glyph` aliases read
+        // from CSS vars so light and dark resolve themselves.
+        clay: {
+          DEFAULT: '#C1663F',
+          50:  '#FDF4EF',
+          100: '#FAE6DA',
+          200: '#F3D0BB',
+          300: '#E9B190',
+          400: '#DA8A6A',  // every clay job on pitch
+          500: '#C1663F',  // fills on paper, never wording
+          600: '#A64F2A',  // wording on paper
+          700: '#883E1E',  // initials on a clay tint
+          800: '#6B2F14',
+          900: '#52230D',
+          fill:  'var(--clay-fill)',
+          text:  'var(--clay-text)',
+          glyph: 'var(--clay-glyph)',
+        },
         mint: {
           DEFAULT: '#10B981',
           50:  '#ECFDF5',

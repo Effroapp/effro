@@ -106,7 +106,7 @@ export default function SettingsMenu({
           shadow-md ring-2 transition-all
           ${shownAvatar
             ? 'ring-paper-300/80 dark:ring-pitch-500/80'
-            : 'bg-paper-300 dark:bg-pitch-600 text-paper-700 dark:text-paper-200 ring-paper-300/40 dark:ring-pitch-500/60'
+            : 'bg-[var(--clay-tint)] text-clay-glyph ring-[var(--clay-edge)]'
           }
           ${open ? 'ring-mint-500/60 dark:ring-mint-500/60' : ''}
           hover:ring-mint-500/40
