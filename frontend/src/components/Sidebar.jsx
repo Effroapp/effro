@@ -212,17 +212,28 @@ export default function Sidebar({
         )}
       </div>
 
-      {/* Areas section header (hidden when collapsed - icons alone provide the hierarchy) */}
+      {/* Areas eyebrow (hidden when collapsed - icons alone provide the hierarchy).
+          A labelled rule rather than a bare label, and the one place clay
+          appears in this component. Clay marks the part of the app the user
+          built, as distinct from the fixed nav above. */}
       {!collapsed && (
-        <div className="px-4 pt-3 pb-1">
-          <span className="text-xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-700">
+        <div className="flex items-center gap-2 pl-4 pr-4 pt-[18px] pb-2">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-clay-text">
             Areas
           </span>
+          <span
+            className="flex-1 h-px"
+            style={{ background: 'var(--clay-rule)' }}
+          />
         </div>
       )}
 
       {/* Area list + inline Add area */}
-      <nav data-onboarding="sidebar-areas" className={`flex-1 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'} pb-3 space-y-0.5 ${collapsed ? 'pt-3' : ''}`}>
+      <nav
+        data-onboarding="sidebar-areas"
+        className={`flex-1 overflow-y-auto ${collapsed ? 'px-2 pt-3 space-y-0.5' : 'pl-3 pr-3 ml-4 space-y-px border-l'} pb-3`}
+        style={collapsed ? undefined : { borderLeftColor: 'var(--clay-spine)' }}
+      >
         {areas.map((area) => {
           const config = getAreaStatus(area.status)
           const isActive = areaId && parseInt(areaId) === area.id
@@ -263,28 +274,30 @@ export default function Sidebar({
               key={area.id}
               to={`/area/${area.id}`}
               className={`
-                flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors group
+                flex items-center gap-2 px-3 py-[9px] rounded-md text-sm transition-colors group
                 ${isActive
                   ? 'bg-paper-200 dark:bg-pitch-700 text-pitch-800 dark:text-white'
-                  : 'text-paper-600 dark:text-paper-500 hover:bg-paper-200 dark:hover:bg-pitch-700 hover:text-pitch-700 dark:hover:text-paper-200'
+                  : 'text-pitch-700 dark:text-paper-200 hover:bg-paper-200 dark:hover:bg-pitch-700 hover:text-pitch-800 dark:hover:text-white'
                 }
               `}
             >
               <span
-                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                className="w-[7px] h-[7px] rounded-full flex-shrink-0"
                 style={{
                   backgroundColor: config.dot,
+                  // The glow is the selected-area signal. It stays exclusive to
+                  // the active row, or it stops signalling anything.
                   boxShadow: isActive ? `0 0 5px ${config.dot}` : 'none',
                 }}
               />
               {area.icon ? (
-                <AreaIcon name={area.icon} size={13} className="flex-shrink-0" />
+                <AreaIcon name={area.icon} size={13} className="flex-shrink-0 opacity-80" />
               ) : null}
-              <span className="flex-1 truncate font-medium text-xs font-display">
+              <span className="flex-1 truncate font-medium text-[13px] !tracking-[-0.005em] font-display">
                 {area.name}
               </span>
               {area.open_thread_count > 0 && (
-                <span className="text-xs font-mono text-paper-500 dark:text-paper-600">
+                <span className="text-xs font-mono text-paper-600 dark:text-paper-500">
                   {area.open_thread_count}
                 </span>
               )}
@@ -408,11 +421,10 @@ function NavLink({ to, icon: Icon, label, active, collapsed, badge }) {
     <Link
       to={to}
       className={`
-        flex items-center gap-2 pr-3 py-2 rounded-md text-sm font-medium transition-colors
-        border-l-2
+        flex items-center gap-2 pl-3 pr-3 py-2 rounded-md text-sm font-medium transition-colors
         ${active
-          ? 'bg-mint-50 dark:bg-mint-900/20 border-mint text-mint-700 dark:text-mint-300 pl-[10px]'
-          : 'border-transparent pl-3 text-paper-600 dark:text-paper-500 hover:bg-paper-200 dark:hover:bg-pitch-700 hover:text-pitch-700 dark:hover:text-paper-200'
+          ? 'bg-mint-50 dark:bg-mint-900/20 text-mint-700 dark:text-mint-300 shadow-[inset_0_1px_2px_rgba(20,19,15,0.09)] dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.40)]'
+          : 'text-paper-600 dark:text-paper-500 hover:bg-paper-200 dark:hover:bg-pitch-700 hover:text-pitch-700 dark:hover:text-paper-200'
         }
       `}
     >

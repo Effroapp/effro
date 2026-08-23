@@ -153,12 +153,22 @@ export default function Dashboard() {
             <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 leading-tight">
               {getTimeGreeting()}
               {firstName(displayName) && (
-                <>, <span className="text-pitch-600 dark:text-paper-300">{firstName(displayName)}</span></>
+                <>, <span className="text-clay-text">{firstName(displayName)}</span></>
               )}
             </h1>
             <p className="text-xs font-mono uppercase tracking-[0.25em] text-paper-500 dark:text-paper-600 mt-2">
               {format(new Date(), 'EEEE, d MMMM')}
             </p>
+            {/* Clay hairline closing the personal block. Fades out rather than
+                running the full width, so it reads as a flourish and not as a
+                second divider under the header's own border. */}
+            <span
+              className="block h-px mt-2 max-w-[280px]"
+              style={{
+                background:
+                  'linear-gradient(90deg, color-mix(in srgb, var(--clay-500) 48%, transparent), transparent 62%)',
+              }}
+            />
           </div>
 
           {/* View + roundup controls only make sense once at least one area
@@ -211,7 +221,7 @@ export default function Dashboard() {
             controls that surface on hover. Minimal real-estate. */}
         {areas.length > 0 && nudge?.text && !nudgeDismissed && (
           <div className="group flex items-start gap-2 mb-5 text-sm leading-snug text-paper-500 dark:text-pitch-100">
-            <Leaf size={13} className="flex-shrink-0 mt-[3px] text-mint-600/70 dark:text-mint-400/60" />
+            <Leaf size={14} className="flex-shrink-0 mt-[3px] text-clay-fill" />
             <p className="flex-1 italic">{nudge.text}</p>
             <div className="flex items-center gap-0.5 flex-shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
               <button

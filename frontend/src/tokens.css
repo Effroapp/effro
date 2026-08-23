@@ -36,6 +36,56 @@
   --mint-50:        rgba(16, 185, 129, 0.08);
   --mint-ring:      rgba(16, 185, 129, 0.45);
 
+  /* ── Brand colour · clay ────────────────────────────────────────────────
+     The second brand colour. Mint speaks for the product, clay speaks for
+     the person: avatars, the greeting by name, the Areas grouping that the
+     user built. Two rules keep the pair from competing.
+
+     Clay never touches a control. White on clay-500 is 4.01:1 and fails AA,
+     and a 16% tint is worse rather than better. mint-button already does that
+     job at 5.48:1. clay-700 is the escape hatch if a control ever has to be
+     warm, and reaching for it should prompt a conversation first.
+
+     Clay never appears in a status context. terracotta (#B86A5C) means
+     blocked and sits at the same OKLCH lightness as clay-500, eleven degrees
+     of hue away. At dot or badge size they are the same colour. This is a
+     legibility constraint, not a matter of taste.
+
+     Shade by job, not by eye. On paper, 500 is a fill shade (3.65:1, so dots
+     and rules but never wording), 600 is the text shade (5.07:1) and 700 is
+     for initials on a clay tint (7.00:1). On pitch, 400 clears 4.5:1 for all
+     three, so dark mode collapses to one shade.
+
+     The ramp was derived in OKLCH at hue 42.5 with lightness running 0.972
+     down to 0.300. The hex values below are those colours in sRGB, written as
+     hex to match how every other ramp in this file is expressed. */
+  --clay-50:      #FDF4EF;  /* wash, celebration ground */
+  --clay-100:     #FAE6DA;  /* fill, placeholder + empty-state marks */
+  --clay-200:     #F3D0BB;  /* fill, hairline rules */
+  --clay-300:     #E9B190;  /* rules, dividers on paper */
+  --clay-400:     #DA8A6A;  /* every clay job on pitch, text included */
+  --clay-500:     #C1663F;  /* fills, dots, rules - never text on paper */
+  --clay-600:     #A64F2A;  /* text on paper - any clay wording */
+  --clay-700:     #883E1E;  /* initials on a clay tint */
+  --clay-800:     #6B2F14;  /* headline on a clay-50 ground */
+  --clay-900:     #52230D;  /* reserved */
+
+  /* Semantic aliases, so call sites name the job rather than the step and the
+     light-to-dark swap happens in one place. */
+  --clay-fill:    var(--clay-500);  /* dots, rules, spines, grounds */
+  --clay-text:    var(--clay-600);  /* any clay wording */
+  --clay-glyph:   var(--clay-700);  /* initials on a clay tint */
+
+  /* Composite tints, kept here so the percentages sit with the ramp rather
+     than being retyped at each call site. The avatar pair follows --clay-fill
+     so it swaps with the theme: glyph on tint measures 5.77:1 on paper and
+     5.73:1 on pitch. The rule and spine are decorative, so they stay pinned to
+     clay-500 as specified. */
+  --clay-tint:    color-mix(in srgb, var(--clay-fill) 16%, transparent);
+  --clay-edge:    color-mix(in srgb, var(--clay-fill) 32%, transparent);
+  --clay-rule:    color-mix(in srgb, var(--clay-500) 28%, transparent);
+  --clay-spine:   color-mix(in srgb, var(--clay-500) 38%, transparent);
+
   /* ── Status palette · muted, ADHD-friendly ─────────────────────────────── */
   --sage:         #7A9579;  /* stable, resolved */
   --sage-50:      rgba(122, 149, 121, 0.10);
@@ -83,6 +133,12 @@
 html.dark {
   --rule:        rgba(247, 244, 237, 0.10);
   --rule-strong: rgba(247, 244, 237, 0.18);
+
+  /* On pitch, clay-400 clears 4.5:1 for fills, wording and glyphs alike, so
+     all three semantic roles collapse to the single shade. */
+  --clay-fill:   var(--clay-400);
+  --clay-text:   var(--clay-400);
+  --clay-glyph:  var(--clay-400);
 }
 
 /* ── Reduced motion · respect system preference ──────────────────────────── */
