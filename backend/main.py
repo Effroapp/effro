@@ -265,6 +265,10 @@ def _init_db():
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_entry_types_name ON custom_entry_types(lower(name))",
             "ALTER TABLE entries ADD COLUMN custom_type_id INTEGER REFERENCES custom_entry_types(id) ON DELETE SET NULL",
             "CREATE INDEX IF NOT EXISTS idx_entries_custom_type ON entries(custom_type_id)",
+            # A custom type's icon, a Lucide name. Unique per workspace, which
+            # is enforced in the router rather than the schema so a duplicate
+            # can warn rather than fail.
+            "ALTER TABLE custom_entry_types ADD COLUMN icon VARCHAR(60)",
             # Entry titles. title_source is user | ai | fallback, or null on the
             # types that carry no title.
             "ALTER TABLE entries ADD COLUMN title TEXT",

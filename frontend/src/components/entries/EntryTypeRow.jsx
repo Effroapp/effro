@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 
 import ConfirmDialog from '../ConfirmDialog'
+import CreateEntryType from './CreateEntryType'
 import { useToast } from '../Toast'
 import { useEntryTypes } from '../../hooks/useEntryTypes'
 import { CUSTOM_COLOURS, CUSTOM_PALETTE, ENTITY_TYPES } from '../../utils/entityIcons'
@@ -85,17 +86,12 @@ export default function EntryTypeRow({ value, customTypeId, onChange }) {
 function TypeManager({ types, onClose, onCreate, onRename, onRemove, selectedId, onSelect, onDeselect }) {
   const toast = useToast()
   const ref = useRef(null)
-  const nameRef = useRef(null)
 
-  const [name, setName] = useState('')
-  const [colour, setColour] = useState(CUSTOM_COLOURS[0].key)
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
   const [renaming, setRenaming] = useState(null)   // id being renamed
   const [renameDraft, setRenameDraft] = useState('')
   const [pendingDelete, setPendingDelete] = useState(null)
-
-  useEffect(() => { nameRef.current?.focus() }, [])
 
   // Esc and a click outside both close, and focus goes back to the pill.
   useEffect(() => {
@@ -111,17 +107,17 @@ function TypeManager({ types, onClose, onCreate, onRename, onRemove, selectedId,
     }
   }, [onClose, pendingDelete])
 
-  const add = async () => {
-    const trimmed = name.trim()
-    if (!trimmed || busy) return
+  const add = async (payload) => {
+    if (busy) return
     setBusy(true)
     setError(null)
     try {
-      const made = await onCreate({ name: trimmed, colour })
+      const made = await onCreate(payload)
       onSelect(made.id)
       toast('Type added')
       onClose()
     } catch (e) {
+      // Duplicate name or icon comes back as a sentence worth showing inline.
       setError(e.message)
     } finally {
       setBusy(false)
@@ -223,58 +219,13 @@ function TypeManager({ types, onClose, onCreate, onRename, onRemove, selectedId,
           </ul>
         )}
 
-        <div className="pt-2 border-t border-paper-200 dark:border-pitch-500">
-          <input
-            ref={nameRef}
-            value={name}
-            maxLength={24}
-            placeholder="Name, like Risk or Question"
-            onChange={(e) => { setName(e.target.value); setError(null) }}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add() } }}
-            className="w-full px-2.5 py-1.5 text-sm rounded-md
-                       bg-paper-100 dark:bg-pitch-800
-                       border border-paper-300 dark:border-pitch-500
-                       text-pitch-800 dark:text-white
-                       focus:outline-none focus:ring-2 focus:ring-mint-500"
+        <div className="pt-3 border-t border-paper-200 dark:border-pitch-500">
+          <CreateEntryType
+            busy={busy}
+            error={error}
+            onCancel={onClose}
+            onCreate={add}
           />
-          {error && (
-            <p className="mt-1 text-xs text-terracotta">{error}</p>
-          )}
-
-          <div role="radiogroup" aria-label="Colour" className="flex items-center gap-1.5 mt-2">
-            {CUSTOM_COLOURS.map(({ key, label }) => (
-              <button
-                key={key}
-                role="radio"
-                aria-checked={colour === key}
-                aria-label={label}
-                onClick={() => setColour(key)}
-                className={`w-5 h-5 rounded-full transition-transform
-                  ${CUSTOM_PALETTE[key].dot}
-                  ${colour === key
-                    ? 'ring-2 ring-offset-2 ring-paper-700 dark:ring-paper-300 ring-offset-white dark:ring-offset-pitch-700'
-                    : 'hover:scale-110'}`}
-              />
-            ))}
-          </div>
-
-          <div className="flex justify-end gap-2 mt-3">
-            <button
-              onClick={onClose}
-              className="px-3 py-1.5 text-xs rounded text-paper-600
-                         hover:bg-paper-200 dark:hover:bg-pitch-500 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={add}
-              disabled={!name.trim() || busy}
-              className="px-3 py-1.5 text-xs rounded bg-mint-700 hover:bg-mint-800
-                         text-white disabled:opacity-50 transition-colors"
-            >
-              Add
-            </button>
-          </div>
         </div>
       </div>
 

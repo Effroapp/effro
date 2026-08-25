@@ -6,6 +6,8 @@ rather than per-area, because a Risk means the same thing wherever it is
 written, and deleting one is safe: its entries become Updates rather than
 disappearing with it.
 """
+import re
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -56,6 +58,45 @@ def _reject_duplicate(db: Session, name: str, exclude_id: int | None = None):
         )
 
 
+# Icons already spoken for by a built-in type. Offering one of these would
+# put two different meanings behind the same shape on the rail.
+BUILT_IN_ICONS = {"square-check-big", "scale", "pen-line", "circle-slash", "calendar"}
+
+
+def _clean_icon(raw):
+    """A Lucide name in kebab case, or None."""
+    icon = (raw or "").strip().lower()
+    if not icon:
+        return None
+    if not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", icon):
+        raise HTTPException(status_code=422, detail="That is not a valid icon name")
+    if icon in BUILT_IN_ICONS:
+        raise HTTPException(
+            status_code=409,
+            detail="A built-in type already uses that icon",
+        )
+    return icon
+
+
+def _reject_duplicate_icon(db: Session, icon, exclude_id: int | None = None):
+    """The icon is the identity, so two types must not share one.
+
+    A 409 rather than silent acceptance, because two types wearing the same
+    shape is exactly what the neutral ground was chosen to avoid.
+    """
+    if not icon:
+        return
+    q = db.query(models.CustomEntryType).filter(models.CustomEntryType.icon == icon)
+    if exclude_id is not None:
+        q = q.filter(models.CustomEntryType.id != exclude_id)
+    clash = q.first()
+    if clash:
+        raise HTTPException(
+            status_code=409,
+            detail=f"{clash.name} already uses that icon",
+        )
+
+
 def _usage(db: Session, type_id: int) -> int:
     return db.query(models.Entry).filter(models.Entry.custom_type_id == type_id).count()
 
@@ -75,7 +116,7 @@ def list_entry_types(
     )
     return [
         schemas.CustomEntryTypeListed(
-            id=t.id, name=t.name, colour=t.colour,
+            id=t.id, name=t.name, colour=t.colour, icon=t.icon,
             usage_count=counts.get(t.id, 0), created_at=t.created_at,
         )
         for t in rows
@@ -90,8 +131,10 @@ def create_entry_type(
     name = _clean_name(payload.name)
     _check_colour(payload.colour)
     _reject_duplicate(db, name)
+    icon = _clean_icon(payload.icon)
+    _reject_duplicate_icon(db, icon)
 
-    entry_type = models.CustomEntryType(name=name, colour=payload.colour)
+    entry_type = models.CustomEntryType(name=name, colour=payload.colour, icon=icon)
     db.add(entry_type)
     db.commit()
     db.refresh(entry_type)
@@ -125,6 +168,11 @@ def update_entry_type(
     if payload.colour is not None:
         _check_colour(payload.colour)
         entry_type.colour = payload.colour
+
+    if payload.icon is not None:
+        icon = _clean_icon(payload.icon)
+        _reject_duplicate_icon(db, icon, exclude_id=type_id)
+        entry_type.icon = icon
 
     db.commit()
     db.refresh(entry_type)

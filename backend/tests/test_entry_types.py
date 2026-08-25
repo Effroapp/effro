@@ -153,7 +153,8 @@ def test_thread_get_carries_the_custom_type_on_the_entry(client, thread_id):
 
     entry = client.get(f"/api/threads/{thread_id}").json()["entries"][-1]
     assert entry["type"] == "custom"
-    assert entry["custom_type"] == {"id": made["id"], "name": "Risk", "colour": "plum"}
+    assert entry["custom_type"] == {"id": made["id"], "name": "Risk",
+                                    "colour": "plum", "icon": None}
 
 
 def test_switching_type_moves_the_custom_link_with_it(client, thread_id):
@@ -174,6 +175,61 @@ def test_switching_type_moves_the_custom_link_with_it(client, thread_id):
     # And switching to custom without an id is refused.
     assert client.put(f"/api/entries/{entry_id}", json={"type": "custom"}).status_code == 422
 
+
+# ── Icons ─────────────────────────────────────────────────────────────────────
+
+def test_a_type_can_carry_an_icon(client):
+    made = client.post("/api/entry-types",
+                       json={"name": "Risk", "colour": "plum", "icon": "flag"}).json()
+    assert made["icon"] == "flag"
+
+
+def test_two_types_cannot_share_an_icon(client):
+    """The icon is the identity on the rail, so a collision is refused."""
+    _make(client, "Risk")
+    client.put(f"/api/entry-types/{client.get('/api/entry-types').json()[0]['id']}",
+               json={"icon": "flag"})
+    clash = client.post("/api/entry-types",
+                        json={"name": "Question", "colour": "seafoam", "icon": "flag"})
+    assert clash.status_code == 409
+    assert "already uses that icon" in clash.json()["detail"]
+
+
+def test_a_built_in_icon_is_not_on_offer(client):
+    """Two meanings behind one shape is what the neutral ground avoids."""
+    for taken in ("scale", "calendar", "circle-slash", "square-check-big"):
+        r = client.post("/api/entry-types",
+                        json={"name": f"T {taken}", "colour": "plum", "icon": taken})
+        assert r.status_code == 409, taken
+
+
+def test_a_malformed_icon_name_is_refused(client):
+    for bad in ("flag_icon", "flag icon", "flag/", "-flag"):
+        r = client.post("/api/entry-types",
+                        json={"name": f"T {bad}", "colour": "plum", "icon": bad})
+        assert r.status_code == 422, bad
+
+
+def test_an_icon_name_is_normalised_rather_than_refused(client):
+    """Someone typing Flag means flag, so lowercase it instead of complaining."""
+    made = client.post("/api/entry-types",
+                       json={"name": "Risk", "colour": "plum", "icon": "  Flag  "}).json()
+    assert made["icon"] == "flag"
+
+
+def test_a_type_may_have_no_icon(client):
+    made = client.post("/api/entry-types",
+                       json={"name": "Risk", "colour": "plum"}).json()
+    assert made["icon"] is None
+    # And two of those do not collide with each other.
+    other = client.post("/api/entry-types", json={"name": "Question", "colour": "dusk"})
+    assert other.status_code == 201
+
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+# Last in the file on purpose. Building the auth-on client reloads the app
+# modules with EFFRO_AUTH_ENABLED set, and every test after it in this module
+# then gets 401s from a client that was fine a moment earlier.
 
 def test_entry_types_need_a_session_when_auth_is_on(auth_client):
     assert auth_client.get("/api/entry-types").status_code == 401
