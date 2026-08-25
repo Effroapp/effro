@@ -7,6 +7,8 @@ import { TEXT_SIZES } from '../hooks/useTextSize'
 import { Tooltip } from './Tooltip'
 import { useAuth } from '../contexts/AuthContext'
 import { useOnboarding } from './OnboardingWizard'
+import SectionStyleGlyph from './SectionStyleGlyph'
+import { DASHBOARD_LAYOUTS, SECTION_STYLES, useDashboardStyling } from '../hooks/useDashboardStyling'
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024  // 2 MB
 
@@ -38,6 +40,7 @@ export default function SettingsMenu({
   textSize,
   onChangeTextSize,
 }) {
+  const { layout, setLayout, sectionStyle, setSectionStyle } = useDashboardStyling()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const fileInputRef = useRef(null)
@@ -258,6 +261,23 @@ export default function SettingsMenu({
             />
           </Section>
 
+          {/* Dashboard styling */}
+          <Section label="Dashboard styling">
+            <SubLabel>Layout</SubLabel>
+            <Segmented
+              value={layout}
+              options={DASHBOARD_LAYOUTS}
+              onChange={setLayout}
+            />
+
+            <SubLabel className="mt-3">Section style</SubLabel>
+            <SectionStylePicker value={sectionStyle} onChange={setSectionStyle} />
+
+            <p className="mt-2 text-2xs text-paper-500 dark:text-paper-600">
+              Applies to the dashboard only.
+            </p>
+          </Section>
+
           {/* Replay the welcome tour */}
           <button
             onClick={replayTour}
@@ -283,6 +303,64 @@ export default function SettingsMenu({
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// A quiet heading inside a Section, for a setting with more than one control.
+function SubLabel({ children, className = '' }) {
+  return (
+    <div className={`text-2xs text-paper-500 dark:text-paper-600 mb-1.5 ${className}`}>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * The seven section styles, as tiles.
+ *
+ * A picture of each is worth more than its name here, since the names are only
+ * meaningful once you have seen what they do. Arrow keys move the selection,
+ * the way a radiogroup should.
+ */
+function SectionStylePicker({ value, onChange }) {
+  const move = (e, index) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]
+    if (!step) return
+    e.preventDefault()
+    const next = (index + step + SECTION_STYLES.length) % SECTION_STYLES.length
+    onChange(SECTION_STYLES[next].key)
+  }
+
+  return (
+    <div role="radiogroup" aria-label="Section style" className="flex flex-wrap gap-1.5">
+      {SECTION_STYLES.map((style, i) => {
+        const selected = style.key === value
+        return (
+          <button
+            key={style.key}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            tabIndex={selected ? 0 : -1}
+            onKeyDown={(e) => move(e, i)}
+            onClick={() => onChange(style.key)}
+            className={`relative min-w-[76px] flex-1 flex flex-col items-center gap-1 px-2 py-2 rounded-md border transition-colors
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-mint-500/50
+              ${selected
+                ? 'border-mint ring-1 ring-mint bg-paper-100 dark:bg-pitch-800'
+                : 'border-paper-300 dark:border-pitch-500 hover:bg-paper-100 dark:hover:bg-pitch-800'}`}
+          >
+            <SectionStyleGlyph style={style.key} />
+            <span className="text-2xs text-paper-600 dark:text-paper-400">{style.label}</span>
+            {style.key === 'inset' && (
+              <span className="absolute top-1 right-1 font-mono text-2xs text-paper-500 dark:text-paper-600">
+                Default
+              </span>
+            )}
+          </button>
+        )
+      })}
     </div>
   )
 }

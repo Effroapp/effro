@@ -7,6 +7,7 @@ import { notifyEntriesChanged, useEntriesChanged } from '../utils/entryEvents'
 import { displayTitle } from '../utils/entries'
 import { entityForEntry } from '../utils/entityIcons'
 import TaskCheckbox from './entries/TaskCheckbox'
+import Zone from './Zone'
 import { useToast } from './Toast'
 
 /**
@@ -42,7 +43,7 @@ function relativeAge(pinnedAt) {
 // is when the row can finally be dropped from the list.
 const SETTLE_TOTAL_MS = 1180
 
-export default function InHandStrip() {
+export default function InHandStrip({ onCount }) {
   const toast = useToast()
 
   const [items, setItems] = useState([])
@@ -145,54 +146,43 @@ export default function InHandStrip() {
 
   const count = items.length
 
+  // The header's status line counts what is in hand, and this is the only
+  // thing that knows.
+  useEffect(() => { onCount?.(count) }, [count, onCount])
+
   if (!loaded || count === 0) return null
 
   return (
-    <section
-      aria-label="In Hand"
+    <div
       onMouseEnter={() => setStripHovered(true)}
       onMouseLeave={() => { setStripHovered(false); setHoveredId(null) }}
-      className="mb-[26px] rounded-xl overflow-hidden bg-white dark:bg-pitch-700
-                 border border-paper-300 dark:border-pitch-500 animate-fade-in"
     >
-      {/* Header. The count is the only capacity signal and it never becomes
-          warning copy, at any number. */}
-      <div className="flex items-center gap-3 h-[46px] px-3.5">
-        <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-paper-600 dark:text-paper-500">
-          In Hand
-        </span>
-        <span className="text-xs tracking-[-0.005em] whitespace-nowrap text-paper-600 dark:text-paper-500">
-          {count} in hand
-        </span>
-        <span className="flex-1" />
-        {(editing || stripHovered) && (
-          <button
-            onClick={() => setEditing((v) => !v)}
-            className={`px-0.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.09em] transition-colors
-              hover:text-paper-900 dark:hover:text-white
-              ${editing
-                ? 'text-paper-700 dark:text-paper-300'
-                : 'text-paper-600 dark:text-paper-500'}`}
-          >
+      <Zone
+        id="inhand"
+        title="In hand"
+        count={String(count)}
+        bodyClass="card"
+        actions={(editing || stripHovered) ? (
+          <button type="button" className="zact" onClick={() => setEditing((v) => !v)}>
             {editing ? 'Done' : 'Edit'}
           </button>
-        )}
-      </div>
-
-      {items.map((item) => (
-        <Row
-          key={item.id}
-          item={item}
-          editing={editing}
-          hovered={hoveredId === item.id}
-          settling={settling.has(item.id)}
-          onEnter={() => setHoveredId(item.id)}
-          onLeave={() => setHoveredId((id) => (id === item.id ? null : id))}
-          onTick={() => tick(item)}
-          onUnpin={() => unpin(item)}
-        />
-      ))}
-    </section>
+        ) : null}
+      >
+        {items.map((item) => (
+          <Row
+            key={item.id}
+            item={item}
+            editing={editing}
+            hovered={hoveredId === item.id}
+            settling={settling.has(item.id)}
+            onEnter={() => setHoveredId(item.id)}
+            onLeave={() => setHoveredId((id) => (id === item.id ? null : id))}
+            onTick={() => tick(item)}
+            onUnpin={() => unpin(item)}
+          />
+        ))}
+      </Zone>
+    </div>
   )
 }
 
@@ -218,8 +208,7 @@ function Row({ item, editing, hovered, settling, onEnter, onLeave, onTick, onUnp
         to={`/thread/${item.thread_id}#entry-${item.id}`}
         onMouseEnter={onEnter}
         onMouseLeave={onLeave}
-        className="ih-row relative grid items-center h-11 px-3.5
-                   [grid-template-columns:26px_minmax(0,1fr)_56px]"
+        className="ih-row relative"
       >
         {/* Hover tint sits behind the content so the reveal can fade over it. */}
         {(hovered || settling) && (
@@ -231,7 +220,7 @@ function Row({ item, editing, hovered, settling, onEnter, onLeave, onTick, onUnp
         )}
 
         {/* Control */}
-        <span className="relative flex items-center">
+        <span className="box relative flex items-center">
           {isTodo ? (
             <TaskCheckbox
               completed={settling}
@@ -247,10 +236,8 @@ function Row({ item, editing, hovered, settling, onEnter, onLeave, onTick, onUnp
         {/* Title. One line, no due date, no thread name, no column heads. */}
         <span className="relative min-w-0 flex items-center">
           <span
-            className={`truncate text-sm tracking-[-0.005em] transition-colors duration-200
-              ${settling
-                ? 'line-through text-paper-600 dark:text-paper-500'
-                : 'text-paper-900 dark:text-paper-100'}`}
+            className={`ih-text truncate transition-colors duration-200
+              ${settling ? 'line-through is-settling' : ''}`}
           >
             {displayTitle(item)}
           </span>
@@ -259,9 +246,7 @@ function Row({ item, editing, hovered, settling, onEnter, onLeave, onTick, onUnp
         {/* Age, hard right in a fixed column so every row lines up. */}
         <span className="flex items-center justify-end">
           {!settling && (
-            <span className="font-mono text-xs tracking-[0.04em] text-paper-600 dark:text-paper-500">
-              {relativeAge(item.pinned_at)}
-            </span>
+            <span className="age">{relativeAge(item.pinned_at)}</span>
           )}
         </span>
 
