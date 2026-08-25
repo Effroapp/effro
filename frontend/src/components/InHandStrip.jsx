@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { PenLine, Scale, CircleSlash, Calendar, PinOff } from 'lucide-react'
 
 import { entriesApi, pinsApi } from '../api/client'
+import { notifyEntriesChanged, useEntriesChanged } from '../utils/entryEvents'
 import TaskCheckbox from './TaskCheckbox'
 import { useToast } from './Toast'
 
@@ -80,12 +81,9 @@ export default function InHandStrip() {
 
   useEffect(() => { refresh() }, [refresh])
 
-  // Pinning happens in ThreadView, so the strip listens rather than polls.
-  useEffect(() => {
-    const onChange = () => refresh()
-    window.addEventListener('effro:pins-changed', onChange)
-    return () => window.removeEventListener('effro:pins-changed', onChange)
-  }, [refresh])
+  // Pinning and completion both happen elsewhere (ThreadView, and the entry's
+  // own checkbox), so the strip listens rather than polls.
+  useEntriesChanged(refresh)
 
   // Done or Escape leaves edit mode. No stepper, no confirmation.
   useEffect(() => {
@@ -95,29 +93,46 @@ export default function InHandStrip() {
     return () => window.removeEventListener('keydown', onKey)
   }, [editing])
 
-  // Ticking a todo. No toast: the satisfaction happens where the cursor
-  // already is. The row strikes through, says "Dealt with." where the age was,
-  // holds, then collapses out.
-  const tick = useCallback((item) => {
-    setSettling((s) => new Set(s).add(item.id))
-    entriesApi.update(item.id, { completed: true }).catch(() => {})
-
-    after(SETTLE_TOTAL_MS, () => {
-      setItems((list) => list.filter((i) => i.id !== item.id))
-      setSettling((s) => {
-        const next = new Set(s)
-        next.delete(item.id)
-        return next
-      })
+  const stopSettling = useCallback((id) => {
+    setSettling((s) => {
+      const next = new Set(s)
+      next.delete(id)
+      return next
     })
-  }, [after])
+  }, [])
+
+  // Ticking a todo. This is real completion, the same mutation the thread's own
+  // checkbox fires, so the entry is done everywhere. No toast: the satisfaction
+  // happens where the cursor already is. The row strikes through, says
+  // "Dealt with." where the age was, holds, then collapses out.
+  //
+  // The row leaves because /api/pinned no longer returns it, not because the
+  // strip dropped it locally. If the mutation fails the row is still there when
+  // we refetch, which is exactly right.
+  const tick = useCallback(async (item) => {
+    setSettling((s) => new Set(s).add(item.id))
+    try {
+      await entriesApi.update(item.id, { completed: true })
+    } catch (err) {
+      stopSettling(item.id)
+      toast(err.message, 'error')
+      refresh()
+      return
+    }
+    // Coming Up reads the same to-dos, so it has to hear about this.
+    notifyEntriesChanged()
+    after(SETTLE_TOTAL_MS, () => {
+      stopSettling(item.id)
+      refresh()
+    })
+  }, [after, refresh, stopSettling, toast])
 
   // Unpinning. The row leaves at once and the toast carries the reassurance
   // plus the way back, because this is the moment of doubt.
   const unpin = useCallback((item) => {
     const index = items.findIndex((i) => i.id === item.id)
     setItems((list) => list.filter((i) => i.id !== item.id))
-    entriesApi.togglePin(item.id).catch(() => {})
+    entriesApi.togglePin(item.id).then(notifyEntriesChanged).catch(refresh)
 
     toast(`Unpinned. Still in ${item.thread_name}.`, 'info', {
       action: {
@@ -130,7 +145,7 @@ export default function InHandStrip() {
             next.splice(Math.max(0, index), 0, item)
             return next
           })
-          entriesApi.togglePin(item.id, item.pinned_at).catch(refresh)
+          entriesApi.togglePin(item.id, item.pinned_at).then(notifyEntriesChanged).catch(refresh)
         },
       },
     })

@@ -142,6 +142,51 @@ def test_every_entry_type_can_be_pinned(client):
     assert types == {"entry", "decision", "blockage", "meeting"}
 
 
+def test_the_strips_completion_path_completes_the_entry_everywhere(client):
+    """The strip's checkbox is real completion, not a local dismissal.
+
+    It fires the same PUT the thread's own checkbox fires, so the entry is
+    done in its thread and gone from Coming Up, while the pin survives.
+    """
+    thread_id, (entry_id,) = _fixture(client, ["Send the revised SOW"])
+    client.put(f"/api/entries/{entry_id}", json={"due_date": "2026-08-25"})
+    client.post(f"/api/entries/{entry_id}/pin")
+
+    assert entry_id in {r["id"] for r in client.get("/api/pinned").json()}
+    assert entry_id in {r["id"] for r in client.get("/api/todos/upcoming").json()}
+
+    done = client.put(f"/api/entries/{entry_id}", json={"completed": True}).json()
+
+    # Done in its own right, and stamped.
+    assert done["completed"] is True
+    assert done["completed_at"] is not None
+    # The pin is untouched, so the age survives an untick.
+    assert done["pinned_at"] is not None
+    # Gone from both derived lists.
+    assert entry_id not in {r["id"] for r in client.get("/api/pinned").json()}
+    assert entry_id not in {r["id"] for r in client.get("/api/todos/upcoming").json()}
+    # And done in the thread the strip links back to.
+    thread = client.get(f"/api/threads/{thread_id}").json()
+    assert [e["completed"] for e in thread["entries"] if e["id"] == entry_id] == [True]
+
+
+def test_unticking_in_the_thread_returns_it_to_the_strip_at_its_old_age(client):
+    _, ids = _fixture(client, ["Oldest", "Middle", "Newest"])
+    for entry_id in ids:
+        client.post(f"/api/entries/{entry_id}/pin")
+    middle = ids[1]
+    was = {r["id"]: r["pinned_at"] for r in client.get("/api/pinned").json()}[middle]
+
+    client.put(f"/api/entries/{middle}", json={"completed": True})
+    assert [r["content"] for r in client.get("/api/pinned").json()] == ["Newest", "Oldest"]
+
+    client.put(f"/api/entries/{middle}", json={"completed": False})
+    rows = client.get("/api/pinned").json()
+    # Same place, same age. Completion never touched the pin.
+    assert [r["content"] for r in rows] == ["Newest", "Middle", "Oldest"]
+    assert rows[1]["pinned_at"] == was
+
+
 def test_undo_restores_the_original_pin_stamp_and_order(client):
     _, ids = _fixture(client, ["Oldest", "Middle", "Newest"])
     for entry_id in ids:
