@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone, date
+from typing import Optional
 
 import models
 import schemas
@@ -185,3 +186,86 @@ def get_upcoming_todos(limit: int = Query(default=10, le=50), db: Session = Depe
         )
         for entry, thread, area in rows
     ]
+
+
+# ── In Hand (the pinned strip on the dashboard) ───────────────────────────────
+# One nullable timestamp on the entry carries the whole feature: membership,
+# sort order and the row's age. Completed todos are filtered out of the strip
+# rather than unpinned, so unticking one in its thread quietly returns it with
+# its age intact.
+
+def _in_hand_query(db: Session):
+    """Entries currently showing in the strip, newest pin first."""
+    return (
+        db.query(models.Entry, models.Thread, models.Area)
+        .join(models.Thread, models.Entry.thread_id == models.Thread.id)
+        .join(models.Area, models.Thread.area_id == models.Area.id)
+        .filter(
+            models.Entry.pinned_at.isnot(None),
+            # A ticked todo leaves the strip but keeps its pin.
+            models.Entry.completed == False,
+        )
+        .order_by(models.Entry.pinned_at.desc())
+    )
+
+
+@router.get("/pinned", response_model=list[schemas.PinnedEntryOut])
+def list_pinned_entries(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Every pinned entry. No cap and no paging - the strip shows them all."""
+    return [
+        schemas.PinnedEntryOut(
+            id=entry.id,
+            type=entry.type,
+            content=entry.content,
+            completed=entry.completed,
+            pinned_at=entry.pinned_at,
+            thread_id=thread.id,
+            thread_name=thread.title,
+            area_id=area.id,
+            area_name=area.name,
+        )
+        for entry, thread, area in _in_hand_query(db).all()
+    ]
+
+
+@router.post("/entries/{entry_id}/pin", response_model=schemas.PinToggleOut)
+def toggle_entry_pin(
+    entry_id: int, payload: Optional[schemas.PinToggle] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Pin or unpin an entry. One endpoint, because the control is one control."""
+    entry = db.query(models.Entry).filter(models.Entry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    thread = db.query(models.Thread).filter(models.Thread.id == entry.thread_id).first()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    pinning = entry.pinned_at is None
+    if pinning:
+        # Undo passes the stamp the row had, so it comes back with its age and
+        # its place in the order rather than as a brand new pin.
+        restore = payload.restore_pinned_at if payload else None
+        entry.pinned_at = restore or datetime.now(timezone.utc)
+    else:
+        entry.pinned_at = None
+    db.commit()
+    db.refresh(entry)
+
+    log_audit(db, entity_type='entry', entity_id=entry.id, area_id=thread.area_id,
+              thread_id=entry.thread_id, action='pinned' if pinning else 'unpinned',
+              performed_by=current_user.id)
+
+    return schemas.PinToggleOut(
+        id=entry.id,
+        pinned=pinning,
+        pinned_at=entry.pinned_at,
+        # The live strip count, which the pin toast reads out.
+        count=_in_hand_query(db).count(),
+        thread_name=thread.title,
+    )

@@ -136,6 +136,13 @@ class Entry(Base):
     # for manual entries.
     external_id = Column(String(256), nullable=True, index=True)
 
+    # ── In Hand (pinned strip on the dashboard) ──────────────────────────────
+    # One nullable timestamp does three jobs: non-null means the entry is in
+    # hand, it is the sort key (newest pin first), and it is where the row's
+    # age comes from. Completing a todo never clears it, so unticking the task
+    # in its thread quietly returns it to the strip with its age intact.
+    pinned_at = Column(DateTime, nullable=True, index=True)
+
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

@@ -27,6 +27,8 @@ import { useAIConfigured } from '../hooks/useAIConfigured'
 import ActionSuggestionBanner from '../components/ActionSuggestionBanner'
 import SubtaskList from '../components/SubtaskList'
 import TaskDecompositionDrawer from '../components/TaskDecompositionDrawer'
+import TaskCheckbox from '../components/TaskCheckbox'
+import PinControl from '../components/PinControl'
 
 import { ENTITY, ENTITY_TYPES, entityFor, SECTION_ICONS } from '../utils/entityIcons'
 
@@ -296,6 +298,17 @@ export default function ThreadView() {
       ...t,
       entries: t.entries.map((e) =>
         e.id === entryId ? { ...e, subtasks: updated } : e
+      ),
+    }))
+  }
+
+  // Reflect a pin toggle in local state. PinControl is optimistic, so this
+  // only has to keep the glyph and the strip agreeing.
+  const setEntryPinned = (entryId, pinned) => {
+    setThread((t) => ({
+      ...t,
+      entries: t.entries.map((e) =>
+        e.id === entryId ? { ...e, pinned_at: pinned ? new Date().toISOString() : null } : e
       ),
     }))
   }
@@ -911,6 +924,12 @@ export default function ThreadView() {
                         {format(parseISO(task.due_date), 'dd MMM')}
                       </span>
                     )}
+                    <PinControl
+                      entryId={task.id}
+                      pinned={!!task.pinned_at}
+                      onChange={(pinned) => setEntryPinned(task.id, pinned)}
+                      className="flex-shrink-0"
+                    />
                   </a>
                 ))}
               </div>
@@ -951,6 +970,7 @@ export default function ThreadView() {
                       onCancel={() => setEditingEntryId(null)}
                       onDelete={() => setDeleteEntryId(entry.id)}
                       onToggleComplete={(completed) => toggleEntryComplete(entry.id, completed)}
+                      onTogglePin={(pinned) => setEntryPinned(entry.id, pinned)}
                       onSaveNotes={(notes) => saveEntryNotes(entry.id, notes)}
                       onSaveMeeting={(fields) => saveMeetingFields(entry.id, fields)}
                       onBreakDown={openBreakdownDrawer}
@@ -1392,40 +1412,9 @@ function ThreadLinksList({ outgoing, incoming, onRemove }) {
   )
 }
 
-// ─── Task checkbox ────────────────────────────────────────────────────────────
-
-function TaskCheckbox({ completed, onToggle }) {
-  return (
-    <button
-      onClick={onToggle}
-      className={`
-        w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0
-        transition-all duration-150
-        ${completed
-          ? 'bg-mint-700 border-mint-700'
-          : 'border-paper-400 dark:border-paper-700 bg-transparent hover:border-mint-500'
-        }
-      `}
-    >
-      <svg viewBox="0 0 24 24" width={13} height={13} fill="none">
-        <path
-          d="M4 12l5 5 11-11"
-          stroke="white"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeDasharray="24"
-          strokeDashoffset={completed ? 0 : 24}
-          style={{ transition: 'stroke-dashoffset 200ms ease 150ms' }}
-        />
-      </svg>
-    </button>
-  )
-}
-
 // ─── Entry block ──────────────────────────────────────────────────────────────
 
-function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftChange, onSave, onCancel, onDelete, onToggleComplete, onSaveNotes, onSaveMeeting, onBreakDown, onSubtasksChange }) {
+function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftChange, onSave, onCancel, onDelete, onToggleComplete, onTogglePin, onSaveNotes, onSaveMeeting, onBreakDown, onSubtasksChange }) {
   const date = new Date(entry.created_at)
   const wasEdited = entry.updated_at !== entry.created_at
   const isDecision = entry.type === 'decision'
@@ -1501,16 +1490,26 @@ function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftCh
               <span className="text-xs font-mono text-paper-400 dark:text-paper-700">(edited)</span>
             )}
           </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={isMeeting ? () => setEditingMeeting(true) : onEditStart}
-              className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-paper-700 dark:hover:text-paper-200 hover:bg-paper-200 dark:hover:bg-pitch-700 transition-colors"
-            >
-              <Edit3 size={12} />
-            </button>
-            <button onClick={onDelete} className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-terracotta hover:bg-terracotta/10 transition-colors">
-              <Trash2 size={12} />
-            </button>
+          <div className="flex items-center gap-1">
+            {/* The pin stays visible at rest, unlike edit and delete. It has to
+                be findable without hunting, and once filled it is reporting a
+                state rather than offering an action. */}
+            <PinControl
+              entryId={entry.id}
+              pinned={!!entry.pinned_at}
+              onChange={onTogglePin}
+            />
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={isMeeting ? () => setEditingMeeting(true) : onEditStart}
+                className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-paper-700 dark:hover:text-paper-200 hover:bg-paper-200 dark:hover:bg-pitch-700 transition-colors"
+              >
+                <Edit3 size={12} />
+              </button>
+              <button onClick={onDelete} className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-terracotta hover:bg-terracotta/10 transition-colors">
+                <Trash2 size={12} />
+              </button>
+            </div>
           </div>
         </div>
 

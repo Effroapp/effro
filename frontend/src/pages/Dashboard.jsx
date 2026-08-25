@@ -5,6 +5,7 @@ import { formatDistanceToNow, format, differenceInDays, differenceInCalendarDays
 import { parseUTC } from '../utils/time.js'
 import { areasApi, entriesApi } from '../api/client'
 import { getTodayNudge, getRandomNudge } from '../api/nudges'
+import InHandStrip from '../components/InHandStrip'
 import StatusBadge from '../components/StatusBadge'
 import WeeklyRoundupModal from '../components/WeeklyRoundupModal'
 import NewAreaModal from '../components/NewAreaModal'
@@ -244,6 +245,10 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* In Hand - pinned entries, directly above the area grid. Renders
+            nothing at all when nothing is pinned. */}
+        <InHandStrip />
 
         {areas.length === 0 ? (
           <EmptyState onCreate={() => setNewAreaOpen(true)} />

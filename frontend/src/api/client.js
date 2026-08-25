@@ -253,6 +253,24 @@ export const entriesApi = {
 
   getUpcoming: (limit = 10) =>
     request(`/todos/upcoming?limit=${limit}`),
+
+  // In Hand. One endpoint pins and unpins, because the control is one control.
+  // The response carries the live strip count for the pin toast.
+  // `restorePinnedAt` is undo's way back: pass the stamp the row had and it
+  // returns with its age and its place, not as a fresh pin.
+  togglePin: (id, restorePinnedAt = null) =>
+    request(`/entries/${id}/pin`, {
+      method: 'POST',
+      body: { restore_pinned_at: restorePinnedAt },
+    }),
+}
+
+// ─── In Hand (the pinned strip on the dashboard) ──────────────────────────────
+
+export const pinsApi = {
+  // Every pinned entry, newest pin first. No cap and no paging: the strip
+  // shows all of them, and a ticked todo drops out without losing its pin.
+  list: () => request('/pinned'),
 }
 
 // ─── Ingest (drag-drop files) ─────────────────────────────────────────────────
