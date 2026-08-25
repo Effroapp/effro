@@ -20,12 +20,23 @@ CUSTOM_COLOURS = ("sage", "seafoam", "dusk", "plum", "heather", "pebble")
 
 # Types that carry a title.
 #
-# A To Do is already one line, so naming it would only restate it, and a
-# Meeting is named by its own title field. References take their name from the
-# thing they point at. Everything else is prose that can run long enough to be
-# worth a one-line name, Blocked included: a blocker with a paragraph of detail
-# reads exactly like an Update in that respect.
-TITLED_TYPES = frozenset({"entry", "decision", "custom", "blockage"})
+# A Meeting is named by its own title field, and a reference takes its name from
+# the thing it points at. Everything else gets one.
+#
+# A To Do carries a title for a different reason from the prose types. It is
+# already one line, so the card shows the text itself and never a heading. But
+# people write to-dos in full sentences, and the compact places that list them
+# (the open tasks at the top of a thread, In Hand, Coming Up) then cut them off
+# part way through. The title is the short form those places show.
+TITLED_TYPES = frozenset({"entry", "decision", "custom", "blockage", "todo"})
+
+# The types whose title is prose the user writes. A To Do's is generated from
+# what they already typed, so the composer does not ask for one.
+AUTHORED_TITLE_TYPES = frozenset({"entry", "decision", "custom", "blockage"})
+
+# A to-do shorter than this already fits wherever it is listed, so shortening it
+# would spend an AI call to make it no better and possibly worse.
+TODO_TITLE_FLOOR = 60
 
 # Longest title we store, and the longest a derived or generated one runs to.
 TITLE_MAX = 120

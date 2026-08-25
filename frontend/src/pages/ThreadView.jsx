@@ -28,7 +28,7 @@ import TaskCheckbox from '../components/entries/TaskCheckbox'
 import EntryBlock from '../components/entries/EntryBlock'
 import EntryTypeRow from '../components/entries/EntryTypeRow'
 import TitleField from '../components/entries/TitleField'
-import { TITLED_TYPES, displayTitle } from '../utils/entries'
+import { AUTHORED_TITLE_TYPES, displayTitle } from '../utils/entries'
 import { suggestAndApplyTitle } from '../api/titles'
 import PinControl from '../components/PinControl'
 import { notifyEntriesChanged } from '../utils/entryEvents'
@@ -266,8 +266,8 @@ export default function ThreadView() {
         content: newEntryContent,
         type: entryType,
         custom_type_id: entryType === 'custom' ? customTypeId : undefined,
-        title: TITLED_TYPES.has(entryType) ? entryTitle.trim() : undefined,
-        title_source: TITLED_TYPES.has(entryType) && titleFromAi ? 'ai' : undefined,
+        title: AUTHORED_TITLE_TYPES.has(entryType) ? entryTitle.trim() : undefined,
+        title_source: AUTHORED_TITLE_TYPES.has(entryType) && titleFromAi ? 'ai' : undefined,
         due_date: entryType === 'todo' ? dueDate : undefined,
       })
       setThread((t) => ({ ...t, entries: [...t.entries, entry] }))
@@ -874,7 +874,7 @@ export default function ThreadView() {
               }}
             />
 
-            {TITLED_TYPES.has(entryType) && (
+            {AUTHORED_TITLE_TYPES.has(entryType) && (
               <TitleField
                 value={entryTitle}
                 onChange={setEntryTitle}

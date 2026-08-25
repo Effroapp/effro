@@ -17,7 +17,8 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from database import get_db
-from entry_text import TITLE_CUT, cut_at_word, entry_prompt_line, strip_markdown
+from entry_text import (TITLE_CUT, TITLED_TYPES, TODO_TITLE_FLOOR, cut_at_word,
+                        entry_prompt_line, strip_markdown)
 from ai_provider import get_provider, is_configured, is_small_model
 
 router = APIRouter(tags=["generate"])
@@ -380,6 +381,16 @@ _TITLE_SYSTEM = (
     "no emoji. If the entry is a question, the title can be the question."
 )
 
+# A to-do wants the same action in fewer words, not a description of it, so it
+# gets its own instruction rather than the prose one.
+_TODO_TITLE_SYSTEM = (
+    "You shorten one to-do from a personal work log into a brief label. Return "
+    "only the label. Keep the same action and the same subject, drop the "
+    "qualifiers, reasons and dates. Start with the verb. Use only what is in "
+    "the to-do and add nothing new. At most 60 characters. Plain text, sentence "
+    "case, no quotes, no trailing full stop, no emoji."
+)
+
 
 def _tidy_title(raw: str) -> str:
     """Make a model reply safe to store as a title."""
@@ -402,10 +413,12 @@ def generate_title(payload: schemas.TitleSuggestRequest, db: Session = Depends(g
     survivable and the entry keeps its fallback title.
     """
     content = (payload.content or "").strip()
-    if len(content) < _TITLE_MIN_CONTENT:
+    is_todo = payload.type == 'todo'
+    floor = TODO_TITLE_FLOOR if is_todo else _TITLE_MIN_CONTENT
+    if len(content) < floor:
         raise HTTPException(
             status_code=422,
-            detail=f"Needs at least {_TITLE_MIN_CONTENT} characters to work from",
+            detail=f"Needs at least {floor} characters to work from",
         )
 
     provider = get_provider(db)
@@ -414,7 +427,7 @@ def generate_title(payload: schemas.TitleSuggestRequest, db: Session = Depends(g
 
     try:
         reply = provider.complete(
-            system=_TITLE_SYSTEM,
+            system=_TODO_TITLE_SYSTEM if is_todo else _TITLE_SYSTEM,
             messages=[{"role": "user", "content": content[:_TITLE_MAX_CONTENT]}],
             max_tokens=40,
         )
@@ -425,3 +438,82 @@ def generate_title(payload: schemas.TitleSuggestRequest, db: Session = Depends(g
     if not title:
         raise HTTPException(status_code=502, detail="No title came back")
     return schemas.TitleSuggestion(title=title)
+
+
+# ── Naming what is still on a fallback ────────────────────────────────────────
+#
+# A title suggestion normally arrives moments after a save, so only entries
+# written before titles existed, or saved with no engine configured, are left
+# holding one derived from their own first line. For a to-do that is the cut-off
+# sentence the compact lists show, which is the whole reason it wants naming.
+#
+# This is deliberately not done at startup. It is one AI call per entry against
+# the user's own key, so it happens when they ask for it and after they have
+# been told how many it will be.
+
+
+def _needs_a_title(entry) -> bool:
+    if entry.title_source != 'fallback' or entry.type not in TITLED_TYPES:
+        return False
+    content = (entry.content or "").strip()
+    floor = TODO_TITLE_FLOOR if entry.type == 'todo' else _TITLE_MIN_CONTENT
+    return len(content) >= floor
+
+
+@router.get("/generate/title/backlog", response_model=schemas.TitleBacklog)
+def title_backlog(db: Session = Depends(get_db)):
+    """What a tidy-up would work through, so the user can be told first."""
+    rows = (
+        db.query(models.Entry)
+        .filter(models.Entry.title_source == 'fallback',
+                models.Entry.type.in_(sorted(TITLED_TYPES)))
+        .order_by(models.Entry.created_at.desc())
+        .all()
+    )
+    candidates = [e for e in rows if _needs_a_title(e)]
+    return schemas.TitleBacklog(
+        ids=[e.id for e in candidates],
+        todos=sum(1 for e in candidates if e.type == 'todo'),
+        prose=sum(1 for e in candidates if e.type != 'todo'),
+    )
+
+
+@router.post("/entries/{entry_id}/title/suggest", response_model=schemas.TitleTidyResult)
+def suggest_entry_title(entry_id: int, db: Session = Depends(get_db)):
+    """Name one entry, if it is still waiting to be named.
+
+    Run one at a time by the tidy-up so progress is honest and abandoning it
+    half way leaves the entries it already reached properly named. Re-checks
+    eligibility here rather than trusting the list it was given, so a title
+    written since is never overwritten.
+    """
+    entry = db.query(models.Entry).filter(models.Entry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    if not _needs_a_title(entry):
+        return schemas.TitleTidyResult(id=entry.id, title=entry.title, changed=False)
+
+    provider = get_provider(db)
+    if not is_configured(provider):
+        raise HTTPException(status_code=503, detail="AI isn't set up yet")
+
+    is_todo = entry.type == 'todo'
+    try:
+        reply = provider.complete(
+            system=_TODO_TITLE_SYSTEM if is_todo else _TITLE_SYSTEM,
+            messages=[{"role": "user",
+                       "content": (entry.content or "")[:_TITLE_MAX_CONTENT]}],
+            max_tokens=40,
+        )
+    except RuntimeError as e:
+        raise _provider_error(e)
+
+    title = _tidy_title(reply)
+    if not title:
+        # Nothing usable came back. The fallback stands and the run goes on.
+        return schemas.TitleTidyResult(id=entry.id, title=entry.title, changed=False)
+
+    entry.title = title
+    entry.title_source = 'ai'
+    db.commit()
+    return schemas.TitleTidyResult(id=entry.id, title=title, changed=True)

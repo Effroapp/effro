@@ -30,7 +30,12 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
   const isTitled = TITLED_TYPES.has(entry.type)
   // A fallback title only echoes the first line of the content, so it is
   // stored but never shown as a heading. Only a real one earns the space.
-  const showsHeading = isTitled && ['user', 'ai'].includes(entry.title_source)
+  //
+  // A To Do never shows one at all. Its title is the short form the compact
+  // lists use, and the card already shows the task in full beside its
+  // checkbox, so a heading here would say the same thing twice.
+  const showsHeading = isTitled && !isTodo
+    && ['user', 'ai'].includes(entry.title_source)
   // A custom entry behaves exactly like an Update. Only its dot, accent bar,
   // badge and icon come from the user's own type.
   const meta = entityForEntry(entry)
@@ -157,7 +162,7 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
                 onChange={onTogglePin}
               />
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {isTitled && !showsHeading && !editing && !editingTitle && (
+                {isTitled && !editing && !editingTitle && (isTodo || !showsHeading) && (
                   <button
                     onClick={openTitleEditor}
                     className="px-1.5 py-1 rounded text-2xs font-display uppercase tracking-widest
@@ -165,7 +170,7 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
                                hover:text-paper-700 dark:hover:text-paper-200
                                hover:bg-paper-200 dark:hover:bg-pitch-700 transition-colors"
                   >
-                    Add a title
+                    {isTodo ? 'Short form' : 'Add a title'}
                   </button>
                 )}
                 <button
@@ -193,6 +198,8 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
                 value={titleDraft}
                 onChange={setTitleDraft}
                 content={entry.content}
+                entryType={entry.type}
+                placeholder={isTodo ? 'Short form (optional)' : 'Title (optional)'}
                 onEnter={commitTitle}
               />
               <div className="flex justify-end gap-2">

@@ -15,10 +15,18 @@ import { stripMarkdown } from './markdownEditing'
 const TITLE_CUT = 60
 
 // The types that carry a title. Mirrors TITLED_TYPES in backend/entry_text.py.
-// A To Do is already one line and a Meeting is named by its own title field,
-// so neither takes one. Everything else is prose that can run long enough to
-// be worth naming, Blocked included.
-export const TITLED_TYPES = new Set(['entry', 'decision', 'custom', 'blockage'])
+// A Meeting is named by its own title field and a reference takes its name from
+// the thing it points at. Everything else gets one.
+export const TITLED_TYPES = new Set(['entry', 'decision', 'custom', 'blockage', 'todo'])
+
+// The types whose title is prose the user writes, so the composer offers a
+// field for it. A To Do's title is the short form of what they already typed,
+// generated after the save, so asking for one up front would be friction.
+export const AUTHORED_TITLE_TYPES = new Set(['entry', 'decision', 'custom', 'blockage'])
+
+// A to-do shorter than this already fits wherever it is listed, so there is
+// nothing to shorten. Matches TODO_TITLE_FLOOR on the server.
+export const TODO_TITLE_FLOOR = 60
 
 export function displayTitle(entry) {
   if (!entry) return ''
