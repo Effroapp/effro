@@ -20,6 +20,7 @@ without logging themselves out or losing their account.
 from datetime import datetime, timedelta, time
 
 import models
+from audit import create_reference_entry
 
 DEMO_FLAG_KEY = "demo_seeded"
 
@@ -301,18 +302,30 @@ def seed(db) -> dict:
                                 created_at=ago(3), updated_at=ago(3)))
         db.commit()
 
-    # Thread links.
+    # Thread links. Each gets its timeline card, backdated to match, so the
+    # demo thread reads the way a real one would.
     def link(a1, t1, a2, t2, kind):
-        db.add(models.ThreadLink(from_thread_id=thread_id[(a1, t1)],
-                                 to_thread_id=thread_id[(a2, t2)], kind=kind, created_at=ago(11)))
+        row = models.ThreadLink(from_thread_id=thread_id[(a1, t1)],
+                                to_thread_id=thread_id[(a2, t2)], kind=kind,
+                                created_at=ago(11))
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        create_reference_entry(db, row.from_thread_id, 'thread', row.id, t2,
+                               created_at=row.created_at)
     link("Payments platform", "Adyen migration", "Customer portal", "Billing page revamp", "blocks")
     link("Mobile app v3", "Offline mode", "Customer portal", "Team management", "relates_to")
     db.commit()
 
-    # Link attachments.
+    # Link attachments, each with its timeline card at the same date.
     def attach(a, t, name, url, days):
-        db.add(models.Attachment(thread_id=thread_id[(a, t)], type="link", name=name, url=url,
-                                 created_at=ago(days)))
+        row = models.Attachment(thread_id=thread_id[(a, t)], type="link", name=name,
+                                url=url, created_at=ago(days))
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        create_reference_entry(db, row.thread_id, 'link', row.id, name,
+                               created_at=row.created_at)
     attach("Payments platform", "Adyen migration", "Adyen migration runbook (Confluence)",
            "https://example.atlassian.net/wiki/spaces/PAY/pages/adyen-runbook", 5)
     attach("Payments platform", "Adyen migration", "PR #214 feat/adyen-webhooks",

@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import logging
 from typing import Optional
 
 # ── CLI args + path resolution (must run before importing database) ──────────
@@ -264,12 +265,73 @@ def _init_db():
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_entry_types_name ON custom_entry_types(lower(name))",
             "ALTER TABLE entries ADD COLUMN custom_type_id INTEGER REFERENCES custom_entry_types(id) ON DELETE SET NULL",
             "CREATE INDEX IF NOT EXISTS idx_entries_custom_type ON entries(custom_type_id)",
+            # Entry titles. title_source is user | ai | fallback, or null on the
+            # types that carry no title.
+            "ALTER TABLE entries ADD COLUMN title TEXT",
+            "ALTER TABLE entries ADD COLUMN title_source VARCHAR(10)",
+            # Reference entries. A file, link, linked thread or folio, shown in
+            # the timeline as its own card. No FK: ref_id points at one of
+            # three tables, chosen by ref_kind.
+            "ALTER TABLE entries ADD COLUMN ref_kind VARCHAR(10)",
+            "ALTER TABLE entries ADD COLUMN ref_id INTEGER",
+            "CREATE INDEX IF NOT EXISTS idx_entries_ref ON entries(ref_kind, ref_id)",
         ]:
             try:
                 conn.execute(text(sql))
                 conn.commit()
             except Exception:
                 pass
+
+    # Backfill a fallback title onto every titled entry that pre-dates the
+    # column. Done in Python rather than SQL because the fallback has to strip
+    # markdown first, and in batches so a long history does not build one huge
+    # statement. Idempotent: it only ever touches rows whose title is still null.
+    try:
+        from entry_text import TITLED_TYPES, fallback_title  # noqa: PLC0415
+        from sqlalchemy import text as _text
+        filled = 0
+        with engine.connect() as conn:
+            placeholders = ", ".join(f"'{t}'" for t in sorted(TITLED_TYPES))
+            while True:
+                rows = conn.execute(_text(
+                    f"SELECT id, content FROM entries "
+                    f"WHERE title IS NULL AND type IN ({placeholders}) LIMIT 500"
+                )).fetchall()
+                if not rows:
+                    break
+                for row in rows:
+                    conn.execute(
+                        _text("UPDATE entries SET title = :t, title_source = 'fallback' "
+                              "WHERE id = :i"),
+                        {"t": fallback_title(row[1]), "i": row[0]},
+                    )
+                conn.commit()
+                filled += len(rows)
+        if filled:
+            logging.getLogger("effro").info(
+                "Backfilled fallback titles onto %s entries", filled)
+    except Exception:
+        pass
+
+    # Backfill reference cards for everything attached before they existed.
+    #
+    # Two passes. First convert the plain text entries the old activity logger
+    # wrote, matching on the exact strings it produced so an entry the user
+    # typed themselves is never swallowed. Then create cards for anything left
+    # without one. Idempotent: the second pass only looks at objects that have
+    # no card, and the first only at entries that are still type 'entry'.
+    try:
+        from references_backfill import backfill_reference_entries  # noqa: PLC0415
+        converted, created = backfill_reference_entries(engine)
+        if converted or created:
+            logging.getLogger("effro").info(
+                "Reference cards: converted %s legacy entries, created %s missing",
+                converted, created)
+    except Exception as e:
+        # Still non-fatal, since a missing card is survivable and a failed boot
+        # is not, but never silent: an earlier version swallowed a NOT NULL
+        # violation and simply produced nothing.
+        logging.getLogger("effro").warning("Reference card backfill failed: %s", e)
 
     # Backfill area_id for any existing audit_log rows that pre-date the column
     try:
@@ -358,14 +420,12 @@ async def lifespan(app: FastAPI):
         if _tok:
             print(f"[effro] First-run setup token (required by /setup): {_tok}", flush=True)
     except Exception as e:
-        import logging
         logging.getLogger("effro").warning("Setup-token seeding failed: %s", e)
     try:
         import scheduler
         scheduler.start()
     except Exception as e:
         # Don't let a scheduler bug take the whole API down
-        import logging
         logging.getLogger("effro").warning("Scheduler failed to start: %s", e)
     yield
     try:

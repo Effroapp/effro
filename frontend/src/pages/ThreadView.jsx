@@ -9,7 +9,6 @@ import {
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import { InlineMarkdown } from '../components/Markdown'
 import MarkdownArea from '../components/MarkdownArea'
-import { stripMarkdown } from '../utils/markdownEditing'
 import { threadsApi, entriesApi, attachmentsApi, areasApi, folioApi } from '../api/client'
 import { openExternal } from '../api/tauri'
 import { useAuth } from '../contexts/AuthContext'
@@ -28,6 +27,9 @@ import TaskDecompositionDrawer from '../components/TaskDecompositionDrawer'
 import TaskCheckbox from '../components/entries/TaskCheckbox'
 import EntryBlock from '../components/entries/EntryBlock'
 import EntryTypeRow from '../components/entries/EntryTypeRow'
+import TitleField from '../components/entries/TitleField'
+import { TITLED_TYPES, displayTitle } from '../utils/entries'
+import { suggestAndApplyTitle } from '../api/titles'
 import PinControl from '../components/PinControl'
 import { notifyEntriesChanged } from '../utils/entryEvents'
 
@@ -66,7 +68,12 @@ export default function ThreadView() {
   // Entry composer state
   const [newEntryContent, setNewEntryContent] = useState('')
   const [entryType, setEntryType] = useState('entry')
+  const composerRef = useRef(null)
   const [customTypeId, setCustomTypeId] = useState(null)
+  // Kept even while a non-titled type is selected, so switching back and
+  // forth does not throw away what the user already typed.
+  const [entryTitle, setEntryTitle] = useState('')
+  const [titleFromAi, setTitleFromAi] = useState(false)
   const [dueDateOption, setDueDateOption] = useState(null)
   const [dueDate, setDueDate] = useState(null)
   const [addingEntry, setAddingEntry] = useState(false)
@@ -259,19 +266,23 @@ export default function ThreadView() {
         content: newEntryContent,
         type: entryType,
         custom_type_id: entryType === 'custom' ? customTypeId : undefined,
+        title: TITLED_TYPES.has(entryType) ? entryTitle.trim() : undefined,
+        title_source: TITLED_TYPES.has(entryType) && titleFromAi ? 'ai' : undefined,
         due_date: entryType === 'todo' ? dueDate : undefined,
       })
       setThread((t) => ({ ...t, entries: [...t.entries, entry] }))
       setNewEntryContent('')
       setEntryType('entry')
       setCustomTypeId(null)
+      setEntryTitle('')
+      setTitleFromAi(false)
       setDueDateOption(null)
       setDueDate(null)
       toast('Entry added')
       // Fire the AI hint flows in the background (action detection on
       // Updates, decomposition assessment on to-dos). No await - the entry
       // is already saved; suggestions surface a beat later if relevant.
-      onEntrySaved(entry)
+      onEntrySaved(entry, replaceEntry)
     } catch (e) { toast(e.message, 'error') }
     finally { setAddingEntry(false) }
   }
@@ -292,6 +303,15 @@ export default function ThreadView() {
       entries: t.entries.map((e) =>
         e.id === entryId ? { ...e, subtasks: updated } : e
       ),
+    }))
+  }
+
+  // Swap a freshly-returned entry over the one in state. Used by the title
+  // suggestion pass and by the card's own inline title edit.
+  const replaceEntry = (updated) => {
+    setThread((t) => ({
+      ...t,
+      entries: t.entries.map((e) => (e.id === updated.id ? { ...e, ...updated } : e)),
     }))
   }
 
@@ -334,15 +354,32 @@ export default function ThreadView() {
     finally { setAddingMeeting(false) }
   }
 
+  // Entries whose title editor is open right now. A suggestion that lands
+  // while someone is typing a title would yank the field out from under them,
+  // so those are skipped. The server's own rule covers everything else.
+  const titleEditsOpen = useRef(new Set())
+
   const saveEntry = async (entryId) => {
     try {
       const updated = await entriesApi.update(entryId, { content: entryDraft })
-      setThread((t) => ({
-        ...t,
-        entries: t.entries.map((e) => (e.id === entryId ? updated : e)),
-      }))
+      replaceEntry(updated)
       setEditingEntryId(null)
       toast('Entry updated')
+      // The server re-derived a fallback from the new text, so ask for a
+      // better one. Silent if there is no engine.
+      if (updated.title_source === 'fallback' && !titleEditsOpen.current.has(entryId)) {
+        suggestAndApplyTitle(updated).then((titled) => {
+          if (titled && !titleEditsOpen.current.has(entryId)) replaceEntry(titled)
+        })
+      }
+    } catch (e) { toast(e.message, 'error') }
+  }
+
+  // The card's inline title edit. Clearing it recomputes the fallback on the
+  // server, which makes the heading disappear again.
+  const saveEntryTitle = async (entryId, title) => {
+    try {
+      replaceEntry(await entriesApi.update(entryId, { title }))
     } catch (e) { toast(e.message, 'error') }
   }
 
@@ -508,10 +545,41 @@ export default function ThreadView() {
     finally { setAddingInlineLink(false) }
   }
 
+  // Removing a reference card and removing the thing from its sidebar panel
+  // are the same act from two directions, so each side drops the other's row
+  // from local state rather than refetching.
+  const dropReferenceEntry = (refKind, refId) => {
+    setThread((t) => ({
+      ...t,
+      entries: t.entries.filter(
+        (e) => !(e.type === 'reference' && e.ref_kind === refKind && e.ref_id === refId)
+      ),
+    }))
+  }
+
+  const deleteReferenceEntry = async (entry) => {
+    try {
+      await entriesApi.delete(entry.id)
+      setThread((t) => {
+        const next = { ...t, entries: t.entries.filter((e) => e.id !== entry.id) }
+        // Keep the sidebar honest without a round trip.
+        if (entry.ref_kind === 'file' || entry.ref_kind === 'link') {
+          next.attachments = t.attachments.filter((a) => a.id !== entry.ref_id)
+        }
+        if (entry.ref_kind === 'thread') {
+          next.outgoing_links = (t.outgoing_links || []).filter((l) => l.link_id !== entry.ref_id)
+        }
+        return next
+      })
+    } catch (e) { toast(e.message, 'error') }
+  }
+
   const deleteAttachment = async (attId) => {
     try {
+      const att = thread?.attachments?.find((a) => a.id === attId)
       await attachmentsApi.delete(attId)
       setThread((t) => ({ ...t, attachments: t.attachments.filter((a) => a.id !== attId) }))
+      dropReferenceEntry(att?.type === 'link' ? 'link' : 'file', attId)
       toast('Attachment removed')
     } catch (e) { toast(e.message, 'error') }
   }
@@ -551,6 +619,7 @@ export default function ThreadView() {
         outgoing_links: (t.outgoing_links || []).filter((l) => l.link_id !== linkId),
         incoming_links: (t.incoming_links || []).filter((l) => l.link_id !== linkId),
       }))
+      dropReferenceEntry('thread', linkId)
       toast('Link removed')
     } catch (e) {
       toast(e.message, 'error')
@@ -805,7 +874,18 @@ export default function ThreadView() {
               }}
             />
 
+            {TITLED_TYPES.has(entryType) && (
+              <TitleField
+                value={entryTitle}
+                onChange={setEntryTitle}
+                content={newEntryContent}
+                onAiFlagChange={setTitleFromAi}
+                onEnter={() => composerRef.current?.focus()}
+              />
+            )}
+
             <MarkdownArea
+              textareaRef={composerRef}
               value={newEntryContent}
               onChange={setNewEntryContent}
               placeholder={
@@ -906,7 +986,7 @@ export default function ThreadView() {
                       onToggle={(e) => { e.preventDefault(); toggleEntryComplete(task.id, true) }}
                     />
                     <span className="flex-1 text-xs text-pitch-500 dark:text-paper-300 truncate group-hover:text-pitch-800 dark:group-hover:text-white">
-                      {stripMarkdown(task.content)}
+                      {displayTitle(task)}
                     </span>
                     {task.due_date && (
                       <span className={`font-mono text-xs flex-shrink-0 ${getDueDateClass(task.due_date)}`}>
@@ -957,9 +1037,14 @@ export default function ThreadView() {
                       onDraftChange={(v) => setEntryDraft(v)}
                       onSave={() => saveEntry(entry.id)}
                       onCancel={() => setEditingEntryId(null)}
-                      onDelete={() => setDeleteEntryId(entry.id)}
+                      onDelete={() => (entry.type === 'reference'
+                        ? deleteReferenceEntry(entry)
+                        : setDeleteEntryId(entry.id))}
                       onToggleComplete={(completed) => toggleEntryComplete(entry.id, completed)}
                       onTogglePin={(pinned) => setEntryPinned(entry.id, pinned)}
+                      onSaveTitle={(title) => saveEntryTitle(entry.id, title)}
+                      onTitleEditOpen={(id) => titleEditsOpen.current.add(id)}
+                      onTitleEditClose={(id) => titleEditsOpen.current.delete(id)}
                       onSaveNotes={(notes) => saveEntryNotes(entry.id, notes)}
                       onSaveMeeting={(fields) => saveMeetingFields(entry.id, fields)}
                       onBreakDown={openBreakdownDrawer}

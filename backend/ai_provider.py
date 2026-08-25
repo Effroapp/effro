@@ -347,6 +347,16 @@ def get_provider(db: Session) -> AIProvider:
     return _build_provider(config)
 
 
+def is_configured(provider: "AIProvider") -> bool:
+    """Whether this provider can actually be called.
+
+    Lets a router tell "no engine set up yet" (503, the user's next step is
+    Settings) apart from "the engine failed" (502), without testing over the
+    network or reaching into a private class.
+    """
+    return not isinstance(provider, _UnconfiguredProvider)
+
+
 def get_provider_from_config(config: dict) -> AIProvider:
     """
     Build a provider directly from an in-memory config dict, without touching
@@ -461,7 +471,10 @@ def read_config_for_api(db: Session) -> dict:
     can verify which key is loaded without it leaving the server in plaintext.
     """
     config = _read_config(db)
-    raw_key = config.get("api_key", "")
+    # A stored config can carry api_key = None, not just a missing key: the
+    # keyless presets (Ollama) never set one. `.get(k, default)` does not help
+    # when the key is present and null, so coerce rather than assume.
+    raw_key = config.get("api_key") or ""
     masked = (
         f"{'•' * max(0, len(raw_key) - 4)}{raw_key[-4:]}"
         if len(raw_key) > 4

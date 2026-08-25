@@ -1,0 +1,273 @@
+"""
+Entry titles.
+
+The load-bearing rule is that a title the user wrote is never overwritten. An
+AI suggestion may only replace a fallback, and a content edit may only
+re-derive a fallback, so someone who has bothered to name an entry keeps that
+name whatever else happens to it.
+"""
+import os
+import pathlib
+import sqlite3
+
+import pytest
+
+
+def _area(client, name="Delivery"):
+    r = client.post("/api/areas", json={"name": name})
+    assert r.status_code in (200, 201), r.text
+    return r.json()["id"]
+
+
+def _thread(client, area_id, title="A thread"):
+    r = client.post(f"/api/areas/{area_id}/threads", json={"title": title})
+    assert r.status_code in (200, 201), r.text
+    return r.json()["id"]
+
+
+@pytest.fixture
+def thread_id(client):
+    return _thread(client, _area(client))
+
+
+def _add(client, thread_id, **payload):
+    payload.setdefault("content", "A reasonably long entry body to work from")
+    payload.setdefault("type", "entry")
+    r = client.post(f"/api/threads/{thread_id}/entries", json=payload)
+    assert r.status_code in (200, 201), r.text
+    return r.json()
+
+
+# ── The fallback rule ─────────────────────────────────────────────────────────
+
+def test_fallback_title_strips_markdown_and_takes_the_first_line():
+    from entry_text import fallback_title
+    assert fallback_title("## A **bold** heading\nand more") == "A bold heading"
+    assert fallback_title("- [link](http://x) item") == "link item"
+    assert fallback_title("> quoted line") == "quoted line"
+
+
+def test_fallback_title_cuts_a_long_line_on_a_word_boundary():
+    from entry_text import fallback_title
+    got = fallback_title("word " * 40)
+    assert len(got) <= 60
+    assert got.endswith("word")
+
+
+def test_fallback_title_has_something_to_say_about_nothing():
+    from entry_text import fallback_title
+    assert fallback_title("") == "Untitled"
+    assert fallback_title("   \n\n  ") == "Untitled"
+
+
+# ── Create ────────────────────────────────────────────────────────────────────
+
+def test_create_without_a_title_gets_a_fallback(client, thread_id):
+    entry = _add(client, thread_id, content="Supplier may miss the cutover window")
+    assert entry["title"] == "Supplier may miss the cutover window"
+    assert entry["title_source"] == "fallback"
+
+
+def test_create_with_a_title_records_the_user(client, thread_id):
+    entry = _add(client, thread_id, title="  Cutover   risk  ")
+    # Trimmed and single-spaced on the way in.
+    assert entry["title"] == "Cutover risk"
+    assert entry["title_source"] == "user"
+
+
+def test_create_may_claim_an_ai_title(client, thread_id):
+    entry = _add(client, thread_id, title="Cutover risk", title_source="ai")
+    assert entry["title_source"] == "ai"
+
+
+def test_a_client_cannot_claim_any_other_source(client, thread_id):
+    entry = _add(client, thread_id, title="Cutover risk", title_source="fallback")
+    assert entry["title_source"] == "user"
+
+
+def test_a_todo_carries_no_title_whatever_is_sent(client, thread_id):
+    entry = _add(client, thread_id, type="todo", title="Ignore me")
+    assert entry["title"] is None
+    assert entry["title_source"] is None
+
+
+def test_a_title_is_capped(client, thread_id):
+    entry = _add(client, thread_id, title="x " * 200)
+    assert len(entry["title"]) <= 120
+
+
+# ── Update ────────────────────────────────────────────────────────────────────
+
+def test_a_content_edit_recomputes_a_fallback_title(client, thread_id):
+    entry = _add(client, thread_id, content="The first version of this entry")
+    updated = client.put(f"/api/entries/{entry['id']}",
+                         json={"content": "A completely different second version"}).json()
+    assert updated["title"] == "A completely different second version"
+    assert updated["title_source"] == "fallback"
+
+
+def test_a_content_edit_leaves_a_user_title_alone(client, thread_id):
+    entry = _add(client, thread_id, title="My own name for this")
+    updated = client.put(f"/api/entries/{entry['id']}",
+                         json={"content": "Rewritten entirely"}).json()
+    assert updated["title"] == "My own name for this"
+    assert updated["title_source"] == "user"
+
+
+def test_an_ai_title_is_ignored_when_the_user_wrote_one(client, thread_id):
+    entry = _add(client, thread_id, title="My own name for this")
+    updated = client.put(f"/api/entries/{entry['id']}",
+                         json={"title": "A suggested name", "title_source": "ai"}).json()
+    assert updated["title"] == "My own name for this"
+    assert updated["title_source"] == "user"
+
+
+def test_an_ai_title_replaces_a_fallback(client, thread_id):
+    entry = _add(client, thread_id)
+    assert entry["title_source"] == "fallback"
+    updated = client.put(f"/api/entries/{entry['id']}",
+                         json={"title": "A suggested name", "title_source": "ai"}).json()
+    assert updated["title"] == "A suggested name"
+    assert updated["title_source"] == "ai"
+
+
+def test_clearing_a_title_recomputes_the_fallback(client, thread_id):
+    entry = _add(client, thread_id, content="The body of the entry",
+                 title="My own name for this")
+    cleared = client.put(f"/api/entries/{entry['id']}", json={"title": ""}).json()
+    assert cleared["title"] == "The body of the entry"
+    assert cleared["title_source"] == "fallback"
+
+
+def test_a_user_title_can_replace_an_ai_one(client, thread_id):
+    entry = _add(client, thread_id, title="Suggested", title_source="ai")
+    updated = client.put(f"/api/entries/{entry['id']}", json={"title": "Mine"}).json()
+    assert updated["title"] == "Mine"
+    assert updated["title_source"] == "user"
+
+
+# ── Type changes ──────────────────────────────────────────────────────────────
+
+def test_changing_out_of_a_titled_type_drops_the_title(client, thread_id):
+    entry = _add(client, thread_id, title="A decision I made", type="decision")
+    became = client.put(f"/api/entries/{entry['id']}", json={"type": "todo"}).json()
+    assert became["title"] is None
+    assert became["title_source"] is None
+
+
+def test_changing_into_a_titled_type_gains_a_fallback(client, thread_id):
+    entry = _add(client, thread_id, type="todo", content="Chase the venue about parking")
+    assert entry["title"] is None
+    became = client.put(f"/api/entries/{entry['id']}", json={"type": "decision"}).json()
+    assert became["title"] == "Chase the venue about parking"
+    assert became["title_source"] == "fallback"
+
+
+def test_a_blocked_entry_carries_a_title(client, thread_id):
+    """A blocker can run to a paragraph, so it earns a one-line name the same
+    way an Update does. A To Do does not, being one line already."""
+    entry = _add(client, thread_id, type="blockage",
+                 content="Their IT team have not granted staging access and the "
+                         "ticket has been open for three weeks with no owner")
+    assert entry["title_source"] == "fallback"
+    named = client.put(f"/api/entries/{entry['id']}",
+                       json={"title": "Waiting on their IT for staging"}).json()
+    assert named["title"] == "Waiting on their IT for staging"
+    assert named["title_source"] == "user"
+
+
+def test_a_custom_entry_carries_a_title(client, thread_id):
+    made = client.post("/api/entry-types",
+                       json={"name": "Risk", "colour": "plum"}).json()
+    entry = _add(client, thread_id, type="custom", custom_type_id=made["id"],
+                 title="Cutover risk")
+    assert entry["title"] == "Cutover risk"
+    assert entry["title_source"] == "user"
+    client.delete(f"/api/entry-types/{made['id']}")
+
+
+# ── The suggestion endpoint ───────────────────────────────────────────────────
+
+def test_short_content_is_refused(client):
+    r = client.post("/api/generate/title", json={"content": "too short"})
+    assert r.status_code == 422
+
+
+def test_an_unconfigured_engine_says_so(client, monkeypatch):
+    import ai_provider
+    import routers.generate as generate
+
+    monkeypatch.setattr(generate, "get_provider",
+                        lambda db: ai_provider._UnconfiguredProvider("nope"))
+    r = client.post("/api/generate/title",
+                    json={"content": "A long enough entry to want a title for"})
+    assert r.status_code == 503
+    assert r.json()["detail"] == "AI isn't set up yet"
+
+
+def test_a_configured_engine_returns_a_tidied_title(client, monkeypatch):
+    import routers.generate as generate
+
+    class _Stub:
+        # Models like to wrap the answer in quotes and end with a full stop
+        # however firmly the system prompt says not to.
+        def complete(self, system, messages, max_tokens=40):
+            return '  "Cutover risk for the supplier."  '
+
+    monkeypatch.setattr(generate, "get_provider", lambda db: _Stub())
+    r = client.post("/api/generate/title",
+                    json={"content": "A long enough entry to want a title for"})
+    assert r.status_code == 200
+    assert r.json()["title"] == "Cutover risk for the supplier"
+
+
+def test_an_empty_reply_is_a_502(client, monkeypatch):
+    import routers.generate as generate
+
+    class _Stub:
+        def complete(self, system, messages, max_tokens=40):
+            return "   "
+
+    monkeypatch.setattr(generate, "get_provider", lambda db: _Stub())
+    r = client.post("/api/generate/title",
+                    json={"content": "A long enough entry to want a title for"})
+    assert r.status_code == 502
+    assert r.json()["detail"] == "No title came back"
+
+
+# ── The backfill ──────────────────────────────────────────────────────────────
+
+def test_the_backfill_fills_legacy_rows_once(client, thread_id):
+    """A row written before the column existed gets a fallback on next boot,
+    and a second boot leaves it exactly as it is."""
+    from tests.conftest import build_client
+
+    entry = _add(client, thread_id, content="An entry from before titles existed",
+                 title="A title the user wrote")
+    db_path = os.environ["DB_PATH"]
+
+    # Rewind it to look legacy: a titled type carrying no title.
+    con = sqlite3.connect(db_path)
+    con.execute("UPDATE entries SET title = NULL, title_source = NULL WHERE id = ?",
+                (entry["id"],))
+    con.commit()
+    con.close()
+
+    def boot():
+        with build_client(pathlib.Path(db_path).parent, auth_enabled=False):
+            pass
+
+    def read():
+        con = sqlite3.connect(db_path)
+        row = con.execute("SELECT title, title_source FROM entries WHERE id = ?",
+                          (entry["id"],)).fetchone()
+        con.close()
+        return row
+
+    boot()
+    filled = read()
+    assert filled == ("An entry from before titles existed", "fallback")
+
+    # A second run must change nothing.
+    boot()
+    assert read() == filled

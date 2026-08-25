@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { detectActions, decomposeTask } from '../api/tasks'
+import { suggestAndApplyTitle } from '../api/titles'
 
 /**
  * useEntryAI - orchestrates the two post-save AI hint flows:
@@ -9,6 +10,8 @@ import { detectActions, decomposeTask } from '../api/tasks'
  *      ActionSuggestionBanner appears below the entry.
  *   2. To-do entries (type 'todo')  → assess decomposition need →
  *      TaskDecompositionDrawer slides in if the task warrants breaking up.
+ *   3. Titled entries still carrying a fallback title → suggest a real one →
+ *      the caller swaps the returned entry into thread state.
  *
  * Both are best-effort. If AI is unconfigured or a call fails, nothing shows -
  * the entry/to-do is already saved either way.
@@ -25,8 +28,20 @@ export function useEntryAI() {
   // { entryId, taskTitle, subtasks: [{title, time_estimate_minutes}] }
   const [drawerState, setDrawerState] = useState(null)
 
-  const onEntrySaved = useCallback(async (entry) => {
+  // onTitled is called with the updated entry when a suggestion lands, so the
+  // caller can replace it in thread state. Optional: Quick Capture has already
+  // closed by then and simply ignores the result.
+  const onEntrySaved = useCallback(async (entry, onTitled) => {
     if (!entry?.id) return
+    // A reference card is a pointer at a file or a thread, not prose. There is
+    // nothing in it to detect actions in, decompose or name.
+    if (entry.type === 'reference') return
+
+    // Path C - a fallback title gets a suggested one. First, because it is the
+    // one the user is most likely to see land on the card in front of them.
+    suggestAndApplyTitle(entry).then((updated) => {
+      if (updated) onTitled?.(updated)
+    })
 
     // Path A - Update entry → action detection
     // A custom type is an Update underneath, so it gets the same action pass.

@@ -146,7 +146,7 @@ The routers, grouped by what they cover:
 
 | Group | Covers |
 |-------|--------|
-| `areas`, `threads`, `entries`, `attachments`, `subtasks` | The core Areas to Threads to Entries model, plus files, links and thread groups |
+| `areas`, `threads`, `entries`, `entry_types`, `attachments`, `subtasks` | The core Areas to Threads to Entries model, user-defined entry types, plus files, links and thread groups |
 | `generate`, `ingest`, `ai_features` | Smart Generate, file parsing, the weekly roundup, task decomposition |
 | `insights`, `presence`, `nudges` | The Insights page, the heartbeat-derived working window, daily nudges |
 | `signals` | The triage feed that integrations write into |

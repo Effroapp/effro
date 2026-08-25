@@ -8,9 +8,12 @@ something works, inspect the code rather than guessing.
 A privacy-first desktop app for knowledge workers (QA/ops/PM lean) who juggle
 many streams of work. Its job is to sit calmly *alongside* the tools people
 already use and pull the important bits into one place. Core ideas:
-- Work is organised as **Areas -> Threads -> Entries**. Entry types: entry
-  (note/update), todo, decision, meeting, blockage. Threads can have attachments
-  (file/link) and links to other threads.
+- Work is organised as **Areas -> Threads -> Entries**. Built-in entry types:
+  entry (note/update), todo, decision, meeting, blockage. Users can add their
+  own types (Risk, Question and so on), stored as type `custom` with a
+  `custom_type_id`. A file, link, linked thread or filed folio appears in the
+  timeline as its own card, stored as type `reference`. Threads can have
+  attachments (file/link) and links to other threads.
 - **Signals**: external items (meetings, emails, issues, PRs) pulled from
   integrations into a triage feed. The user "accepts" one onto a thread (as a
   meeting / to-do / note).
@@ -55,7 +58,12 @@ already use and pull the important bits into one place. Core ideas:
   (additive `ALTER/CREATE TABLE IF NOT EXISTS` strings, also runs
   `Base.metadata.create_all`). No Alembic.
 - `models.py` (SQLAlchemy models), `schemas.py` (Pydantic).
-- `routers/*.py` - areas, threads, entries, attachments, generate, ingest,
+- `entry_text.py` - the entries vocabulary every layer agrees on. `TITLED_TYPES`
+  (entry, decision, custom, blockage), the type labels, `fallback_title` and
+  `entry_prompt_line`, which renders an entry for an AI prompt with its label in
+  brackets so a Risk reads as `[Risk]` rather than `[custom]`. Every prompt
+  builder uses it.
+- `routers/*.py` - areas, threads, entries, entry_types, attachments, generate, ingest,
   settings, storage, subtasks, ai_features, nudges, insights, signals, presence,
   prefs, folio, auth, account, admin, and per-integration: microsoft, jira,
   google, dropbox, icloud, github, telegram, mail. For the live list of
@@ -74,6 +82,33 @@ already use and pull the important bits into one place. Core ideas:
   onboarding completion, display name, avatar, intro-panel dismissals. The
   frontend side is `hooks/usePrefs.js`, which keeps localStorage as a
   read-through cache with the backend as the source of truth.
+- **Entries** carry three things worth knowing about.
+  - *Titles*, on the types in `TITLED_TYPES` only. A To Do is already one line
+    and a Meeting is named by its own title field, so neither takes one. A title
+    is never required to save: leave it blank and the server writes
+    `fallback_title(content)` with `title_source = 'fallback'`, stored so
+    one-line contexts always have something to show but never rendered as a
+    heading, since it would only echo the text beneath it. A title the user
+    wrote is never overwritten: an AI suggestion (`POST /generate/title`, applied
+    after the save) may only replace a fallback, and a content edit may only
+    re-derive a fallback.
+  - *Custom types*, stored as type `custom` with a `custom_type_id`. Label and
+    colour only, global rather than per area, behaving as an Update underneath.
+    Deleting a type converts its entries to Updates. The six colours are a
+    separate muted family in `tailwind.config.js` (sage, seafoam, dusk, plum,
+    heather, pebble), deliberately none of the built-in type colours, so a
+    user's own type never reads as a Decision or a Blocker.
+  - *Reference cards*, stored as type `reference` with `ref_kind` and `ref_id`.
+    A file, link, linked thread or filed folio, shown in the timeline with the
+    same shell and Notes control as any other card. `content` is a snapshot of
+    the name, but display always resolves the live object, so a rename shows
+    through, and a missing one renders a quiet gone state rather than crashing.
+    Not client-creatable, and it takes notes and nothing else.
+    **The card and the thing it points at share one life**: delete either and
+    both go, including cards in other threads when a linked thread is deleted.
+    A Folio is the exception, unfiled rather than destroyed. Everything that
+    creates one of these objects goes through `references.py`, one function per
+    object type, so the card cannot be forgotten by a new call site.
 - `connectors.py` - the connector registry + workspace policy, the single
   source of truth consumed by the main.py connector gate, the scheduler, the
   admin API (`/admin/connectors`) and `/auth/me` ("connectors" map). On a
@@ -207,6 +242,11 @@ Work that is owed but not scheduled. Add to this rather than let it live only
 in someone's head.
 - `frontend/src/pages/SystemSettings.jsx` wants breaking up. It is over 1500
   lines and carries every settings tab in one file.
+- There is no `npm run lint` script and no ESLint config. `npm run build` only
+  catches what breaks the bundle, so an undefined identifier compiles happily
+  and throws at runtime. `scripts/check-jsx-imports.mjs` covers the specific
+  case that bit us (a JSX component used but never imported) and is worth
+  running at every gate, but it is a stopgap, not a linter.
 
 ## Roadmap
 - **v0.11.0 (shipped)**: Insights rework. Integrations (Jira, Google
@@ -219,7 +259,10 @@ in someone's head.
   editions (pro / enterprise, Ed25519-signed keys). "Load demo data".
 - **v0.13.0 (shipped)**: Folio - deep-research capture (link / note / file /
   image) pulled together into one grounded digest. Enabled by default.
-- **0.14.0 (release candidates)**: Area page redesign and thread grouping.
+- **0.14.0 (release candidates)**: In Hand, the pinned entries strip on the
+  dashboard. The entries upgrade: user-defined entry types, titles on prose
+  entries, and reference cards for files, links, linked threads and folios.
+  Area page redesign and thread grouping.
   In-house text formatting across every freeform box. A stable area Description
   that grounds the area overviews and the weekly roundup. Folio index views,
   area and thread linking, and digest image editing. A visible updater progress

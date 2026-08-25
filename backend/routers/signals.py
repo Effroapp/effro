@@ -32,7 +32,7 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
-from audit import log_activity_entry
+from references import add_attachment
 from database import get_db
 from routers.attachments import UPLOAD_DIR, _ensure_upload_dir, _upload_to_remote
 
@@ -357,11 +357,8 @@ def accept_signal(
         url = _link_url(signal, _jira_host(db, signal))
         if not url:
             raise HTTPException(status_code=400, detail="This signal has no link to attach.")
-        db.add(models.Attachment(
-            thread_id=thread.id, type="link",
-            name=(signal.title or url)[:255], url=url[:1000],
-        ))
-        log_activity_entry(db, thread.id, f"Attached a link: **{(signal.title or url)[:80]}**")
+        add_attachment(db, thread.id, type="link",
+                       name=(signal.title or url)[:255], url=url[:1000])
     elif mode == "file":
         media = _media(signal)
         if signal.source != "telegram" or not media:
@@ -378,14 +375,9 @@ def accept_signal(
         dest = os.path.join(UPLOAD_DIR, stored_name)
         with open(dest, "wb") as fh:
             fh.write(content)
-        att = models.Attachment(
-            thread_id=thread.id, type="file",
-            name=original[:255], stored_name=stored_name,
-            original_name=original[:255], size=len(content),
-        )
-        db.add(att)
-        db.flush()
-        log_activity_entry(db, thread.id, f"Attached a file: **{original[:80]}**")
+        att = add_attachment(db, thread.id, type="file",
+                             name=original[:255], stored_name=stored_name,
+                             original_name=original[:255], size=len(content))
         # Best-effort cloud sync, same as a manual upload.
         background_tasks.add_task(_upload_to_remote, attachment_id=att.id,
                                   local_path=dest, stored_name=stored_name)

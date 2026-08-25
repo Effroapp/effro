@@ -4,6 +4,7 @@ import { PenLine, Scale, CircleSlash, Calendar, PinOff } from 'lucide-react'
 
 import { entriesApi, pinsApi } from '../api/client'
 import { notifyEntriesChanged, useEntriesChanged } from '../utils/entryEvents'
+import { displayTitle } from '../utils/entries'
 import TaskCheckbox from './entries/TaskCheckbox'
 import { useToast } from './Toast'
 
@@ -240,7 +241,7 @@ function Row({ item, editing, hovered, settling, onEnter, onLeave, onTick, onUnp
             <TaskCheckbox
               completed={settling}
               size={18}
-              label={`Complete: ${item.content}`}
+              label={`Complete: ${displayTitle(item)}`}
               onToggle={(e) => { e.preventDefault(); e.stopPropagation(); if (!settling) onTick() }}
             />
           ) : (
@@ -256,7 +257,7 @@ function Row({ item, editing, hovered, settling, onEnter, onLeave, onTick, onUnp
                 ? 'line-through text-paper-600 dark:text-paper-500'
                 : 'text-paper-900 dark:text-paper-100'}`}
           >
-            {item.content}
+            {displayTitle(item)}
           </span>
         </span>
 

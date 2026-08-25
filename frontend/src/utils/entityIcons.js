@@ -57,6 +57,18 @@ export const ENTITY = {
 // The neutral fallback for a custom entry with no type attached. Only reachable
 // through a direct database edit, since deleting a type converts its entries
 // back to Updates first, but the card still has to render something.
+// A reference card points at something rather than saying something, so it
+// stays neutral in the timeline. It takes no place in the composer, which is
+// why it lives here rather than in ENTITY_TYPES.
+ENTITY.reference = {
+  label: 'Reference',
+  Icon: Paperclip,
+  dot: 'bg-paper-400 dark:bg-pitch-400',
+  tint: 'text-paper-600 dark:text-paper-500',
+  badge: 'bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-200',
+  borderLeft: 'border-l-paper-300',
+}
+
 ENTITY.custom = {
   label: 'Custom',
   Icon: Tag,
@@ -130,7 +142,7 @@ export const CUSTOM_COLOURS = [
 // Built-in types only. Custom ones are appended by the composer from the
 // user's own list, so this stays the fixed part of the picker.
 export const ENTITY_TYPES = Object.entries(ENTITY)
-  .filter(([key]) => key !== 'custom')
+  .filter(([key]) => !['custom', 'reference'].includes(key))
   .map(([key, v]) => ({
   key,
   label: v.label,

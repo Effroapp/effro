@@ -8,7 +8,9 @@ import schemas
 from database import get_db
 from entry_text import entry_prompt_line
 from dependencies import get_current_user
-from audit import log_audit, log_activity_entry
+from audit import log_audit, delete_reference_entry
+from references import (add_thread_link as create_thread_link,
+                        remove_thread_link)
 
 router = APIRouter(tags=["threads"])
 
@@ -29,6 +31,74 @@ def _compute_thread_summary_meta(thread: models.Thread, db: Session) -> tuple[bo
     return (new_count > 0), new_count
 
 
+def _resolve_references(db: Session, entries) -> dict:
+    """Look up what every reference card on this thread points at.
+
+    One query per kind, never one per card. Returns {entry_id: ReferenceOut},
+    leaving out any whose object has gone so the card can render its gone state
+    from the snapshot name it kept.
+    """
+    wanted = {'file': {}, 'link': {}, 'thread': {}, 'folio': {}}
+    for e in entries:
+        if e.type == 'reference' and e.ref_kind in wanted and e.ref_id:
+            wanted[e.ref_kind].setdefault(e.ref_id, []).append(e.id)
+
+    out = {}
+
+    attachment_ids = set(wanted['file']) | set(wanted['link'])
+    if attachment_ids:
+        for a in db.query(models.Attachment).filter(
+                models.Attachment.id.in_(attachment_ids)).all():
+            kind = 'link' if a.type == 'link' else 'file'
+            for entry_id in wanted[kind].get(a.id, []):
+                out[entry_id] = schemas.ReferenceOut(
+                    kind=kind, id=a.id, name=a.name, url=a.url, size=a.size,
+                    stored_name=a.stored_name, sync_status=a.sync_status,
+                )
+
+    if wanted['thread']:
+        rows = (
+            db.query(models.ThreadLink, models.Thread, models.Area)
+            .join(models.Thread, models.ThreadLink.to_thread_id == models.Thread.id)
+            .join(models.Area, models.Thread.area_id == models.Area.id)
+            .filter(models.ThreadLink.id.in_(wanted['thread'].keys()))
+            .all()
+        )
+        for link, to_thread, area in rows:
+            for entry_id in wanted['thread'].get(link.id, []):
+                out[entry_id] = schemas.ReferenceOut(
+                    kind='thread', id=link.id, name=to_thread.title,
+                    thread_id=to_thread.id, thread_title=to_thread.title,
+                    thread_status=to_thread.status, area_name=area.name,
+                    link_kind=link.kind,
+                )
+
+    if wanted['folio']:
+        for f in db.query(models.Folio).filter(
+                models.Folio.id.in_(wanted['folio'].keys())).all():
+            name = f.title or 'Untitled folio'
+            for entry_id in wanted['folio'].get(f.id, []):
+                out[entry_id] = schemas.ReferenceOut(
+                    kind='folio', id=f.id, name=name, folio_id=f.id,
+                    folio_title=name, capture_count=len(f.captures or []),
+                )
+
+    return out
+
+
+def _entries_out(thread: models.Thread, db: Session) -> list:
+    """The thread's top-level entries, with reference cards resolved."""
+    tops = [e for e in thread.entries if e.parent_id is None]
+    resolved = _resolve_references(db, tops)
+    out = []
+    for e in tops:
+        row = schemas.EntryOut.model_validate(e)
+        if e.type == 'reference':
+            row.reference = resolved.get(e.id)
+        out.append(row)
+    return out
+
+
 def _thread_detail(thread: models.Thread, db: Session) -> schemas.ThreadDetail:
     """Build the full ThreadDetail: links, entries, and summary freshness."""
     outgoing = db.query(models.ThreadLink).filter(models.ThreadLink.from_thread_id == thread.id).all()
@@ -46,11 +116,7 @@ def _thread_detail(thread: models.Thread, db: Session) -> schemas.ThreadDetail:
         group_id=thread.group_id,
         created_at=thread.created_at,
         updated_at=thread.updated_at,
-        entries=[
-            schemas.EntryOut.model_validate(e)
-            for e in thread.entries
-            if e.parent_id is None
-        ],
+        entries=_entries_out(thread, db),
         attachments=[schemas.AttachmentOut.model_validate(a) for a in thread.attachments],
         outgoing_links=out_refs,
         incoming_links=in_refs,
@@ -198,14 +264,8 @@ def add_thread_link(thread_id: int, payload: schemas.ThreadLinkCreate, db: Sessi
     if existing:
         raise HTTPException(status_code=409, detail="Link already exists")
 
-    link = models.ThreadLink(
-        from_thread_id=thread_id,
-        to_thread_id=payload.to_thread_id,
-        kind=payload.kind,
-    )
-    db.add(link)
-    db.commit()
-    db.refresh(link)
+    link = create_thread_link(db, thread_id, payload.to_thread_id, payload.kind,
+                              to_thread.title)
 
     log_audit(
         db, entity_type="thread_link", entity_id=link.id,
@@ -214,9 +274,6 @@ def add_thread_link(thread_id: int, payload: schemas.ThreadLinkCreate, db: Sessi
         performed_by=current_user.id,
     )
     db.commit()
-
-    verb = "Marked as blocking" if payload.kind == "blocks" else "Linked to"
-    log_activity_entry(db, thread_id, f"{verb} **{to_thread.title}**")
 
     return _linked_ref(db, link, link.to_thread_id)
 
@@ -227,20 +284,9 @@ def delete_thread_link(link_id: int, db: Session = Depends(get_db), current_user
     if not link:
         raise HTTPException(status_code=404, detail="Link not found")
 
-    from_thread = db.query(models.Thread).filter(models.Thread.id == link.from_thread_id).first()
-    to_thread = db.query(models.Thread).filter(models.Thread.id == link.to_thread_id).first()
-
-    if from_thread:
-        log_audit(
-            db, entity_type="thread_link", entity_id=link.id,
-            area_id=from_thread.area_id, thread_id=link.from_thread_id,
-            action="deleted", field=link.kind,
-            old_value=to_thread.title if to_thread else None,
-            performed_by=current_user.id,
-        )
-
-    db.delete(link)
-    db.commit()
+    # The card and the link share one life, so the panel's remove and deleting
+    # the card do exactly the same work.
+    remove_thread_link(db, link, performed_by=current_user.id)
 
 
 @router.put("/threads/{thread_id}", response_model=schemas.ThreadDetail)
@@ -338,5 +384,14 @@ def delete_thread(thread_id: int, db: Session = Depends(get_db)):
     thread = db.query(models.Thread).filter(models.Thread.id == thread_id).first()
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
+
+    # Other threads link to this one, and their cards live in their own
+    # timelines. The cascade takes the link rows but knows nothing about the
+    # cards, so clear those first or they are left pointing at nothing.
+    inbound = db.query(models.ThreadLink).filter(
+        models.ThreadLink.to_thread_id == thread_id).all()
+    for link in inbound:
+        delete_reference_entry(db, 'thread', link.id)
+
     db.delete(thread)
     db.commit()
