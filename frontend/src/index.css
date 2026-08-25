@@ -87,6 +87,40 @@
   .effro-rise { animation: none; }
 }
 
+/* In Hand: the pinned dashboard strip.
+
+   The hover reveal fades in over the row rather than pushing it about, so the
+   veil colours live here as vars the gradient can read in either theme. The
+   zero-alpha stops are spelled out rather than using `transparent`, which some
+   engines interpolate through grey.
+
+   .ih-settle is the completion exit: the row holds its struck-through state so
+   the tick is seen, then collapses. 850ms hold inside 1180ms total. */
+.ih-row {
+  --ih-veil:   #EFECE3;
+  --ih-veil-0: rgba(239, 236, 227, 0);
+  --ih-rest:   #FFFFFF;
+  --ih-rest-0: rgba(255, 255, 255, 0);
+}
+.dark .ih-row {
+  --ih-veil:   #232220;
+  --ih-veil-0: rgba(35, 34, 32, 0);
+  --ih-rest:   #181714;
+  --ih-rest-0: rgba(24, 23, 20, 0);
+}
+.ih-veil-fade { background: linear-gradient(90deg, var(--ih-veil-0) 0, var(--ih-veil) 44px); }
+.ih-rest-fade { background: linear-gradient(90deg, var(--ih-rest-0) 0, var(--ih-rest) 44px); }
+
+@keyframes ihSettle {
+  0%, 72% { height: 44px; opacity: 1; }
+  100%    { height: 0;    opacity: 0; }
+}
+.ih-settle { animation: ihSettle 1180ms cubic-bezier(.65, 0, .35, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  /* The hold is timing, not motion, so it stays. Only the collapse is cut. */
+  .ih-settle { animation-duration: 1ms; animation-delay: 1179ms; }
+}
+
 /* Bionic reading: emboldened word-prefixes. Kept strong even where prose
    styles would otherwise normalise weight. */
 .bionic-fix { font-weight: 700; }

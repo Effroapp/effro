@@ -62,6 +62,8 @@ class EntryOut(BaseModel):
     time_estimate_minutes: Optional[int] = None
     subtask_order: Optional[int] = None
     decomp_dismissed: bool = False
+    # In Hand: non-null means the entry is pinned to the dashboard strip.
+    pinned_at: Optional[datetime] = None
     # Nested subtasks (only populated for parent todos). Self-referential -
     # children carry an empty list since they have no further nesting.
     subtasks: List["EntryOut"] = []
@@ -69,6 +71,44 @@ class EntryOut(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ── In Hand (pinned entries) ──────────────────────────────────────────────────
+
+class PinnedEntryOut(BaseModel):
+    """A row of the dashboard In Hand strip.
+
+    Flattened deliberately: the strip needs the thread and area names to render
+    the hover reveal and to link back, and one join here beats a fetch per row.
+    """
+    id: int
+    type: str
+    content: str
+    completed: bool
+    pinned_at: datetime
+    thread_id: int
+    thread_name: str
+    area_id: int
+    area_name: str
+
+
+class PinToggle(BaseModel):
+    """Optional body on the pin toggle.
+
+    `restore_pinned_at` is how undo puts a row back as it was rather than as a
+    fresh pin: without it the new stamp would reset the age and move the row to
+    the top of the strip. Ignored when the toggle is unpinning.
+    """
+    restore_pinned_at: Optional[datetime] = None
+
+
+class PinToggleOut(BaseModel):
+    """The result of toggling a pin, with the live count for the toast copy."""
+    id: int
+    pinned: bool
+    pinned_at: Optional[datetime] = None
+    count: int
+    thread_name: str
 
 
 # ── Subtasks ──────────────────────────────────────────────────────────────────

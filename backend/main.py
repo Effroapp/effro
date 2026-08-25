@@ -253,6 +253,10 @@ def _init_db():
             # Area description - stable "what this area is", distinct from
             # summary (the Current Overview, which tracks the live situation).
             "ALTER TABLE areas ADD COLUMN description TEXT DEFAULT ''",
+            # In Hand - pinned entries on the dashboard. Nullable timestamp
+            # doubling as membership flag, sort key and age source.
+            "ALTER TABLE entries ADD COLUMN pinned_at DATETIME",
+            "CREATE INDEX IF NOT EXISTS idx_entries_pinned_at ON entries(pinned_at)",
         ]:
             try:
                 conn.execute(text(sql))
