@@ -19,6 +19,7 @@ from apscheduler.triggers.date import DateTrigger
 
 import models
 from database import SessionLocal
+from entry_text import entry_prompt_line
 from audit import log_audit
 
 log = logging.getLogger("effro.scheduler")
@@ -45,7 +46,7 @@ def _gather_area_context(db, area: models.Area) -> str:
             .all()
         )
         entry_lines = "\n".join(
-            f"  - [{e.type}] {e.content[:180]}" for e in recent_entries
+            "  - " + entry_prompt_line(e, 180) for e in recent_entries
         ) or "  (no entries)"
         blocks.append(f"Thread: {t.title} [{t.status}]\n{entry_lines}")
     return "\n\n".join(blocks) if blocks else "(no threads yet)"
@@ -112,7 +113,7 @@ def _refresh_thread(db, thread: models.Thread, provider) -> bool:
         .limit(15)
         .all()
     )
-    entry_lines = "\n".join(f"- [{e.type}] {e.content[:200]}" for e in recent) or "(no entries yet)"
+    entry_lines = "\n".join(entry_prompt_line(e, 200) for e in recent) or "(no entries yet)"
     system = (
         "You write a concise status summary for a single thread of work.\n"
         "Output exactly 2 sentences. No preamble, no formatting, no bullet points.\n"

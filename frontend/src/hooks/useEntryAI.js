@@ -4,7 +4,8 @@ import { detectActions, decomposeTask } from '../api/tasks'
 /**
  * useEntryAI - orchestrates the two post-save AI hint flows:
  *
- *   1. Update entries (type 'entry') → detect action vocabulary →
+ *   1. Update entries (type 'entry' or a custom type) → detect action
+ *      vocabulary →
  *      ActionSuggestionBanner appears below the entry.
  *   2. To-do entries (type 'todo')  → assess decomposition need →
  *      TaskDecompositionDrawer slides in if the task warrants breaking up.
@@ -28,7 +29,9 @@ export function useEntryAI() {
     if (!entry?.id) return
 
     // Path A - Update entry → action detection
-    if (entry.type === 'entry' && (entry.content?.trim().length || 0) > 10) {
+    // A custom type is an Update underneath, so it gets the same action pass.
+    if ((entry.type === 'entry' || entry.type === 'custom')
+        && (entry.content?.trim().length || 0) > 10) {
       try {
         const data = await detectActions(entry.content, entry.id)
         if (data.actions?.length > 0) {

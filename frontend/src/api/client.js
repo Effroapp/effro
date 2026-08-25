@@ -265,6 +265,20 @@ export const entriesApi = {
     }),
 }
 
+// ─── Custom entry types ───────────────────────────────────────────────────────
+
+export const entryTypesApi = {
+  // Each row carries usage_count, so the delete confirm can say how many
+  // entries are about to become Updates.
+  list: () => request('/entry-types'),
+
+  create: (payload) => request('/entry-types', { method: 'POST', body: payload }),
+
+  update: (id, payload) => request(`/entry-types/${id}`, { method: 'PUT', body: payload }),
+
+  remove: (id) => request(`/entry-types/${id}`, { method: 'DELETE' }),
+}
+
 // ─── In Hand (the pinned strip on the dashboard) ──────────────────────────────
 
 export const pinsApi = {

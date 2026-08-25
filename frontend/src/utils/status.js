@@ -107,3 +107,12 @@ export function formatBytes(bytes) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
+
+// Due-date urgency colour. Shared by the entry card and the open-task rows, so
+// a task reads the same wherever it is shown.
+export function getDueDateClass(dueDateStr) {
+  const today = format(new Date(), 'yyyy-MM-dd')
+  if (dueDateStr === today) return 'text-mustard font-semibold'
+  if (dueDateStr < today)  return 'text-terracotta font-semibold'
+  return 'text-paper-500 dark:text-paper-600'
+}

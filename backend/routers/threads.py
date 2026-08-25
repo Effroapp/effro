@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import models
 import schemas
 from database import get_db
+from entry_text import entry_prompt_line
 from dependencies import get_current_user
 from audit import log_audit, log_activity_entry
 
@@ -139,7 +140,7 @@ def suggest_thread_summary(thread_id: int, db: Session = Depends(get_db)):
         .all()
     )
     entry_lines = "\n".join(
-        f"- [{e.type}] {e.content[:200]}" for e in recent_entries
+        entry_prompt_line(e, 200) for e in recent_entries
     ) or "(no entries yet)"
 
     system = (

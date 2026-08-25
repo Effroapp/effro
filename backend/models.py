@@ -100,13 +100,33 @@ class Thread(Base):
     )
 
 
+class CustomEntryType(Base):
+    """A user-defined entry type, such as Risk or Question.
+
+    Label and colour only. Entries using one are stored with type 'custom'
+    and behave exactly like an Update underneath, so nothing about the rest of
+    the app has to know these exist. Global rather than per-area, because a
+    Risk means the same thing wherever it is written.
+    """
+    __tablename__ = "custom_entry_types"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(40), nullable=False)
+    # One of the keys in CUSTOM_COLOURS. Maps to a palette entry on the client,
+    # never to a class name built at runtime, because Tailwind only generates
+    # what it can see written out.
+    colour = Column(String(20), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+
 class Entry(Base):
     __tablename__ = "entries"
 
     id = Column(Integer, primary_key=True, index=True)
     thread_id = Column(Integer, ForeignKey("threads.id"), nullable=False)
     content = Column(Text, nullable=False)
-    # entry | todo | decision | meeting
+    # entry | todo | decision | meeting | blockage | custom | reference
+    # 'custom' carries a user-defined type through custom_type_id.
     type = Column(String(20), default="entry", nullable=False)
     completed = Column(Boolean, default=False, nullable=False)
     completed_at = Column(DateTime, nullable=True)
@@ -136,6 +156,12 @@ class Entry(Base):
     # for manual entries.
     external_id = Column(String(256), nullable=True, index=True)
 
+    # ── Custom entry types ───────────────────────────────────────────────────
+    # Set only when type == 'custom'. Joined eagerly because the thread read
+    # path renders the label and colour on every entry, and a lazy load there
+    # would be one query per row.
+    custom_type_id = Column(Integer, ForeignKey("custom_entry_types.id"), nullable=True, index=True)
+
     # ── In Hand (pinned strip on the dashboard) ──────────────────────────────
     # One nullable timestamp does three jobs: non-null means the entry is in
     # hand, it is the sort key (newest pin first), and it is where the row's
@@ -147,6 +173,7 @@ class Entry(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     thread = relationship("Thread", back_populates="entries")
+    custom_type = relationship("CustomEntryType", lazy="joined")
     # Self-referential: a todo's subtasks. Deleting a parent cascades to its
     # children. remote_side ties the backref 'parent' to this row's id.
     subtasks = relationship(

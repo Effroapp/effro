@@ -48,6 +48,18 @@ export default {
         mustard:     '#C9A85C',  // in-progress
         terracotta:  '#B86A5C',  // blocked
         lavender:    '#8A7BB8',  // parked
+        // ── Custom entry type palette ───────────────────────────────────────
+        // A second muted family, for user-defined entry types only. It exists
+        // because the status colours above are all spoken for by the built-in
+        // types (mint Update, sky-muted To Do, amber-muted Decision, lavender
+        // Meeting, terracotta Blocked), so offering those again would make a
+        // user's own type read as a Decision or a Blocker at a glance.
+        // Names avoid Tailwind's own teal/rose/slate/stone scales.
+        seafoam:     '#5A9490',  // custom type - teal
+        dusk:        '#7B8794',  // custom type - blue grey
+        plum:        '#7E5A78',  // custom type - plum
+        heather:     '#C08497',  // custom type - dusty rose
+        pebble:      '#8A8079',  // custom type - warm grey
         // (Source-badge text colours used to live here; the Signals badges now
         // carry identity through the ProviderLogo brand marks instead.)
         // ── Brand signature · mint ─────────────────────────────────────────

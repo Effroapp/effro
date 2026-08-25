@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from database import get_db
+from entry_text import entry_prompt_line
 from ai_provider import get_provider, is_small_model
 
 router = APIRouter(tags=["generate"])
@@ -147,9 +148,8 @@ def _build_threads_context(db: Session, area_id: int) -> tuple[str, list[str]]:
         # take the tail for the most recent.
         recent = [e for e in t.entries if e.parent_id is None][-_MAX_ENTRIES_PER_THREAD:]
         for e in recent:
-            snip = _snippet(e.content, _ENTRY_SNIPPET_CHARS)
-            if snip:
-                lines.append(f"    - ({e.type}) {snip}")
+            if (e.content or "").strip():
+                lines.append("    - " + entry_prompt_line(e, _ENTRY_SNIPPET_CHARS))
 
     block = (
         "\n\nFor reference only, these threads already exist in this area (with "

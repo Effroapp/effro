@@ -4,11 +4,10 @@ import {
   Plus, Edit3, Trash2, Check, X,
   Paperclip, Link2, Upload, ExternalLink, UploadCloud,
   RefreshCw, FileText, GitBranch, ArrowRight, ArrowLeft,
-  ChevronDown, ChevronUp, Calendar, Ban,
   MessageSquare, ListTodo, Activity, Library, Loader2
 } from 'lucide-react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
-import Markdown, { InlineMarkdown } from '../components/Markdown'
+import { InlineMarkdown } from '../components/Markdown'
 import MarkdownArea from '../components/MarkdownArea'
 import { stripMarkdown } from '../utils/markdownEditing'
 import { threadsApi, entriesApi, attachmentsApi, areasApi, folioApi } from '../api/client'
@@ -21,30 +20,20 @@ import AddMeetingModal from '../components/AddMeetingModal'
 import StatusChangeModal from '../components/StatusChangeModal'
 import OverviewCard from '../components/OverviewCard'
 import { useToast } from '../components/Toast'
-import { THREAD_STATUSES, formatBytes, DUE_DATE_OPTIONS } from '../utils/status'
+import { THREAD_STATUSES, formatBytes, DUE_DATE_OPTIONS, getDueDateClass } from '../utils/status'
 import { useEntryAI } from '../hooks/useEntryAI'
 import { useAIConfigured } from '../hooks/useAIConfigured'
 import ActionSuggestionBanner from '../components/ActionSuggestionBanner'
-import SubtaskList from '../components/SubtaskList'
 import TaskDecompositionDrawer from '../components/TaskDecompositionDrawer'
-import TaskCheckbox from '../components/TaskCheckbox'
+import TaskCheckbox from '../components/entries/TaskCheckbox'
+import EntryBlock from '../components/entries/EntryBlock'
+import EntryTypeRow from '../components/entries/EntryTypeRow'
 import PinControl from '../components/PinControl'
 import { notifyEntriesChanged } from '../utils/entryEvents'
 
-import { ENTITY, ENTITY_TYPES, entityFor, SECTION_ICONS } from '../utils/entityIcons'
+import { ENTITY, SECTION_ICONS } from '../utils/entityIcons'
 
 const INACTIVITY_THRESHOLD_DAYS = 7
-
-// Entry composer types - meetings are added through the dedicated Add Meeting
-// button so they don't appear here.
-const ENTRY_TYPES = ENTITY_TYPES.filter((t) => t.key !== 'meeting')
-
-function getDueDateClass(dueDateStr) {
-  const today = format(new Date(), 'yyyy-MM-dd')
-  if (dueDateStr === today) return 'text-mustard font-semibold'
-  if (dueDateStr < today)  return 'text-terracotta font-semibold'
-  return 'text-paper-500 dark:text-paper-600'
-}
 
 export default function ThreadView() {
   const { threadId } = useParams()
@@ -77,6 +66,7 @@ export default function ThreadView() {
   // Entry composer state
   const [newEntryContent, setNewEntryContent] = useState('')
   const [entryType, setEntryType] = useState('entry')
+  const [customTypeId, setCustomTypeId] = useState(null)
   const [dueDateOption, setDueDateOption] = useState(null)
   const [dueDate, setDueDate] = useState(null)
   const [addingEntry, setAddingEntry] = useState(false)
@@ -268,11 +258,13 @@ export default function ThreadView() {
       const entry = await entriesApi.create(threadId, {
         content: newEntryContent,
         type: entryType,
+        custom_type_id: entryType === 'custom' ? customTypeId : undefined,
         due_date: entryType === 'todo' ? dueDate : undefined,
       })
       setThread((t) => ({ ...t, entries: [...t.entries, entry] }))
       setNewEntryContent('')
       setEntryType('entry')
+      setCustomTypeId(null)
       setDueDateOption(null)
       setDueDate(null)
       toast('Entry added')
@@ -801,24 +793,17 @@ export default function ThreadView() {
 
           {/* Entry composer */}
           <div className="mb-6 p-4 rounded-xl border-2 border-dashed border-paper-300 dark:border-pitch-500 bg-paper-100/50 dark:bg-pitch-700/50">
-            {/* Type selector */}
-            <div className="flex items-center gap-1.5 mb-3">
-              {ENTRY_TYPES.map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => { setEntryType(key); setDueDateOption(null); setDueDate(null) }}
-                  className={`
-                    px-3 py-1 rounded-full text-xs font-display uppercase tracking-wide transition-colors
-                    ${entryType === key
-                      ? 'bg-mint-700 text-white'
-                      : 'text-paper-600 dark:text-paper-500 bg-paper-200 dark:bg-pitch-700 hover:bg-paper-300 dark:hover:bg-pitch-500'
-                    }
-                  `}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            {/* Type selector, including the user's own types */}
+            <EntryTypeRow
+              value={entryType}
+              customTypeId={customTypeId}
+              onChange={(key, id) => {
+                setEntryType(key)
+                setCustomTypeId(id)
+                setDueDateOption(null)
+                setDueDate(null)
+              }}
+            />
 
             <MarkdownArea
               value={newEntryContent}
@@ -1416,185 +1401,6 @@ function ThreadLinksList({ outgoing, incoming, onRemove }) {
   )
 }
 
-// ─── Entry block ──────────────────────────────────────────────────────────────
-
-function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftChange, onSave, onCancel, onDelete, onToggleComplete, onTogglePin, onSaveNotes, onSaveMeeting, onBreakDown, onSubtasksChange }) {
-  const date = new Date(entry.created_at)
-  const wasEdited = entry.updated_at !== entry.created_at
-  const isDecision = entry.type === 'decision'
-  const isTodo = entry.type === 'todo'
-  const isMeeting = entry.type === 'meeting'
-  const isBlockage = entry.type === 'blockage'
-
-  // Inline meeting-edit state (independent of the regular content edit path)
-  const [editingMeeting, setEditingMeeting] = useState(false)
-
-  return (
-    <div
-      id={`entry-${entry.id}`}
-      className={`relative pl-10 pb-6 group animate-fade-in rounded-lg transition-all duration-700 ${
-        highlighted
-          ? 'ring-2 ring-mint/60 bg-mint-50/40 dark:bg-mint-900/15 -ml-2 pl-12 pr-2'
-          : 'ring-0'
-      }`}
-    >
-      {/* Timeline dot */}
-      <div className={`
-        absolute left-3 top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-pitch-800 z-10
-        ${isDecision ? 'bg-amber-muted' : 'bg-mint'}
-      `} />
-
-      <div className={`
-        relative rounded-xl border overflow-hidden
-        bg-white dark:bg-pitch-700
-        ${isBlockage
-          ? 'border-terracotta/40 dark:border-terracotta/40'
-          : 'border-paper-200 dark:border-pitch-500'
-        }
-        group-hover:border-paper-300 dark:group-hover:border-paper-700
-        transition-colors
-        ${isTodo && entry.completed ? 'opacity-60' : ''}
-      `}>
-        {/* Type accent bar */}
-        {isDecision && (
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-muted rounded-l-xl" />
-        )}
-        {isMeeting && (
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-lavender rounded-l-xl" />
-        )}
-        {isBlockage && (
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-terracotta rounded-l-xl" />
-        )}
-
-        {/* Entry header */}
-        <div className={`flex items-center justify-between px-4 py-2.5 border-b border-paper-100 dark:border-pitch-500 ${isBlockage ? 'bg-terracotta/5 dark:bg-terracotta/10' : 'bg-paper-100/50 dark:bg-pitch-800/30'} ${(isDecision || isMeeting || isBlockage) ? 'pl-5' : ''}`}>
-          <div className="flex items-center gap-2">
-            {isDecision && (
-              <span className="font-display uppercase text-xs bg-amber-muted/10 text-amber-muted px-1.5 py-0.5 rounded">
-                Decision
-              </span>
-            )}
-            {isMeeting && (
-              <span className="font-display uppercase text-xs bg-lavender/10 text-lavender px-1.5 py-0.5 rounded inline-flex items-center gap-1">
-                <Calendar size={10} /> Meeting
-              </span>
-            )}
-            {isBlockage && (
-              <span className="font-display uppercase text-xs bg-terracotta/10 text-terracotta px-1.5 py-0.5 rounded inline-flex items-center gap-1">
-                <Ban size={10} /> Blocked
-              </span>
-            )}
-            <span className="text-xs font-mono font-medium text-paper-700 dark:text-paper-200">
-              {format(date, 'dd MMM yyyy')}
-            </span>
-            <span className="text-xs font-mono text-paper-500 dark:text-paper-600">
-              {format(date, 'HH:mm')}
-            </span>
-            {wasEdited && (
-              <span className="text-xs font-mono text-paper-400 dark:text-paper-700">(edited)</span>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            {/* The pin stays visible at rest, unlike edit and delete. It has to
-                be findable without hunting, and once filled it is reporting a
-                state rather than offering an action. */}
-            <PinControl
-              entryId={entry.id}
-              pinned={!!entry.pinned_at}
-              onChange={onTogglePin}
-            />
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={isMeeting ? () => setEditingMeeting(true) : onEditStart}
-                className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-paper-700 dark:hover:text-paper-200 hover:bg-paper-200 dark:hover:bg-pitch-700 transition-colors"
-              >
-                <Edit3 size={12} />
-              </button>
-              <button onClick={onDelete} className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-terracotta hover:bg-terracotta/10 transition-colors">
-                <Trash2 size={12} />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className={`px-4 py-3 ${(isDecision || isMeeting) ? 'pl-5' : ''}`}>
-          {editing ? (
-            <div>
-              <MarkdownArea
-                autoFocus
-                value={draft}
-                onChange={onDraftChange}
-                rows={6}
-                className="bg-paper-100 dark:bg-pitch-700 border-paper-300 dark:border-paper-700"
-              />
-              <div className="flex justify-end gap-2 mt-2">
-                <button onClick={onCancel} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded text-paper-600 hover:bg-paper-200 dark:hover:bg-pitch-500 transition-colors">
-                  <X size={12} /> Cancel
-                </button>
-                <button onClick={onSave} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded bg-mint-700 hover:bg-mint-800 text-white transition-colors">
-                  <Check size={12} /> Save
-                </button>
-              </div>
-            </div>
-          ) : isTodo ? (
-            <div className="flex items-start gap-3">
-              <TaskCheckbox
-                completed={entry.completed}
-                onToggle={() => onToggleComplete(!entry.completed)}
-              />
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm leading-snug transition-colors duration-200 ${
-                  entry.completed
-                    ? 'line-through text-paper-500 dark:text-paper-600'
-                    : 'text-pitch-500 dark:text-paper-300'
-                }`}>
-                  <InlineMarkdown>{entry.content}</InlineMarkdown>
-                </p>
-                {entry.due_date && !entry.completed && (
-                  <p className={`font-mono text-xs mt-1 ${getDueDateClass(entry.due_date)}`}>
-                    due {format(parseISO(entry.due_date), 'dd MMM yyyy')}
-                  </p>
-                )}
-              </div>
-            </div>
-          ) : isMeeting ? (
-            <MeetingBody
-              entry={entry}
-              editing={editingMeeting}
-              onEditStart={() => setEditingMeeting(true)}
-              onCancel={() => setEditingMeeting(false)}
-              onSave={async (fields) => {
-                await onSaveMeeting?.(fields)
-                setEditingMeeting(false)
-              }}
-            />
-          ) : (
-            <Markdown className="text-pitch-500 dark:text-paper-300">{entry.content}</Markdown>
-          )}
-          {/* Notes - collapsible context, on every entry type for consistency. */}
-          {!editing && (
-            <EntryNotes initial={entry.notes || ''} onSave={onSaveNotes} />
-          )}
-        </div>
-
-        {/* Subtasks - rendered INSIDE the card border so they read as part of
-            the same to-do group, not a detached list below it. */}
-        {isTodo && !editing && (
-          <SubtaskList
-            parentId={entry.id}
-            subtasks={entry.subtasks || []}
-            decomp_dismissed={entry.decomp_dismissed}
-            taskTitle={entry.content}
-            onBreakDown={onBreakDown}
-            onSubtasksChange={onSubtasksChange}
-          />
-        )}
-      </div>
-    </div>
-  )
-}
-
 // ─── File item ────────────────────────────────────────────────────────────────
 
 // Extensions the browser can render natively - open in a new tab.
@@ -1685,187 +1491,6 @@ function ThreadSkeleton() {
         <div className="h-5 w-96 rounded bg-paper-200 dark:bg-pitch-700 animate-pulse" />
         <div className="h-32 rounded-xl bg-paper-200 dark:bg-pitch-700 animate-pulse mt-8" />
       </div>
-    </div>
-  )
-}
-
-// ─── Meeting body - title + datetime with inline edit ────────────────────────
-
-function MeetingBody({ entry, editing, onEditStart, onCancel, onSave }) {
-  const initialDt = entry.meeting_at ? toLocalInput(new Date(entry.meeting_at)) : ''
-  const [title, setTitle] = useState(entry.content || '')
-  const [dt, setDt] = useState(initialDt)
-  const [saving, setSaving] = useState(false)
-
-  // Re-seed local state whenever the entry changes underneath (e.g. after a save)
-  useEffect(() => {
-    setTitle(entry.content || '')
-    setDt(entry.meeting_at ? toLocalInput(new Date(entry.meeting_at)) : '')
-  }, [entry.content, entry.meeting_at])
-
-  if (!editing) {
-    return (
-      <div
-        onClick={onEditStart}
-        className="cursor-text"
-        title="Click to edit"
-      >
-        <div className="text-base font-medium text-pitch-800 dark:text-white leading-snug">
-          {entry.content || <span className="italic text-paper-400 dark:text-paper-700">Untitled meeting</span>}
-        </div>
-        {entry.meeting_at ? (
-          <div className="mt-1.5 flex items-center gap-1.5 text-xs font-mono text-lavender">
-            <Calendar size={11} />
-            {format(new Date(entry.meeting_at), 'EEE dd MMM yyyy · HH:mm')}
-          </div>
-        ) : (
-          <div className="mt-1.5 text-xs italic text-paper-400 dark:text-paper-700">
-            No time set
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  const canSave = title.trim().length > 0 && dt && !saving
-
-  const commit = async () => {
-    if (!canSave) return
-    setSaving(true)
-    try {
-      await onSave?.({ title: title.trim(), meeting_at: dt })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="space-y-2">
-      <div>
-        <label className="block text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
-          Title
-        </label>
-        <input
-          autoFocus
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="
-            w-full px-3 py-2 text-sm rounded-md
-            bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500
-            text-pitch-800 dark:text-white
-            focus:outline-none focus:ring-2 focus:ring-mint-500
-          "
-        />
-      </div>
-      <div>
-        <label className="block text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
-          When
-        </label>
-        <input
-          type="datetime-local"
-          value={dt}
-          onChange={(e) => setDt(e.target.value)}
-          className="
-            w-full px-3 py-2 text-sm rounded-md
-            bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500
-            text-pitch-800 dark:text-white
-            focus:outline-none focus:ring-2 focus:ring-mint-500
-          "
-        />
-      </div>
-      <div className="flex justify-end gap-2 pt-1">
-        <button
-          onClick={onCancel}
-          className="flex items-center gap-1 px-3 py-1.5 text-xs rounded text-paper-600 hover:bg-paper-200 dark:hover:bg-pitch-500 transition-colors"
-        >
-          <X size={12} /> Cancel
-        </button>
-        <button
-          onClick={commit}
-          disabled={!canSave}
-          className="flex items-center gap-1 px-3 py-1.5 text-xs rounded bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
-        >
-          <Check size={12} /> {saving ? 'Saving…' : 'Save'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function toLocalInput(d) {
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-// ─── Entry notes - collapsible free-text context on any entry type ───────────
-
-function EntryNotes({ initial, onSave }) {
-  const hasContent = (initial || '').trim().length > 0
-  // Auto-expanded when there's content. Otherwise collapsed by default so
-  // entries aren't cluttered. User toggle overrides per entry.
-  const [open, setOpen] = useState(hasContent)
-  const [value, setValue] = useState(initial || '')
-  const [saving, setSaving] = useState(false)
-
-  // Keep local draft in sync if the entry's notes change from elsewhere
-  // (e.g. after a save the parent re-renders with the persisted value).
-  useEffect(() => {
-    setValue(initial || '')
-  }, [initial])
-
-  const flush = async () => {
-    const next = value
-    if ((next || '') === (initial || '')) return  // nothing changed
-    setSaving(true)
-    try {
-      await onSave?.(next)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="mt-2">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="
-          inline-flex items-center gap-1.5 px-1.5 py-0.5 -ml-1.5 rounded
-          text-2xs font-display uppercase tracking-widest
-          text-paper-500 dark:text-paper-600
-          hover:text-pitch-700 dark:hover:text-paper-200
-          hover:bg-paper-100 dark:hover:bg-pitch-800
-          transition-colors
-        "
-      >
-        {open ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-        Notes
-        {!open && hasContent && (
-          <span className="ml-1 px-1 rounded bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-200 font-mono text-2xs">
-            {value.trim().length}
-          </span>
-        )}
-      </button>
-
-      {open && (
-        <div className="mt-1.5">
-          <MarkdownArea
-            value={value}
-            onChange={setValue}
-            onBlur={flush}
-            placeholder="Add context, findings, or links - saved when you click away."
-            rows={3}
-            compact
-            className="bg-paper-100 dark:bg-pitch-800 border-paper-200 dark:border-pitch-500"
-            textClassName="text-xs leading-relaxed"
-          />
-        </div>
-      )}
-      {saving && (
-        <p className="mt-0.5 text-2xs font-mono text-paper-400 dark:text-paper-700">
-          Saving…
-        </p>
-      )}
     </div>
   )
 }
