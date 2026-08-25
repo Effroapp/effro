@@ -192,6 +192,8 @@ class PinnedEntryOut(BaseModel):
     title: Optional[str] = None
     completed: bool
     pinned_at: datetime
+    # So the strip can colour a custom entry from the same map the card uses.
+    custom_type: Optional[CustomEntryTypeOut] = None
     thread_id: int
     thread_name: str
     area_id: int

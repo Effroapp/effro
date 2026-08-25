@@ -100,6 +100,22 @@
   --lavender:     #8A7BB8;  /* parked */
   --lavender-50:  rgba(138, 123, 184, 0.10);
 
+  /* ── Custom entry type palette ──────────────────────────────────────────
+     A second muted family, for user-defined entry types only. The status
+     hues above are all spoken for by the built-in types, so offering one of
+     those to a custom type would make it read as a Decision or a Blocker on
+     the timeline rail. Mirrors the Tailwind tokens of the same names, and
+     exists here so the rail medallion and left edge can colour-mix them. */
+  /* The ground the timeline rail medallion tints into. It has to be the page
+     behind the rail, not the card, so the rail line cannot show through. */
+  --rail-ground:  var(--paper);
+
+  --seafoam:      #5A9490;
+  --dusk:         #7B8794;
+  --plum:         #7E5A78;
+  --heather:      #C08497;
+  --pebble:       #8A8079;
+
   /* ── Borders & dividers ────────────────────────────────────────────────── */
   --rule:         rgba(20, 19, 15, 0.10);
   --rule-strong:  rgba(20, 19, 15, 0.18);
@@ -131,6 +147,7 @@
 
 /* ── Dark mode overrides - applied when html.dark is present ─────────────── */
 html.dark {
+  --rail-ground: var(--pitch);
   --rule:        rgba(247, 244, 237, 0.10);
   --rule-strong: rgba(247, 244, 237, 0.18);
 

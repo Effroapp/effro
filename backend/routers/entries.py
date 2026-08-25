@@ -410,6 +410,7 @@ def list_pinned_entries(
             type=entry.type,
             content=entry.content,
             title=entry.title,
+            custom_type=entry.custom_type,
             completed=entry.completed,
             pinned_at=entry.pinned_at,
             thread_id=thread.id,

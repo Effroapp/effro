@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PenLine, Scale, CircleSlash, Calendar, PinOff } from 'lucide-react'
+import { PinOff } from 'lucide-react'
 
 import { entriesApi, pinsApi } from '../api/client'
 import { notifyEntriesChanged, useEntriesChanged } from '../utils/entryEvents'
 import { displayTitle } from '../utils/entries'
+import { entityForEntry } from '../utils/entityIcons'
 import TaskCheckbox from './entries/TaskCheckbox'
 import { useToast } from './Toast'
 
@@ -35,16 +36,6 @@ function relativeAge(pinnedAt) {
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `${hours}h`
   return `${Math.floor(hours / 24)}d`
-}
-
-// Type glyphs. Mint is reserved in this feature for the pin fill, the ticked
-// checkbox and the completion settle, and terracotta is reserved app-wide for
-// genuine alerts, so blocked reads neutral here rather than red.
-const GLYPH = {
-  entry:    { Icon: PenLine,     className: 'text-sky-muted' },
-  decision: { Icon: Scale,       className: 'text-sage' },
-  blockage: { Icon: CircleSlash, className: 'text-paper-700 dark:text-paper-500' },
-  meeting:  { Icon: Calendar,    className: 'text-paper-700 dark:text-paper-500' },
 }
 
 // The 850ms hold and the 330ms collapse live in the .ih-settle keyframe; this
@@ -208,7 +199,11 @@ export default function InHandStrip() {
 // ─── One row ──────────────────────────────────────────────────────────────────
 
 function Row({ item, editing, hovered, settling, onEnter, onLeave, onTick, onUnpin }) {
-  const glyph = GLYPH[item.type] || GLYPH.entry
+  // The type reads the same here as it does on the card in its thread. The
+  // strip used to carry its own tints, which meant an Update was one colour on
+  // the dashboard and another in the timeline.
+  const glyph = entityForEntry(item)
+  const GlyphIcon = glyph.Icon
   const isTodo = item.type === 'todo'
   // The reveal cluster clears the fixed 56px age column plus the row padding.
   const showHoverCluster = hovered && !settling && !editing
@@ -245,7 +240,7 @@ function Row({ item, editing, hovered, settling, onEnter, onLeave, onTick, onUnp
               onToggle={(e) => { e.preventDefault(); e.stopPropagation(); if (!settling) onTick() }}
             />
           ) : (
-            <glyph.Icon size={15} className={glyph.className} aria-hidden="true" />
+            <GlyphIcon size={15} style={{ color: glyph.css }} aria-hidden="true" />
           )}
         </span>
 

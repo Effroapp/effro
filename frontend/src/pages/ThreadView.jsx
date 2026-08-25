@@ -1021,11 +1021,12 @@ export default function ThreadView() {
               No entries yet. Add the first one above.
             </div>
           ) : (
-            <div className="relative">
-              {/* Connector line that visually threads the entry dots together */}
-              <div className="absolute left-4 top-1 bottom-2 w-px bg-paper-300 dark:bg-pitch-500" />
+            <div className="relative pl-12">
+              {/* The rail. One line behind the type medallions, inset so it
+                  does not run past the first or last of them. */}
+              <div className="absolute left-[15px] top-2 bottom-2 w-px bg-paper-200 dark:bg-pitch-500" />
 
-              <div className="space-y-1">
+              <div className="flex flex-col gap-3">
                 {sortedEntries.map((entry) => (
                   <div key={entry.id}>
                     <EntryBlock

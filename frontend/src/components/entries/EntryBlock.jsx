@@ -28,14 +28,15 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
   const isCustom = entry.type === 'custom'
   const isReference = entry.type === 'reference'
   const isTitled = TITLED_TYPES.has(entry.type)
-  // A fallback title only echoes the first line of the content, so it is
-  // stored but never shown as a heading. Only a real one earns the space.
+  // Every entry that carries a title shows one, fallback included, so the
+  // timeline has one rhythm rather than two.
   //
-  // A To Do never shows one at all. Its title is the short form the compact
-  // lists use, and the card already shows the task in full beside its
-  // checkbox, so a heading here would say the same thing twice.
-  const showsHeading = isTitled && !isTodo
-    && ['user', 'ai'].includes(entry.title_source)
+  // A fallback repeats the first line of the prose beneath it, which is the
+  // cost of that consistency. The tidy-up in Settings is how those become real
+  // names. A To Do shows its short form here and the task in full below, which
+  // reads as a heading and its detail rather than a repetition once the short
+  // form is a real one.
+  const showsHeading = isTitled && !!entry.title
   // A custom entry behaves exactly like an Update. Only its dot, accent bar,
   // badge and icon come from the user's own type.
   const meta = entityForEntry(entry)
@@ -69,69 +70,39 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
   return (
     <div
       id={`entry-${entry.id}`}
-      className={`relative pl-10 pb-6 group animate-fade-in rounded-lg transition-all duration-700 ${
+      className={`relative group animate-fade-in rounded-lg transition-all duration-700 ${
         highlighted
-          ? 'ring-2 ring-mint/60 bg-mint-50/40 dark:bg-mint-900/15 -ml-2 pl-12 pr-2'
+          ? 'ring-2 ring-mint/60 bg-mint-50/40 dark:bg-mint-900/15 -mx-2 px-2'
           : 'ring-0'
       }`}
     >
-      {/* Timeline dot */}
-      <div className={`
-        absolute left-3 top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-pitch-800 z-10
-        ${meta.dot}
-      `} />
+      {/* Rail medallion. The type, readable down a long thread without
+          reading any of it. Opaque, so the rail line does not show through. */}
+      <div
+        className="absolute left-0 top-3 w-8 h-8 rounded-[10px] z-10 flex items-center justify-center"
+        style={{
+          background: `color-mix(in srgb, ${meta.css} 14%, var(--rail-ground))`,
+          border: `1px solid color-mix(in srgb, ${meta.css} 34%, transparent)`,
+        }}
+      >
+        <MetaIcon size={15} strokeWidth={2} style={{ color: meta.css }} />
+      </div>
 
-      <div className={`
-        relative rounded-xl border overflow-hidden
-        bg-white dark:bg-pitch-700
-        ${isBlockage
-          ? 'border-terracotta/40 dark:border-terracotta/40'
-          : 'border-paper-200 dark:border-pitch-500'
-        }
-        group-hover:border-paper-300 dark:group-hover:border-paper-700
-        transition-colors
-        ${isTodo && entry.completed ? 'opacity-60' : ''}
-      `}>
-        {/* Type accent bar */}
-        {isDecision && (
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-muted rounded-l-xl" />
-        )}
-        {isMeeting && (
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-lavender rounded-l-xl" />
-        )}
-        {isBlockage && (
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-terracotta rounded-l-xl" />
-        )}
-        {isCustom && (
-          <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${meta.dot}`} />
-        )}
-        {isReference && (
-          <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-paper-300 dark:bg-pitch-500" />
-        )}
-
+      <div
+        className={`
+          relative rounded-xl border overflow-hidden
+          bg-white dark:bg-pitch-700
+          border-paper-200 dark:border-pitch-500
+          group-hover:border-paper-300 dark:group-hover:border-paper-700
+          group-hover:shadow-lg dark:group-hover:shadow-pitch-900/50
+          transition-all duration-200
+          ${isTodo && entry.completed ? 'opacity-60' : ''}
+        `}
+        style={{ borderLeft: `3px solid ${meta.css}` }}
+      >
         {/* Entry header */}
-        <div className={`flex items-center justify-between px-4 py-2.5 border-b border-paper-100 dark:border-pitch-500 ${isBlockage ? 'bg-terracotta/5 dark:bg-terracotta/10' : 'bg-paper-100/50 dark:bg-pitch-800/30'} ${(isDecision || isMeeting || isBlockage || isCustom) ? 'pl-5' : ''}`}>
+        <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-paper-100 dark:border-pitch-500">
           <div className="flex items-center gap-2">
-            {isDecision && (
-              <span className="font-display uppercase text-xs bg-amber-muted/10 text-amber-muted px-1.5 py-0.5 rounded">
-                Decision
-              </span>
-            )}
-            {isMeeting && (
-              <span className="font-display uppercase text-xs bg-lavender/10 text-lavender px-1.5 py-0.5 rounded inline-flex items-center gap-1">
-                <Calendar size={10} /> Meeting
-              </span>
-            )}
-            {isBlockage && (
-              <span className="font-display uppercase text-xs bg-terracotta/10 text-terracotta px-1.5 py-0.5 rounded inline-flex items-center gap-1">
-                <Ban size={10} /> Blocked
-              </span>
-            )}
-            {isCustom && (
-              <span className={`font-display uppercase text-xs px-1.5 py-0.5 rounded inline-flex items-center gap-1 ${meta.badge}`}>
-                <MetaIcon size={10} /> {meta.label}
-              </span>
-            )}
             <span className="text-xs font-mono font-medium text-paper-700 dark:text-paper-200">
               {format(date, 'dd MMM yyyy')}
             </span>
@@ -140,6 +111,11 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
             </span>
             {wasEdited && (
               <span className="text-xs font-mono text-paper-400 dark:text-paper-700">(edited)</span>
+            )}
+            {isTodo && entry.due_date && !entry.completed && (
+              <span className={`text-xs font-mono ${getDueDateClass(entry.due_date)}`}>
+                · due {format(parseISO(entry.due_date), 'dd MMM')}
+              </span>
             )}
             {showsHeading && entry.title_source === 'ai' && (
               <Tooltip content="Written from the entry. Click the title to change it.">
@@ -188,7 +164,17 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
         </div>
 
         {/* Content */}
-        <div className={`px-4 py-3 ${(isDecision || isMeeting || isCustom) ? 'pl-5' : ''}`}>
+        <div className="px-[18px] pt-[15px] pb-4">
+          {/* The type, said once in words. The rail says it in colour and
+              shape, this says it for anyone reading rather than scanning. */}
+          {!isReference && !editing && (
+            <p
+              className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] mb-[7px]"
+              style={{ color: meta.css }}
+            >
+              {meta.label}
+            </p>
+          )}
           {/* Title. Editable in place, and only ever shown when someone or
               something actually named the entry. */}
           {isTitled && editingTitle && (
@@ -219,14 +205,20 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
             </div>
           )}
           {showsHeading && !editingTitle && (
-            <h3
-              onClick={openTitleEditor}
-              title="Click to edit"
-              className="text-base font-medium leading-snug mb-1.5 cursor-text
-                         text-pitch-800 dark:text-white animate-fade-in"
-            >
-              {entry.title}
-            </h3>
+            <>
+              <h3
+                onClick={openTitleEditor}
+                title="Click to edit"
+                className="text-[21px] font-bold leading-[1.25] tracking-[-0.03em] cursor-text
+                           text-paper-900 dark:text-pitch-50 animate-fade-in"
+                style={{ textWrap: 'pretty' }}
+              >
+                {entry.title}
+              </h3>
+              {/* The hairline is the fourth thing separating title from prose,
+                  after size, weight and ink. */}
+              <div className="my-[14px] border-t border-paper-200 dark:border-pitch-500" />
+            </>
           )}
 
           {isReference ? (
@@ -286,7 +278,9 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
               }}
             />
           ) : (
-            <Markdown className="text-pitch-500 dark:text-paper-300">{entry.content}</Markdown>
+            <Markdown className="entry-prose">
+              {entry.content}
+            </Markdown>
           )}
           {/* Notes - collapsible context, on every entry type for consistency.
               A reference card carries its own, below its meta line. */}
