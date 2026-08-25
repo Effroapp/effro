@@ -5,6 +5,8 @@ import { useToast } from './Toast'
 import Modal from './Modal'
 import MarkdownArea from './MarkdownArea'
 import { DUE_DATE_OPTIONS } from '../utils/status'
+import { useEntryTypes } from '../hooks/useEntryTypes'
+import { CUSTOM_PALETTE } from '../utils/entityIcons'
 
 const ENTRY_TYPES = [
   { key: 'entry',    label: 'Entry' },
@@ -15,6 +17,10 @@ const ENTRY_TYPES = [
 export default function QuickCapture() {
   const [open, setOpen] = useState(false)
   const [entryType, setEntryType] = useState('entry')
+  const [customTypeId, setCustomTypeId] = useState(null)
+  // The user's own types sit alongside the built-ins here too, so capture
+  // never has fewer options than the composer.
+  const { types: customTypes, refresh: refreshTypes } = useEntryTypes()
   const [content, setContent] = useState('')
   const [threads, setThreads] = useState([])
   const [selectedThreadId, setSelectedThreadId] = useState('')
@@ -43,13 +49,16 @@ export default function QuickCapture() {
   useEffect(() => {
     if (!open) return
     threadsApi.getAll().then(setThreads).catch(() => {})
+    // A type added in the composer should be here the moment capture opens.
+    refreshTypes()
     setTimeout(() => textareaRef.current?.focus(), 50)
-  }, [open])
+  }, [open, refreshTypes])
 
   const close = () => {
     setOpen(false)
     setContent('')
     setEntryType('entry')
+    setCustomTypeId(null)
     setSelectedThreadId('')
     setDueDateOption(null)
     setDueDate(null)
@@ -62,6 +71,7 @@ export default function QuickCapture() {
       await entriesApi.create(Number(selectedThreadId), {
         content,
         type: entryType,
+        custom_type_id: entryType === 'custom' ? customTypeId : undefined,
         due_date: entryType === 'todo' ? dueDate : undefined,
       })
       toast('Captured')
@@ -95,11 +105,11 @@ export default function QuickCapture() {
     >
       <div className="space-y-4">
         {/* Entry type selector */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {ENTRY_TYPES.map(({ key, label }) => (
             <button
               key={key}
-              onClick={() => { setEntryType(key); setDueDateOption(null); setDueDate(null) }}
+              onClick={() => { setEntryType(key); setCustomTypeId(null); setDueDateOption(null); setDueDate(null) }}
               className={`
                 px-3 py-1 rounded-full text-xs font-display uppercase tracking-wide transition-colors
                 ${entryType === key
@@ -111,6 +121,27 @@ export default function QuickCapture() {
               {label}
             </button>
           ))}
+          {customTypes.map((t) => {
+            const selected = entryType === 'custom' && customTypeId === t.id
+            const palette = CUSTOM_PALETTE[t.colour] ?? CUSTOM_PALETTE.sage
+            return (
+              <button
+                key={t.id}
+                onClick={() => { setEntryType('custom'); setCustomTypeId(t.id); setDueDateOption(null); setDueDate(null) }}
+                className={`
+                  inline-flex items-center gap-1.5
+                  px-3 py-1 rounded-full text-xs font-display uppercase tracking-wide transition-colors
+                  ${selected
+                    ? 'bg-mint-700 text-white'
+                    : 'text-paper-600 dark:text-paper-500 bg-paper-200 dark:bg-pitch-700 hover:bg-paper-300 dark:hover:bg-pitch-500'
+                  }
+                `}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${selected ? 'bg-white' : palette.dot}`} />
+                {t.name}
+              </button>
+            )
+          })}
         </div>
 
         {/* Content box */}

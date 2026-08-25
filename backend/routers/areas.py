@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 import models
 import schemas
 from database import get_db
+from entry_text import entry_prompt_line
 from audit import log_audit
 from dependencies import get_current_user
 
@@ -246,7 +247,7 @@ def suggest_area_summary(area_id: int, db: Session = Depends(get_db)):
             .all()
         )
         entry_lines = "\n".join(
-            f"  - [{e.type}] {e.content[:180]}" for e in recent_entries
+            "  - " + entry_prompt_line(e, 180) for e in recent_entries
         ) or "  (no entries)"
         thread_blocks.append(
             f"Thread: {t.title} [{t.status}]\n{entry_lines}"

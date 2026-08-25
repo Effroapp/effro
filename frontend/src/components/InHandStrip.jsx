@@ -4,7 +4,7 @@ import { PenLine, Scale, CircleSlash, Calendar, PinOff } from 'lucide-react'
 
 import { entriesApi, pinsApi } from '../api/client'
 import { notifyEntriesChanged, useEntriesChanged } from '../utils/entryEvents'
-import TaskCheckbox from './TaskCheckbox'
+import TaskCheckbox from './entries/TaskCheckbox'
 import { useToast } from './Toast'
 
 /**

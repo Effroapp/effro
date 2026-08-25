@@ -8,8 +8,34 @@ import schemas
 from database import get_db
 from dependencies import get_current_user
 from audit import log_audit
+from entry_text import entry_label
 
 router = APIRouter(tags=["entries"])
+
+# Types a client may create. 'reference' is stored but not client-creatable,
+# so it is deliberately absent.
+VALID_TYPES = {"entry", "todo", "decision", "meeting", "blockage", "custom"}
+
+
+def resolve_custom_type(db: Session, entry_type: str, custom_type_id):
+    """The custom_type_id an entry of this type should carry.
+
+    A custom entry must name a type that exists. Every other type carries none,
+    whatever the client sent, so a type change can never leave a stale label
+    hanging off an Update.
+    """
+    if entry_type != "custom":
+        return None
+    if custom_type_id is None:
+        raise HTTPException(
+            status_code=422,
+            detail="custom_type_id is required when type is custom",
+        )
+    exists = db.query(models.CustomEntryType).filter(
+        models.CustomEntryType.id == custom_type_id).first()
+    if not exists:
+        raise HTTPException(status_code=422, detail="Unknown custom_type_id")
+    return custom_type_id
 
 
 @router.post("/threads/{thread_id}/entries", response_model=schemas.EntryOut, status_code=201)
@@ -21,14 +47,16 @@ def create_entry(
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    valid_types = {"entry", "todo", "decision", "meeting", "blockage"}
-    if payload.type not in valid_types:
-        raise HTTPException(status_code=422, detail=f"type must be one of {valid_types}")
+    if payload.type not in VALID_TYPES:
+        raise HTTPException(status_code=422, detail=f"type must be one of {VALID_TYPES}")
+
+    custom_type_id = resolve_custom_type(db, payload.type, payload.custom_type_id)
 
     entry = models.Entry(
         thread_id=thread_id,
         content=payload.content,
         type=payload.type,
+        custom_type_id=custom_type_id,
         due_date=payload.due_date,
         meeting_at=payload.meeting_at,
         notes=payload.notes,
@@ -50,9 +78,11 @@ def create_entry(
     except Exception:
         pass
 
+    # The field stays the stored type; the value carries the label the user
+    # actually chose, so an audit trail reads "Risk" rather than "custom".
     log_audit(db, entity_type='entry', entity_id=entry.id, area_id=thread.area_id,
-              thread_id=thread_id, action='created', field=entry.type, new_value=entry.type,
-              performed_by=current_user.id)
+              thread_id=thread_id, action='created', field=entry.type,
+              new_value=entry_label(entry), performed_by=current_user.id)
 
     return entry
 
@@ -78,14 +108,21 @@ def update_entry(
     elif payload.content is not None:
         entry.content = payload.content
 
-    if payload.type is not None and payload.type != entry.type:
-        log_audit(db, entity_type='entry', entity_id=entry.id, area_id=entry_area_id,
-                  thread_id=entry.thread_id, action='updated', field='type',
-                  old_value=entry.type, new_value=payload.type,
-                  performed_by=current_user.id)
+    if payload.type is not None:
+        if payload.type not in VALID_TYPES:
+            raise HTTPException(status_code=422, detail=f"type must be one of {VALID_TYPES}")
+        if payload.type != entry.type:
+            log_audit(db, entity_type='entry', entity_id=entry.id, area_id=entry_area_id,
+                      thread_id=entry.thread_id, action='updated', field='type',
+                      old_value=entry.type, new_value=payload.type,
+                      performed_by=current_user.id)
         entry.type = payload.type
-    elif payload.type is not None:
-        entry.type = payload.type
+        # A type change re-resolves the custom link, so switching away from a
+        # custom type clears it and switching to one demands a valid id.
+        wanted = payload.custom_type_id if payload.custom_type_id is not None else entry.custom_type_id
+        entry.custom_type_id = resolve_custom_type(db, entry.type, wanted)
+    elif payload.custom_type_id is not None:
+        entry.custom_type_id = resolve_custom_type(db, entry.type, payload.custom_type_id)
 
     newly_completed = False
     if payload.completed is not None:

@@ -30,9 +30,40 @@ class LinkCreate(BaseModel):
 
 # ── Entries ───────────────────────────────────────────────────────────────────
 
+class CustomEntryTypeOut(BaseModel):
+    id: int
+    name: str
+    colour: str
+
+    model_config = {"from_attributes": True}
+
+
+class CustomEntryTypeListed(CustomEntryTypeOut):
+    """The management list, which also reports how many entries use each type."""
+    usage_count: int
+    created_at: datetime
+
+
+class CustomEntryTypeCreate(BaseModel):
+    name: str
+    colour: str
+
+
+class CustomEntryTypeUpdate(BaseModel):
+    name: Optional[str] = None
+    colour: Optional[str] = None
+
+
+class CustomEntryTypeDeleted(BaseModel):
+    """How many entries were turned back into Updates by the delete."""
+    converted: int
+
+
 class EntryCreate(BaseModel):
     content: str
-    type: str = 'entry'  # entry | todo | decision | meeting
+    type: str = 'entry'  # entry | todo | decision | meeting | blockage | custom
+    # Required when type is 'custom', ignored otherwise.
+    custom_type_id: Optional[int] = None
     due_date: Optional[date] = None
     meeting_at: Optional[datetime] = None
     notes: Optional[str] = None
@@ -41,6 +72,7 @@ class EntryCreate(BaseModel):
 class EntryUpdate(BaseModel):
     content: Optional[str] = None
     type: Optional[str] = None
+    custom_type_id: Optional[int] = None
     completed: Optional[bool] = None
     due_date: Optional[date] = None
     meeting_at: Optional[datetime] = None
@@ -64,6 +96,10 @@ class EntryOut(BaseModel):
     decomp_dismissed: bool = False
     # In Hand: non-null means the entry is pinned to the dashboard strip.
     pinned_at: Optional[datetime] = None
+    # Set only when type is 'custom'. The nested object saves the client a
+    # lookup, and is joined eagerly on the read path.
+    custom_type_id: Optional[int] = None
+    custom_type: Optional[CustomEntryTypeOut] = None
     # Nested subtasks (only populated for parent todos). Self-referential -
     # children carry an empty list since they have no further nesting.
     subtasks: List["EntryOut"] = []

@@ -88,6 +88,7 @@ from routers import (
     account as account_router,
     admin as admin_router,
     areas, threads, entries, attachments, generate, ingest,
+    entry_types as entry_types_router,
     settings as settings_router,
     storage as storage_router,
     subtasks as subtasks_router,
@@ -257,6 +258,12 @@ def _init_db():
             # doubling as membership flag, sort key and age source.
             "ALTER TABLE entries ADD COLUMN pinned_at DATETIME",
             "CREATE INDEX IF NOT EXISTS idx_entries_pinned_at ON entries(pinned_at)",
+            # Custom entry types - user-defined labels alongside the built-ins.
+            # The unique index is on lower(name) so Risk and risk collide.
+            "CREATE TABLE IF NOT EXISTS custom_entry_types (id INTEGER PRIMARY KEY, name VARCHAR(40) NOT NULL, colour VARCHAR(20) NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_entry_types_name ON custom_entry_types(lower(name))",
+            "ALTER TABLE entries ADD COLUMN custom_type_id INTEGER REFERENCES custom_entry_types(id) ON DELETE SET NULL",
+            "CREATE INDEX IF NOT EXISTS idx_entries_custom_type ON entries(custom_type_id)",
         ]:
             try:
                 conn.execute(text(sql))
@@ -576,6 +583,7 @@ app.include_router(admin_router.router, prefix="/api")
 app.include_router(areas.router, prefix="/api")
 app.include_router(threads.router, prefix="/api")
 app.include_router(entries.router, prefix="/api")
+app.include_router(entry_types_router.router, prefix="/api")
 app.include_router(attachments.router, prefix="/api")
 app.include_router(generate.router, prefix="/api")
 app.include_router(ingest.router, prefix="/api")
