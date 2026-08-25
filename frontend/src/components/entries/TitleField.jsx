@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Loader2, Sparkles } from 'lucide-react'
 
 import { suggestTitle } from '../../api/titles'
+import { TODO_TITLE_FLOOR } from '../../utils/entries'
 import { useAIConfigured } from '../../hooks/useAIConfigured'
 import { useToast } from '../Toast'
 
@@ -20,6 +21,7 @@ export default function TitleField({
   value,
   onChange,
   content,
+  entryType = null,
   onAiFlagChange,
   onEnter,
   autoFocus = false,
@@ -33,14 +35,16 @@ export default function TitleField({
   const ref = inputRef || ownRef
 
   // Below this there is nothing worth shortening, and the server refuses it
-  // anyway, so the button stays out of the way.
-  const canSuggest = (content || '').trim().length >= 20
+  // anyway, so the button stays out of the way. A to-do needs to be long
+  // enough that shortening it actually helps.
+  const floor = entryType === 'todo' ? TODO_TITLE_FLOOR : 20
+  const canSuggest = (content || '').trim().length >= floor
 
   const suggest = async () => {
     if (busy) return
     setBusy(true)
     try {
-      const title = await suggestTitle(content)
+      const title = await suggestTitle(content, entryType)
       onChange(title)
       onAiFlagChange?.(true)
     } catch (e) {
@@ -89,7 +93,7 @@ export default function TitleField({
           {busy
             ? <Loader2 size={11} className="animate-spin" />
             : <Sparkles size={11} />}
-          Suggest a title
+          {entryType === 'todo' ? 'Shorten it' : 'Suggest a title'}
         </button>
       )}
     </div>

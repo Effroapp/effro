@@ -153,10 +153,29 @@ class EntryOut(BaseModel):
 
 class TitleSuggestRequest(BaseModel):
     content: str
+    # A to-do is shortened rather than described, so it gets its own prompt.
+    type: Optional[str] = None
 
 
 class TitleSuggestion(BaseModel):
     title: str
+
+
+class TitleBacklog(BaseModel):
+    """Entries still carrying a title derived from their own first line.
+
+    These are the ones a tidy-up would name properly. Split by type so the
+    count can say what it is about to do rather than just how many.
+    """
+    ids: list[int]
+    todos: int
+    prose: int
+
+
+class TitleTidyResult(BaseModel):
+    id: int
+    title: Optional[str] = None
+    changed: bool
 
 
 # ── In Hand (pinned entries) ──────────────────────────────────────────────────
@@ -173,6 +192,8 @@ class PinnedEntryOut(BaseModel):
     title: Optional[str] = None
     completed: bool
     pinned_at: datetime
+    # So the strip can colour a custom entry from the same map the card uses.
+    custom_type: Optional[CustomEntryTypeOut] = None
     thread_id: int
     thread_name: str
     area_id: int
@@ -450,6 +471,8 @@ class UpcomingTodo(BaseModel):
     area_id: int
     area_name: str
     content: str
+    # The short form, for a list that has one line to show it in.
+    title: Optional[str] = None
     due_date: Optional[date] = None
 
     model_config = {"from_attributes": True}

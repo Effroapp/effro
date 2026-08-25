@@ -1,4 +1,7 @@
-import { PenLine, CheckSquare, Scale, Calendar, MessageSquare, Eye, Activity, Paperclip, Link2, Ban, Tag } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
+import { PenLine, CheckSquare, Scale, Calendar, MessageSquare, Eye, Activity,
+         Paperclip, Link2, Ban, Tag, SquareCheckBig, CircleSlash, Library,
+         CircleDot } from 'lucide-react'
 
 /**
  * Single source of truth for the icon + label + colour token used for each
@@ -8,6 +11,13 @@ import { PenLine, CheckSquare, Scale, Calendar, MessageSquare, Eye, Activity, Pa
  *
  * Tint classes assume Effro's accent palette + the muted status colours
  * declared in tailwind.config.js.
+ *
+ * `css` is the same colour as a CSS variable, for the places that have to
+ * colour-mix it rather than name a class: the timeline rail medallion and the
+ * card's left edge. Every type has one, so those never special-case.
+ *
+ * Mint is absent by design. It is the brand, focus and selected colour, and a
+ * status use would make every one of those read as a state.
  */
 export const ENTITY = {
   entry: {
@@ -15,14 +25,16 @@ export const ENTITY = {
     // (a log update). Only this label changes - no data migration.
     label: 'Update',
     Icon: PenLine,
-    dot: 'bg-mint',
-    tint: 'text-paper-700 dark:text-paper-200',
-    badge: 'bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-200',
-    borderLeft: 'border-l-mint-500',
+    css: 'var(--sage)',
+    dot: 'bg-sage',
+    tint: 'text-sage dark:text-sage',
+    badge: 'bg-sage/10 text-sage dark:text-sage',
+    borderLeft: 'border-l-sage',
   },
   todo: {
     label: 'To Do',
-    Icon: CheckSquare,
+    Icon: SquareCheckBig,
+    css: 'var(--sky-muted)',
     dot: 'bg-sky-muted',
     tint: 'text-sky-muted dark:text-sky-muted',
     badge: 'bg-sky-muted/10 text-sky-muted dark:text-sky-muted',
@@ -31,6 +43,7 @@ export const ENTITY = {
   decision: {
     label: 'Decision',
     Icon: Scale,
+    css: 'var(--amber-muted)',
     dot: 'bg-amber-muted',
     tint: 'text-amber-muted dark:text-amber-muted',
     badge: 'bg-amber-muted/10 text-amber-muted dark:text-amber-muted',
@@ -39,6 +52,7 @@ export const ENTITY = {
   meeting: {
     label: 'Meeting',
     Icon: Calendar,
+    css: 'var(--lavender)',
     dot: 'bg-lavender',
     tint: 'text-lavender dark:text-lavender',
     badge: 'bg-lavender/10 text-lavender dark:text-lavender',
@@ -46,7 +60,8 @@ export const ENTITY = {
   },
   blockage: {
     label: 'Blocked',
-    Icon: Ban,
+    Icon: CircleSlash,
+    css: 'var(--terracotta)',
     dot: 'bg-terracotta',
     tint: 'text-terracotta dark:text-terracotta',
     badge: 'bg-terracotta/10 text-terracotta dark:text-terracotta',
@@ -63,6 +78,9 @@ export const ENTITY = {
 ENTITY.reference = {
   label: 'Reference',
   Icon: Paperclip,
+  // Neutral stone. A reference points at something rather than saying
+  // something, so it takes no status hue and reads as its kind icon.
+  css: 'var(--ink-muted)',
   dot: 'bg-paper-400 dark:bg-pitch-400',
   tint: 'text-paper-600 dark:text-paper-500',
   badge: 'bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-200',
@@ -72,6 +90,7 @@ ENTITY.reference = {
 ENTITY.custom = {
   label: 'Custom',
   Icon: Tag,
+  css: 'var(--ink-muted)',
   dot: 'bg-paper-400 dark:bg-paper-700',
   tint: 'text-paper-700 dark:text-paper-200',
   badge: 'bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-200',
@@ -92,36 +111,42 @@ ENTITY.custom = {
  */
 export const CUSTOM_PALETTE = {
   sage: {
+    css: 'var(--sage)',
     dot: 'bg-sage',
     tint: 'text-sage dark:text-sage',
     badge: 'bg-sage/10 text-sage dark:text-sage',
     borderLeft: 'border-l-sage',
   },
   seafoam: {
+    css: 'var(--seafoam)',
     dot: 'bg-seafoam',
     tint: 'text-seafoam dark:text-seafoam',
     badge: 'bg-seafoam/10 text-seafoam dark:text-seafoam',
     borderLeft: 'border-l-seafoam',
   },
   dusk: {
+    css: 'var(--dusk)',
     dot: 'bg-dusk',
     tint: 'text-dusk dark:text-dusk',
     badge: 'bg-dusk/10 text-dusk dark:text-dusk',
     borderLeft: 'border-l-dusk',
   },
   plum: {
+    css: 'var(--plum)',
     dot: 'bg-plum',
     tint: 'text-plum dark:text-plum',
     badge: 'bg-plum/10 text-plum dark:text-plum',
     borderLeft: 'border-l-plum',
   },
   heather: {
+    css: 'var(--heather)',
     dot: 'bg-heather',
     tint: 'text-heather dark:text-heather',
     badge: 'bg-heather/10 text-heather dark:text-heather',
     borderLeft: 'border-l-heather',
   },
   pebble: {
+    css: 'var(--pebble)',
     dot: 'bg-pebble',
     tint: 'text-pebble dark:text-pebble',
     badge: 'bg-pebble/10 text-pebble dark:text-pebble',
@@ -160,16 +185,57 @@ export function entityFor(type) {
  * bare type string cannot tell a Risk from a Question. `entityFor` stays for
  * the places that only know the type, such as the Generate extraction preview.
  */
+// A reference reads as the thing it points at, so its icon follows the kind
+// rather than the type. Neutral ground throughout.
+export const REFERENCE_LABELS = {
+  file: 'File',
+  link: 'Link',
+  thread: 'Linked thread',
+  folio: 'Folio',
+}
+
+export const REFERENCE_ICONS = {
+  file: Paperclip,
+  link: Link2,
+  thread: MessageSquare,
+  folio: Library,
+}
+
 export function entityForEntry(entry) {
   if (!entry) return ENTITY.entry
+  if (entry.type === 'reference') {
+    return {
+      ...ENTITY.reference,
+      label: entry.reference?.link_kind === 'blocks' ? 'Blocks' : REFERENCE_LABELS[entry.ref_kind] || 'Reference',
+      Icon: REFERENCE_ICONS[entry.ref_kind] || Paperclip,
+    }
+  }
   if (entry.type !== 'custom') return entityFor(entry.type)
   const custom = entry.custom_type
   if (!custom) return ENTITY.custom
   return {
     label: custom.name,
-    Icon: Tag,
+    // The icon is the identity. Colour narrows a type down to one of six, the
+    // icon tells two of them apart at a glance on the rail.
+    Icon: iconByName(custom.icon) || Tag,
     ...(CUSTOM_PALETTE[custom.colour] ?? CUSTOM_PALETTE.sage),
   }
+}
+
+/**
+ * A Lucide component by its kebab-case name, or null.
+ *
+ * Custom types store the name rather than the component, so this is the one
+ * place that turns 'circle-dot' into CircleDot. Lucide's own PascalCase export
+ * map is the lookup, so no separate table can drift from it.
+ */
+export function iconByName(name) {
+  if (!name) return null
+  const pascal = String(name)
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('')
+  return LucideIcons[pascal] || null
 }
 
 // Structural concepts (sections, lists, page headers) - not entry types.

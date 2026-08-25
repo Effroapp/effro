@@ -30,6 +30,21 @@ def thread_id(client):
     return _thread(client, _area(client))
 
 
+@pytest.fixture
+def stub_ai(monkeypatch):
+    """Swap the AI provider in a way that survives a module reload.
+
+    routers.generate binds get_provider at import time, and the backfill test
+    rebuilds the app, which replaces that module. Patching generate's own name
+    would then land on a copy the running app no longer uses. ai_provider is
+    never purged, so patching its factory reaches whichever copy is live.
+    """
+    def use(provider):
+        import ai_provider
+        monkeypatch.setattr(ai_provider, "_build_provider", lambda config: provider)
+    return use
+
+
 def _add(client, thread_id, **payload):
     payload.setdefault("content", "A reasonably long entry body to work from")
     payload.setdefault("type", "entry")
@@ -85,8 +100,19 @@ def test_a_client_cannot_claim_any_other_source(client, thread_id):
     assert entry["title_source"] == "user"
 
 
-def test_a_todo_carries_no_title_whatever_is_sent(client, thread_id):
-    entry = _add(client, thread_id, type="todo", title="Ignore me")
+def test_a_todo_carries_a_short_form(client, thread_id):
+    """A to-do gets a title so the compact lists have something that fits, but
+    it is generated from what the user typed rather than asked for."""
+    wordy = ("Chase the venue about parking access for the away day in "
+             "September, before they let the block go")
+    entry = _add(client, thread_id, type="todo", content=wordy)
+    assert entry["title_source"] == "fallback"
+    assert len(entry["title"]) <= 60
+
+
+def test_a_meeting_carries_no_title(client, thread_id):
+    """A meeting is named by its own title field, so it takes no second one."""
+    entry = _add(client, thread_id, type="meeting", title="Ignore me")
     assert entry["title"] is None
     assert entry["title_source"] is None
 
@@ -150,13 +176,13 @@ def test_a_user_title_can_replace_an_ai_one(client, thread_id):
 
 def test_changing_out_of_a_titled_type_drops_the_title(client, thread_id):
     entry = _add(client, thread_id, title="A decision I made", type="decision")
-    became = client.put(f"/api/entries/{entry['id']}", json={"type": "todo"}).json()
+    became = client.put(f"/api/entries/{entry['id']}", json={"type": "meeting"}).json()
     assert became["title"] is None
     assert became["title_source"] is None
 
 
 def test_changing_into_a_titled_type_gains_a_fallback(client, thread_id):
-    entry = _add(client, thread_id, type="todo", content="Chase the venue about parking")
+    entry = _add(client, thread_id, type="meeting", content="Chase the venue about parking")
     assert entry["title"] is None
     became = client.put(f"/api/entries/{entry['id']}", json={"type": "decision"}).json()
     assert became["title"] == "Chase the venue about parking"
@@ -193,42 +219,48 @@ def test_short_content_is_refused(client):
     assert r.status_code == 422
 
 
-def test_an_unconfigured_engine_says_so(client, monkeypatch):
-    import ai_provider
-    import routers.generate as generate
+def test_a_short_todo_is_refused_because_it_already_fits(client):
+    """Shortening a to-do that fits would spend a call to make it no better."""
+    # 41 characters: over the prose floor of 20, under the to-do floor of 60.
+    short = "Renew the professional indemnity insurance"
+    assert client.post("/api/generate/title",
+                       json={"content": short, "type": "todo"}).status_code == 422
+    # The same text is long enough for a prose entry, which is named from much
+    # less than it takes to be worth shortening.
+    assert client.post("/api/generate/title",
+                       json={"content": short}).status_code != 422
 
-    monkeypatch.setattr(generate, "get_provider",
-                        lambda db: ai_provider._UnconfiguredProvider("nope"))
+
+def test_an_unconfigured_engine_says_so(client, stub_ai):
+    import ai_provider
+
+    stub_ai(ai_provider._UnconfiguredProvider("nope"))
     r = client.post("/api/generate/title",
                     json={"content": "A long enough entry to want a title for"})
     assert r.status_code == 503
     assert r.json()["detail"] == "AI isn't set up yet"
 
 
-def test_a_configured_engine_returns_a_tidied_title(client, monkeypatch):
-    import routers.generate as generate
-
+def test_a_configured_engine_returns_a_tidied_title(client, stub_ai):
     class _Stub:
         # Models like to wrap the answer in quotes and end with a full stop
         # however firmly the system prompt says not to.
         def complete(self, system, messages, max_tokens=40):
             return '  "Cutover risk for the supplier."  '
 
-    monkeypatch.setattr(generate, "get_provider", lambda db: _Stub())
+    stub_ai(_Stub())
     r = client.post("/api/generate/title",
                     json={"content": "A long enough entry to want a title for"})
     assert r.status_code == 200
     assert r.json()["title"] == "Cutover risk for the supplier"
 
 
-def test_an_empty_reply_is_a_502(client, monkeypatch):
-    import routers.generate as generate
-
+def test_an_empty_reply_is_a_502(client, stub_ai):
     class _Stub:
         def complete(self, system, messages, max_tokens=40):
             return "   "
 
-    monkeypatch.setattr(generate, "get_provider", lambda db: _Stub())
+    stub_ai(_Stub())
     r = client.post("/api/generate/title",
                     json={"content": "A long enough entry to want a title for"})
     assert r.status_code == 502
@@ -271,3 +303,67 @@ def test_the_backfill_fills_legacy_rows_once(client, thread_id):
     # A second run must change nothing.
     boot()
     assert read() == filled
+
+
+# ── Naming what is still on a fallback ────────────────────────────────────────
+
+def test_the_backlog_lists_only_what_is_worth_naming(client, thread_id):
+    """A short entry already reads fine, and a named one is not up for grabs."""
+    wordy_todo = ("Chase the venue about parking access for the away day in "
+                  "September, before they let the block go")
+    wordy = _add(client, thread_id, type="todo", content=wordy_todo)
+    short = _add(client, thread_id, type="todo", content="Renew the insurance")
+    prose = _add(client, thread_id, content="A prose entry long enough to be worth naming")
+    named = _add(client, thread_id, content="A named one that must be left alone",
+                 title="I named this myself")
+
+    mine = {wordy["id"], short["id"], prose["id"], named["id"]}
+    listed = mine & set(client.get("/api/generate/title/backlog").json()["ids"])
+    # The short to-do already fits and the user-named entry is not up for grabs.
+    assert listed == {wordy["id"], prose["id"]}
+
+
+def test_naming_one_entry_applies_it(client, thread_id, stub_ai):
+    class _Stub:
+        def complete(self, system, messages, max_tokens=40):
+            return "Chase the venue about away-day parking"
+
+    stub_ai(_Stub())
+    wordy = ("Chase the venue about parking access for the away day in "
+             "September, before they let the block go")
+    entry = _add(client, thread_id, type="todo", content=wordy)
+
+    r = client.post(f"/api/entries/{entry['id']}/title/suggest")
+    assert r.status_code == 200, r.text
+    result = r.json()
+    assert result["changed"] is True
+    assert result["title"] == "Chase the venue about away-day parking"
+
+    # A second pass has nothing left to do, since it is no longer a fallback.
+    again = client.post(f"/api/entries/{entry['id']}/title/suggest").json()
+    assert again["changed"] is False
+
+
+def test_a_user_title_is_never_taken_by_the_tidy_up(client, thread_id, stub_ai):
+    """The server re-checks rather than trusting the list it was handed, so a
+    title written after the backlog was read still wins."""
+    class _Stub:
+        def complete(self, system, messages, max_tokens=40):
+            return "Something the model made up"
+
+    stub_ai(_Stub())
+    entry = _add(client, thread_id, content="A prose entry long enough to name",
+                 title="My own words")
+
+    result = client.post(f"/api/entries/{entry['id']}/title/suggest").json()
+    assert result["changed"] is False
+    assert result["title"] == "My own words"
+
+
+def test_the_tidy_up_needs_an_engine(client, thread_id, stub_ai):
+    import ai_provider
+
+    entry = _add(client, thread_id, content="A prose entry long enough to name")
+    stub_ai(ai_provider._UnconfiguredProvider("nope"))
+    r = client.post(f"/api/entries/{entry['id']}/title/suggest")
+    assert r.status_code == 503

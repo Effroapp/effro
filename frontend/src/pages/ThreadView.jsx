@@ -28,7 +28,7 @@ import TaskCheckbox from '../components/entries/TaskCheckbox'
 import EntryBlock from '../components/entries/EntryBlock'
 import EntryTypeRow from '../components/entries/EntryTypeRow'
 import TitleField from '../components/entries/TitleField'
-import { TITLED_TYPES, displayTitle } from '../utils/entries'
+import { AUTHORED_TITLE_TYPES, displayTitle } from '../utils/entries'
 import { suggestAndApplyTitle } from '../api/titles'
 import PinControl from '../components/PinControl'
 import { notifyEntriesChanged } from '../utils/entryEvents'
@@ -266,8 +266,8 @@ export default function ThreadView() {
         content: newEntryContent,
         type: entryType,
         custom_type_id: entryType === 'custom' ? customTypeId : undefined,
-        title: TITLED_TYPES.has(entryType) ? entryTitle.trim() : undefined,
-        title_source: TITLED_TYPES.has(entryType) && titleFromAi ? 'ai' : undefined,
+        title: AUTHORED_TITLE_TYPES.has(entryType) ? entryTitle.trim() : undefined,
+        title_source: AUTHORED_TITLE_TYPES.has(entryType) && titleFromAi ? 'ai' : undefined,
         due_date: entryType === 'todo' ? dueDate : undefined,
       })
       setThread((t) => ({ ...t, entries: [...t.entries, entry] }))
@@ -874,7 +874,7 @@ export default function ThreadView() {
               }}
             />
 
-            {TITLED_TYPES.has(entryType) && (
+            {AUTHORED_TITLE_TYPES.has(entryType) && (
               <TitleField
                 value={entryTitle}
                 onChange={setEntryTitle}
@@ -1021,11 +1021,12 @@ export default function ThreadView() {
               No entries yet. Add the first one above.
             </div>
           ) : (
-            <div className="relative">
-              {/* Connector line that visually threads the entry dots together */}
-              <div className="absolute left-4 top-1 bottom-2 w-px bg-paper-300 dark:bg-pitch-500" />
+            <div className="relative pl-12">
+              {/* The rail. One line behind the type medallions, inset so it
+                  does not run past the first or last of them. */}
+              <div className="absolute left-[15px] top-2 bottom-2 w-px bg-paper-200 dark:bg-pitch-500" />
 
-              <div className="space-y-1">
+              <div className="flex flex-col gap-3">
                 {sortedEntries.map((entry) => (
                   <div key={entry.id}>
                     <EntryBlock

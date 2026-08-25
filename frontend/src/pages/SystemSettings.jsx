@@ -35,6 +35,7 @@ import { useToast } from '../components/Toast'
 import { adminApi } from '../api/client'
 import UsersSection from '../components/UsersSection'
 import AccountSection from '../components/AccountSection'
+import TitleTidyUp from '../components/TitleTidyUp'
 
 /**
  * System Settings - a dedicated page (was a popover; promoted because
@@ -270,6 +271,10 @@ function AISection({ id }) {
           onSaved={() => { setEditing(false); refresh() }}
         />
       )}
+
+      {/* Only shows itself when there is something to do. Lives in its own
+          component because this file is already too long. */}
+      {!editing && <TitleTidyUp />}
     </Card>
   )
 }

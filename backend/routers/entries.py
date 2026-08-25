@@ -370,6 +370,7 @@ def get_upcoming_todos(limit: int = Query(default=10, le=50), db: Session = Depe
             area_id=area.id,
             area_name=area.name,
             content=entry.content,
+            title=entry.title,
             due_date=entry.due_date,
         )
         for entry, thread, area in rows
@@ -409,6 +410,7 @@ def list_pinned_entries(
             type=entry.type,
             content=entry.content,
             title=entry.title,
+            custom_type=entry.custom_type,
             completed=entry.completed,
             pinned_at=entry.pinned_at,
             thread_id=thread.id,
