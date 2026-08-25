@@ -29,6 +29,7 @@ import SubtaskList from '../components/SubtaskList'
 import TaskDecompositionDrawer from '../components/TaskDecompositionDrawer'
 import TaskCheckbox from '../components/TaskCheckbox'
 import PinControl from '../components/PinControl'
+import { notifyEntriesChanged } from '../utils/entryEvents'
 
 import { ENTITY, ENTITY_TYPES, entityFor, SECTION_ICONS } from '../utils/entityIcons'
 
@@ -401,6 +402,9 @@ export default function ThreadView() {
         ...t,
         entries: t.entries.map((e) => (e.id === entryId ? updated : e)),
       }))
+      // In Hand and Coming Up are other reads of the same to-do. Unticking a
+      // finished task here returns it to the strip at its old age.
+      notifyEntriesChanged()
     } catch (err) {
       // Revert
       setThread((t) => ({

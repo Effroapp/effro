@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MessageSquare, ArrowRight, RefreshCw, Clock, Sparkles, RotateCcw, Leaf, ChevronDown, X, Plus, LayoutGrid } from 'lucide-react'
 import { formatDistanceToNow, format, differenceInDays, differenceInCalendarDays, parseISO } from 'date-fns'
@@ -6,6 +6,7 @@ import { parseUTC } from '../utils/time.js'
 import { areasApi, entriesApi } from '../api/client'
 import { getTodayNudge, getRandomNudge } from '../api/nudges'
 import InHandStrip from '../components/InHandStrip'
+import { useEntriesChanged } from '../utils/entryEvents'
 import StatusBadge from '../components/StatusBadge'
 import WeeklyRoundupModal from '../components/WeeklyRoundupModal'
 import NewAreaModal from '../components/NewAreaModal'
@@ -506,9 +507,14 @@ function ComingUpStrip() {
     () => localStorage.getItem('comingUpCollapsed') !== 'false'
   )
 
-  useEffect(() => {
+  // In Hand shows the same to-dos from a different angle, so ticking one there
+  // has to be reflected here rather than waiting for a reload.
+  const load = useCallback(() => {
     entriesApi.getUpcoming(50).then(setTodos).catch(() => {})
   }, [])
+
+  useEffect(() => { load() }, [load])
+  useEntriesChanged(load)
 
   const toggle = () => {
     setCollapsed((c) => {
