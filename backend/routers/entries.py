@@ -8,13 +8,80 @@ import schemas
 from database import get_db
 from dependencies import get_current_user
 from audit import log_audit
-from entry_text import entry_label
+from entry_text import (TITLED_TYPES, clean_title, entry_display_title,
+                        entry_label, fallback_title)
 
 router = APIRouter(tags=["entries"])
 
 # Types a client may create. 'reference' is stored but not client-creatable,
 # so it is deliberately absent.
 VALID_TYPES = {"entry", "todo", "decision", "meeting", "blockage", "custom"}
+
+
+def resolve_title(entry_type: str, content: str, raw_title, raw_source):
+    """The (title, title_source) a newly created entry should carry.
+
+    A title is never required to save. When the user leaves it blank the server
+    writes the entry's own first line, so every client gets one without having
+    to derive it, and an AI suggestion later has something to replace.
+    """
+    if entry_type not in TITLED_TYPES:
+        return None, None
+    cleaned = clean_title(raw_title)
+    if not cleaned:
+        return fallback_title(content), 'fallback'
+    # 'ai' is the only source a client may claim. Everything else is the user.
+    return cleaned, ('ai' if raw_source == 'ai' else 'user')
+
+
+def _apply_title_rules(entry, payload, was_type, was_source, content_changed):
+    """Settle an entry's title after an update, in a fixed order.
+
+    The load-bearing rule is that a title the user wrote is never overwritten.
+    An AI suggestion may only replace a fallback, and a content edit may only
+    re-derive a fallback, so someone who has bothered to name an entry keeps
+    that name whatever else happens to it.
+    """
+    now_titled = entry.type in TITLED_TYPES
+
+    # A type change decides first, since it can remove the concept entirely.
+    if entry.type != was_type:
+        if not now_titled:
+            entry.title = None
+            entry.title_source = None
+            return
+        if not entry.title:
+            entry.title = fallback_title(entry.content)
+            entry.title_source = 'fallback'
+
+    if not now_titled:
+        entry.title = None
+        entry.title_source = None
+        return
+
+    if payload.title is not None:
+        cleaned = clean_title(payload.title)
+        if payload.title_source == 'ai':
+            # Suggestions arrive after the save and lose to a real title.
+            if was_source != 'user' and cleaned:
+                entry.title = cleaned
+                entry.title_source = 'ai'
+            return
+        if cleaned:
+            entry.title = cleaned
+            entry.title_source = 'user'
+        else:
+            # Cleared on purpose, so fall back rather than leaving it blank.
+            entry.title = fallback_title(entry.content)
+            entry.title_source = 'fallback'
+        return
+
+    # No title in the payload. A content edit re-derives anything not written
+    # by the user, and the client then re-runs the suggestion pass, so an AI
+    # title never goes stale against the text it was written from.
+    if content_changed and entry.title_source != 'user':
+        entry.title = fallback_title(entry.content)
+        entry.title_source = 'fallback'
 
 
 def resolve_custom_type(db: Session, entry_type: str, custom_type_id):
@@ -47,16 +114,25 @@ def create_entry(
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
 
+    if payload.type == 'reference':
+        raise HTTPException(
+            status_code=422,
+            detail="Reference entries are created by attaching things, not directly",
+        )
     if payload.type not in VALID_TYPES:
         raise HTTPException(status_code=422, detail=f"type must be one of {VALID_TYPES}")
 
     custom_type_id = resolve_custom_type(db, payload.type, payload.custom_type_id)
+    title, title_source = resolve_title(
+        payload.type, payload.content, payload.title, payload.title_source)
 
     entry = models.Entry(
         thread_id=thread_id,
         content=payload.content,
         type=payload.type,
         custom_type_id=custom_type_id,
+        title=title,
+        title_source=title_source,
         due_date=payload.due_date,
         meeting_at=payload.meeting_at,
         notes=payload.notes,
@@ -73,7 +149,8 @@ def create_entry(
     db.refresh(entry)
 
     try:
-        db.add(models.ActivityEvent(event_type="entry_added", thread_id=thread_id, detail=entry.content[:80]))
+        db.add(models.ActivityEvent(event_type="entry_added", thread_id=thread_id,
+                                    detail=entry_display_title(entry)[:80]))
         db.commit()
     except Exception:
         pass
@@ -98,6 +175,26 @@ def update_entry(
 
     # Get area_id for audit logging
     entry_area_id = db.query(models.Thread.area_id).filter(models.Thread.id == entry.thread_id).scalar()
+
+    if entry.type == 'reference':
+        # A reference card says what it points at. Its name, type and dates all
+        # come from the live object, so the only thing worth writing here is a
+        # note about it.
+        touched = [f for f in ('content', 'title', 'type', 'completed', 'due_date',
+                               'meeting_at')
+                   if getattr(payload, f, None) is not None]
+        if touched:
+            raise HTTPException(
+                status_code=400,
+                detail="Reference entries can only take notes",
+            )
+
+    # Remembered before anything is applied, so the title rules below can tell
+    # a content edit from a title edit from a type change.
+    was_type = entry.type
+    was_title = entry.title
+    was_source = entry.title_source
+    content_changed = payload.content is not None and payload.content != entry.content
 
     if payload.content is not None and payload.content != entry.content:
         log_audit(db, entity_type='entry', entity_id=entry.id, area_id=entry_area_id,
@@ -170,6 +267,13 @@ def update_entry(
                   performed_by=current_user.id)
         entry.notes = payload.notes or None
 
+    _apply_title_rules(entry, payload, was_type, was_source, content_changed)
+    if (entry.title or None) != (was_title or None):
+        log_audit(db, entity_type='entry', entity_id=entry.id, area_id=entry_area_id,
+                  thread_id=entry.thread_id, action='updated', field='title',
+                  old_value=was_title, new_value=entry.title,
+                  performed_by=current_user.id)
+
     entry.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(entry)
@@ -185,10 +289,57 @@ def update_entry(
 
 
 @router.delete("/entries/{entry_id}", status_code=204)
-def delete_entry(entry_id: int, db: Session = Depends(get_db)):
+def delete_entry(entry_id: int, db: Session = Depends(get_db),
+                 current_user: models.User = Depends(get_current_user)):
     entry = db.query(models.Entry).filter(models.Entry.id == entry_id).first()
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
+
+    # A reference card and the thing it points at share one life, so deleting
+    # the card takes the object with it. The exception is a Folio, which is
+    # unfiled rather than destroyed: it is a workspace of its own and the user
+    # is only saying it does not belong on this thread.
+    if entry.type == 'reference':
+        _delete_reference_target(db, entry, current_user.id)
+        return
+
+    db.delete(entry)
+    db.commit()
+
+
+def _delete_reference_target(db: Session, entry, performed_by: int):
+    """Delete a reference card by deleting what it points at."""
+    from references import remove_attachment, remove_thread_link  # noqa: PLC0415
+
+    if entry.ref_kind in ('file', 'link'):
+        attachment = db.query(models.Attachment).filter(
+            models.Attachment.id == entry.ref_id).first()
+        if attachment:
+            # This removes the card too, so it must not be deleted twice.
+            remove_attachment(db, attachment, performed_by=performed_by)
+            return
+
+    elif entry.ref_kind == 'thread':
+        link = db.query(models.ThreadLink).filter(
+            models.ThreadLink.id == entry.ref_id).first()
+        if link:
+            remove_thread_link(db, link, performed_by=performed_by)
+            return
+
+    elif entry.ref_kind == 'folio':
+        folio = db.query(models.Folio).filter(
+            models.Folio.id == entry.ref_id).first()
+        if folio:
+            thread_id = folio.thread_id
+            folio.thread_id = None
+            db.commit()
+            log_audit(db, entity_type='folio', entity_id=folio.id, area_id=None,
+                      thread_id=thread_id, action='updated', field='thread_id',
+                      old_value=str(thread_id), new_value=None,
+                      performed_by=performed_by)
+
+    # The object was already gone, or it was a folio, which we keep. Either
+    # way the card itself still has to go.
     db.delete(entry)
     db.commit()
 
@@ -257,6 +408,7 @@ def list_pinned_entries(
             id=entry.id,
             type=entry.type,
             content=entry.content,
+            title=entry.title,
             completed=entry.completed,
             pinned_at=entry.pinned_at,
             thread_id=thread.id,

@@ -59,11 +59,45 @@ class CustomEntryTypeDeleted(BaseModel):
     converted: int
 
 
+class ReferenceOut(BaseModel):
+    """The live object a reference card points at.
+
+    Resolved on read rather than stored, so a renamed thread or file shows its
+    current name on the card. Null when the object has gone, which the card
+    renders as its own quiet gone state.
+    """
+    kind: str                       # file | link | thread | folio
+    id: int
+    name: str
+
+    # Attachments
+    url: Optional[str] = None
+    size: Optional[int] = None
+    stored_name: Optional[str] = None
+    sync_status: Optional[str] = None
+
+    # Thread links
+    thread_id: Optional[int] = None
+    thread_title: Optional[str] = None
+    thread_status: Optional[str] = None
+    area_name: Optional[str] = None
+    link_kind: Optional[str] = None
+
+    # Folios
+    folio_id: Optional[int] = None
+    folio_title: Optional[str] = None
+    capture_count: Optional[int] = None
+
+
 class EntryCreate(BaseModel):
     content: str
     type: str = 'entry'  # entry | todo | decision | meeting | blockage | custom
     # Required when type is 'custom', ignored otherwise.
     custom_type_id: Optional[int] = None
+    # Only honoured on a titled type. Blank or missing gets the fallback.
+    title: Optional[str] = None
+    # The only value a client may claim is 'ai'. Anything else reads as 'user'.
+    title_source: Optional[str] = None
     due_date: Optional[date] = None
     meeting_at: Optional[datetime] = None
     notes: Optional[str] = None
@@ -73,6 +107,8 @@ class EntryUpdate(BaseModel):
     content: Optional[str] = None
     type: Optional[str] = None
     custom_type_id: Optional[int] = None
+    title: Optional[str] = None
+    title_source: Optional[str] = None
     completed: Optional[bool] = None
     due_date: Optional[date] = None
     meeting_at: Optional[datetime] = None
@@ -100,6 +136,12 @@ class EntryOut(BaseModel):
     # lookup, and is joined eagerly on the read path.
     custom_type_id: Optional[int] = None
     custom_type: Optional[CustomEntryTypeOut] = None
+    title: Optional[str] = None
+    title_source: Optional[str] = None
+    # Reference cards. `reference` is resolved on the thread read path only.
+    ref_kind: Optional[str] = None
+    ref_id: Optional[int] = None
+    reference: Optional[ReferenceOut] = None
     # Nested subtasks (only populated for parent todos). Self-referential -
     # children carry an empty list since they have no further nesting.
     subtasks: List["EntryOut"] = []
@@ -107,6 +149,14 @@ class EntryOut(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class TitleSuggestRequest(BaseModel):
+    content: str
+
+
+class TitleSuggestion(BaseModel):
+    title: str
 
 
 # ── In Hand (pinned entries) ──────────────────────────────────────────────────
@@ -120,6 +170,7 @@ class PinnedEntryOut(BaseModel):
     id: int
     type: str
     content: str
+    title: Optional[str] = None
     completed: bool
     pinned_at: datetime
     thread_id: int

@@ -7,6 +7,10 @@ import MarkdownArea from '../MarkdownArea'
 import PinControl from '../PinControl'
 import SubtaskList from '../SubtaskList'
 import { entityForEntry } from '../../utils/entityIcons'
+import { TITLED_TYPES } from '../../utils/entries'
+import { Tooltip } from '../Tooltip'
+import ReferenceCard from './ReferenceCard'
+import TitleField from './TitleField'
 import { getDueDateClass } from '../../utils/status'
 import EntryNotes from './EntryNotes'
 import MeetingBody from './MeetingBody'
@@ -14,7 +18,7 @@ import TaskCheckbox from './TaskCheckbox'
 
 // ─── Entry block ──────────────────────────────────────────────────────────────
 
-export default function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftChange, onSave, onCancel, onDelete, onToggleComplete, onTogglePin, onSaveNotes, onSaveMeeting, onBreakDown, onSubtasksChange }) {
+export default function EntryBlock({ entry, highlighted, editing, draft, onEditStart, onDraftChange, onSave, onCancel, onDelete, onToggleComplete, onTogglePin, onSaveNotes, onSaveMeeting, onSaveTitle, onTitleEditOpen, onTitleEditClose, onBreakDown, onSubtasksChange }) {
   const date = new Date(entry.created_at)
   const wasEdited = entry.updated_at !== entry.created_at
   const isDecision = entry.type === 'decision'
@@ -22,6 +26,11 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
   const isMeeting = entry.type === 'meeting'
   const isBlockage = entry.type === 'blockage'
   const isCustom = entry.type === 'custom'
+  const isReference = entry.type === 'reference'
+  const isTitled = TITLED_TYPES.has(entry.type)
+  // A fallback title only echoes the first line of the content, so it is
+  // stored but never shown as a heading. Only a real one earns the space.
+  const showsHeading = isTitled && ['user', 'ai'].includes(entry.title_source)
   // A custom entry behaves exactly like an Update. Only its dot, accent bar,
   // badge and icon come from the user's own type.
   const meta = entityForEntry(entry)
@@ -29,6 +38,28 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
 
   // Inline meeting-edit state (independent of the regular content edit path)
   const [editingMeeting, setEditingMeeting] = useState(false)
+
+  // Inline title edit, opened from the heading or from Add a title.
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
+
+  const openTitleEditor = () => {
+    // Pre-filled with whatever is stored, including a fallback, so there is
+    // something to tweak rather than a blank box.
+    setTitleDraft(entry.title || '')
+    setEditingTitle(true)
+    onTitleEditOpen?.(entry.id)
+  }
+  const closeTitleEditor = () => {
+    setEditingTitle(false)
+    onTitleEditClose?.(entry.id)
+  }
+  const commitTitle = async () => {
+    const next = titleDraft
+    closeTitleEditor()
+    if (next === (entry.title || '')) return
+    await onSaveTitle?.(next)
+  }
 
   return (
     <div
@@ -69,6 +100,9 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
         {isCustom && (
           <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${meta.dot}`} />
         )}
+        {isReference && (
+          <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-paper-300 dark:bg-pitch-500" />
+        )}
 
         {/* Entry header */}
         <div className={`flex items-center justify-between px-4 py-2.5 border-b border-paper-100 dark:border-pitch-500 ${isBlockage ? 'bg-terracotta/5 dark:bg-terracotta/10' : 'bg-paper-100/50 dark:bg-pitch-800/30'} ${(isDecision || isMeeting || isBlockage || isCustom) ? 'pl-5' : ''}`}>
@@ -102,33 +136,99 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
             {wasEdited && (
               <span className="text-xs font-mono text-paper-400 dark:text-paper-700">(edited)</span>
             )}
+            {showsHeading && entry.title_source === 'ai' && (
+              <Tooltip content="Written from the entry. Click the title to change it.">
+                <span className="text-2xs font-display uppercase tracking-widest text-paper-400 dark:text-paper-700">
+                  suggested
+                </span>
+              </Tooltip>
+            )}
           </div>
-          <div className="flex items-center gap-1">
-            {/* The pin stays visible at rest, unlike edit and delete. It has to
-                be findable without hunting, and once filled it is reporting a
-                state rather than offering an action. */}
-            <PinControl
-              entryId={entry.id}
-              pinned={!!entry.pinned_at}
-              onChange={onTogglePin}
-            />
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={isMeeting ? () => setEditingMeeting(true) : onEditStart}
-                className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-paper-700 dark:hover:text-paper-200 hover:bg-paper-200 dark:hover:bg-pitch-700 transition-colors"
-              >
-                <Edit3 size={12} />
-              </button>
-              <button onClick={onDelete} className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-terracotta hover:bg-terracotta/10 transition-colors">
-                <Trash2 size={12} />
-              </button>
+          {/* A reference card has no pin and no edit. It brings its own
+              delete, which sits with the name it is about to remove. */}
+          {!isReference && (
+            <div className="flex items-center gap-1">
+              {/* The pin stays visible at rest, unlike edit and delete. It has
+                  to be findable without hunting, and once filled it is
+                  reporting a state rather than offering an action. */}
+              <PinControl
+                entryId={entry.id}
+                pinned={!!entry.pinned_at}
+                onChange={onTogglePin}
+              />
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {isTitled && !showsHeading && !editing && !editingTitle && (
+                  <button
+                    onClick={openTitleEditor}
+                    className="px-1.5 py-1 rounded text-2xs font-display uppercase tracking-widest
+                               text-paper-400 dark:text-paper-700
+                               hover:text-paper-700 dark:hover:text-paper-200
+                               hover:bg-paper-200 dark:hover:bg-pitch-700 transition-colors"
+                  >
+                    Add a title
+                  </button>
+                )}
+                <button
+                  onClick={isMeeting ? () => setEditingMeeting(true) : onEditStart}
+                  className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-paper-700 dark:hover:text-paper-200 hover:bg-paper-200 dark:hover:bg-pitch-700 transition-colors"
+                >
+                  <Edit3 size={12} />
+                </button>
+                <button onClick={onDelete} className="p-1 rounded text-paper-400 dark:text-paper-700 hover:text-terracotta hover:bg-terracotta/10 transition-colors">
+                  <Trash2 size={12} />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Content */}
         <div className={`px-4 py-3 ${(isDecision || isMeeting || isCustom) ? 'pl-5' : ''}`}>
-          {editing ? (
+          {/* Title. Editable in place, and only ever shown when someone or
+              something actually named the entry. */}
+          {isTitled && editingTitle && (
+            <div className="mb-3">
+              <TitleField
+                autoFocus
+                value={titleDraft}
+                onChange={setTitleDraft}
+                content={entry.content}
+                onEnter={commitTitle}
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={closeTitleEditor}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs rounded text-paper-600 hover:bg-paper-200 dark:hover:bg-pitch-500 transition-colors"
+                >
+                  <X size={12} /> Cancel
+                </button>
+                <button
+                  onClick={commitTitle}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs rounded bg-mint-700 hover:bg-mint-800 text-white transition-colors"
+                >
+                  <Check size={12} /> Save
+                </button>
+              </div>
+            </div>
+          )}
+          {showsHeading && !editingTitle && (
+            <h3
+              onClick={openTitleEditor}
+              title="Click to edit"
+              className="text-base font-medium leading-snug mb-1.5 cursor-text
+                         text-pitch-800 dark:text-white animate-fade-in"
+            >
+              {entry.title}
+            </h3>
+          )}
+
+          {isReference ? (
+            <ReferenceCard
+              entry={entry}
+              onDelete={onDelete}
+              onSaveNotes={onSaveNotes}
+            />
+          ) : editing ? (
             <div>
               <MarkdownArea
                 autoFocus
@@ -181,8 +281,9 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
           ) : (
             <Markdown className="text-pitch-500 dark:text-paper-300">{entry.content}</Markdown>
           )}
-          {/* Notes - collapsible context, on every entry type for consistency. */}
-          {!editing && (
+          {/* Notes - collapsible context, on every entry type for consistency.
+              A reference card carries its own, below its meta line. */}
+          {!editing && !isReference && (
             <EntryNotes initial={entry.notes || ''} onSave={onSaveNotes} />
           )}
         </div>

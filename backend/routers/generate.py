@@ -17,8 +17,8 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from database import get_db
-from entry_text import entry_prompt_line
-from ai_provider import get_provider, is_small_model
+from entry_text import TITLE_CUT, cut_at_word, entry_prompt_line, strip_markdown
+from ai_provider import get_provider, is_configured, is_small_model
 
 router = APIRouter(tags=["generate"])
 
@@ -146,7 +146,9 @@ def _build_threads_context(db: Session, area_id: int) -> tuple[str, list[str]]:
         # A few recent top-level entries give the model concrete signal about
         # what already lives in the thread. Entries are ordered oldest-first, so
         # take the tail for the most recent.
-        recent = [e for e in t.entries if e.parent_id is None][-_MAX_ENTRIES_PER_THREAD:]
+        recent = [e for e in t.entries
+                  if e.parent_id is None and e.type != 'reference'
+                  ][-_MAX_ENTRIES_PER_THREAD:]
         for e in recent:
             if (e.content or "").strip():
                 lines.append("    - " + entry_prompt_line(e, _ENTRY_SNIPPET_CHARS))
@@ -361,3 +363,65 @@ Data for the 7 days ending {payload.generated_at}:
         raise _provider_error(e)
 
     return schemas.RoundupResponse(text=text)
+
+
+# ── Title suggestion ──────────────────────────────────────────────────────────
+
+# Below this, an entry is already about as short as a title, so there is
+# nothing to shorten and the button stays hidden.
+_TITLE_MIN_CONTENT = 20
+# The model never needs the whole of a long entry to name it.
+_TITLE_MAX_CONTENT = 4000
+
+_TITLE_SYSTEM = (
+    "You write a short title for one entry in a personal work log. Return only "
+    "the title. Use only what is in the entry and add nothing new. At most 60 "
+    "characters. Plain text, sentence case, no quotes, no trailing full stop, "
+    "no emoji. If the entry is a question, the title can be the question."
+)
+
+
+def _tidy_title(raw: str) -> str:
+    """Make a model reply safe to store as a title."""
+    text = " ".join((raw or "").split())
+    # Models like to wrap a title in quotes however firmly they are told not to.
+    for pair in ('""', "''", "“”", "‘’"):
+        if len(text) >= 2 and text[0] == pair[0] and text[-1] == pair[1]:
+            text = text[1:-1].strip()
+    text = " ".join(strip_markdown(text).split())
+    text = cut_at_word(text, TITLE_CUT).rstrip(".").strip()
+    return text
+
+
+@router.post("/generate/title", response_model=schemas.TitleSuggestion)
+def generate_title(payload: schemas.TitleSuggestRequest, db: Session = Depends(get_db)):
+    """Suggest a title for one entry. A hint, never a gate.
+
+    The frontend only ever calls this alongside a save that has already
+    happened, or before one it will make anyway, so every failure here is
+    survivable and the entry keeps its fallback title.
+    """
+    content = (payload.content or "").strip()
+    if len(content) < _TITLE_MIN_CONTENT:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Needs at least {_TITLE_MIN_CONTENT} characters to work from",
+        )
+
+    provider = get_provider(db)
+    if not is_configured(provider):
+        raise HTTPException(status_code=503, detail="AI isn't set up yet")
+
+    try:
+        reply = provider.complete(
+            system=_TITLE_SYSTEM,
+            messages=[{"role": "user", "content": content[:_TITLE_MAX_CONTENT]}],
+            max_tokens=40,
+        )
+    except RuntimeError as e:
+        raise _provider_error(e)
+
+    title = _tidy_title(reply)
+    if not title:
+        raise HTTPException(status_code=502, detail="No title came back")
+    return schemas.TitleSuggestion(title=title)

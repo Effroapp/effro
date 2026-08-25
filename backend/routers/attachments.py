@@ -7,7 +7,8 @@ import models
 import schemas
 from database import get_db
 from dependencies import get_current_user
-from audit import log_audit, log_activity_entry
+from audit import log_audit
+from references import add_attachment, remove_attachment
 
 router = APIRouter(tags=["attachments"])
 
@@ -49,17 +50,14 @@ async def upload_file(
     with open(dest, "wb") as f:
         f.write(contents)
 
-    attachment = models.Attachment(
-        thread_id=thread_id,
+    attachment = add_attachment(
+        db, thread_id,
         type="file",
         name=file.filename or stored_name,
         stored_name=stored_name,
         original_name=file.filename,
         size=len(contents),
     )
-    db.add(attachment)
-    db.commit()
-    db.refresh(attachment)
 
     try:
         db.add(models.ActivityEvent(event_type="file_uploaded", thread_id=thread_id, detail=(attachment.original_name or "")[:80]))
@@ -71,9 +69,6 @@ async def upload_file(
               thread_id=thread_id, action='created', field='file',
               new_value=attachment.original_name or attachment.name,
               performed_by=current_user.id)
-
-    # Log the activity on the timeline so it reads as something that happened.
-    log_activity_entry(db, thread_id, f"Attached a file: **{attachment.name}**")
 
     # Queue background upload to the configured remote backend. The local
     # write has already succeeded - this is best-effort sync that won't block
@@ -151,15 +146,8 @@ def add_link(
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    attachment = models.Attachment(
-        thread_id=thread_id,
-        type="link",
-        name=payload.name,
-        url=payload.url,
-    )
-    db.add(attachment)
-    db.commit()
-    db.refresh(attachment)
+    attachment = add_attachment(
+        db, thread_id, type="link", name=payload.name, url=payload.url)
 
     try:
         db.add(models.ActivityEvent(event_type="link_added", thread_id=thread_id, detail=attachment.name[:80]))
@@ -170,9 +158,6 @@ def add_link(
     log_audit(db, entity_type='attachment', entity_id=attachment.id, area_id=thread.area_id,
               thread_id=thread_id, action='created', field='link', new_value=attachment.name,
               performed_by=current_user.id)
-
-    link_md = f"[**{attachment.name}**]({attachment.url})" if attachment.url else f"**{attachment.name}**"
-    log_activity_entry(db, thread_id, f"Added a link: {link_md}")
 
     return attachment
 
@@ -191,21 +176,6 @@ def delete_attachment(
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found")
 
-    # Save data for audit log before deletion
-    thread_id = attachment.thread_id
-    att_type = attachment.type
-    att_name = attachment.name
-    area_id = db.query(models.Thread.area_id).filter(models.Thread.id == thread_id).scalar()
-
-    # Delete physical file if applicable
-    if attachment.type == "file" and attachment.stored_name:
-        path = os.path.join(UPLOAD_DIR, attachment.stored_name)
-        if os.path.exists(path):
-            os.remove(path)
-
-    db.delete(attachment)
-    db.commit()
-
-    log_audit(db, entity_type='attachment', entity_id=attachment_id, area_id=area_id,
-              thread_id=thread_id, action='deleted', field=att_type, old_value=att_name,
-              performed_by=current_user.id)
+    # The card and the attachment share one life, so both routes into this
+    # (the panel's remove, and deleting the card) do the same work.
+    remove_attachment(db, attachment, performed_by=current_user.id)

@@ -7,6 +7,7 @@ import { areasApi, entriesApi } from '../api/client'
 import { getTodayNudge, getRandomNudge } from '../api/nudges'
 import InHandStrip from '../components/InHandStrip'
 import { useEntriesChanged } from '../utils/entryEvents'
+import { displayTitle } from '../utils/entries'
 import StatusBadge from '../components/StatusBadge'
 import WeeklyRoundupModal from '../components/WeeklyRoundupModal'
 import NewAreaModal from '../components/NewAreaModal'
@@ -602,7 +603,7 @@ function ComingUpStrip() {
                       </span>
                       <span className="text-paper-400 dark:text-paper-700 text-xs flex-shrink-0">/</span>
                       <span className="flex-1 text-xs text-pitch-600 dark:text-paper-300 truncate">
-                        <BionicText>{stripMarkdown(t.content)}</BionicText>
+                        <BionicText>{displayTitle(t)}</BionicText>
                       </span>
                       {t.due_date && (
                         <span className="font-mono text-xs text-paper-500 dark:text-paper-600 flex-shrink-0">

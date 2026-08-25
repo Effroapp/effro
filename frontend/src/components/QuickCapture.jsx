@@ -6,6 +6,7 @@ import Modal from './Modal'
 import MarkdownArea from './MarkdownArea'
 import { DUE_DATE_OPTIONS } from '../utils/status'
 import { useEntryTypes } from '../hooks/useEntryTypes'
+import { suggestAndApplyTitle } from '../api/titles'
 import { CUSTOM_PALETTE } from '../utils/entityIcons'
 
 const ENTRY_TYPES = [
@@ -68,7 +69,7 @@ export default function QuickCapture() {
     if (!content.trim() || !selectedThreadId) return
     setSubmitting(true)
     try {
-      await entriesApi.create(Number(selectedThreadId), {
+      const made = await entriesApi.create(Number(selectedThreadId), {
         content,
         type: entryType,
         custom_type_id: entryType === 'custom' ? customTypeId : undefined,
@@ -76,6 +77,10 @@ export default function QuickCapture() {
       })
       toast('Captured')
       close()
+      // No Title field here, so the entry saves with its fallback. Ask for a
+      // better one on the way out: the modal has gone and the thread will show
+      // it next time it loads.
+      suggestAndApplyTitle(made)
     } catch (e) {
       toast(e.message, 'error')
     } finally {

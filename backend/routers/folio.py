@@ -22,7 +22,7 @@ import logging
 import os
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -31,6 +31,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from audit import create_reference_entry, delete_reference_entry
 import folio_capture
 import folio_synth
 import folio_vision
@@ -259,6 +260,9 @@ def create_folio(body: FolioCreate, db: Session = Depends(get_db)):
     _apply_topics(db, folio, body.topic_ids)
     db.commit()
     db.refresh(folio)
+    if folio.thread_id:
+        create_reference_entry(db, folio.thread_id, 'folio', folio.id,
+                               folio.title or 'Untitled folio')
     reindex_folio(db, folio)
     return _folio_summary(folio)
 
@@ -308,6 +312,7 @@ def update_folio(folio_id: int, body: FolioUpdate, db: Session = Depends(get_db)
     folio = db.query(models.Folio).filter(models.Folio.id == folio_id).first()
     if not folio:
         raise HTTPException(status_code=404, detail="Folio not found.")
+    was_filed_on = folio.thread_id
     if body.title is not None:
         folio.title = body.title.strip() or None
     if body.area_id is not None:
@@ -322,6 +327,28 @@ def update_folio(folio_id: int, body: FolioUpdate, db: Session = Depends(get_db)
     _apply_topics(db, folio, body.topic_ids)
     db.commit()
     db.refresh(folio)
+
+    # The card follows the folio. Refiling moves it and keeps its notes,
+    # unfiling removes it, and filing one that was loose creates it.
+    if folio.thread_id != was_filed_on:
+        card = db.query(models.Entry).filter(
+            models.Entry.type == 'reference',
+            models.Entry.ref_kind == 'folio',
+            models.Entry.ref_id == folio.id,
+        ).first()
+        if folio.thread_id is None:
+            if card:
+                db.delete(card)
+                db.commit()
+        elif card:
+            card.thread_id = folio.thread_id
+            # It has just landed on this thread, so it reads as today's news.
+            card.created_at = datetime.now(timezone.utc)
+            db.commit()
+        else:
+            create_reference_entry(db, folio.thread_id, 'folio', folio.id,
+                                   folio.title or 'Untitled folio')
+
     reindex_folio(db, folio)
     return _folio_summary(folio)
 
@@ -333,6 +360,7 @@ def delete_folio(folio_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Folio not found.")
     db.delete(folio)
     db.commit()
+    delete_reference_entry(db, 'folio', folio_id)
     _unindex_folio(db, folio_id)
     return {"ok": True}
 

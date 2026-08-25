@@ -1,18 +1,46 @@
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 import models
 
 
-def log_activity_entry(db: Session, thread_id: int, content: str):
-    """Record a thread activity as a visible timeline Entry (e.g. a file
-    attached, a link added, a thread linked). Kept consistent across all of
-    those so the timeline always reflects what happened. Best-effort - a
-    failure here never poisons the caller's transaction.
+def create_reference_entry(db: Session, thread_id: int, ref_kind: str,
+                           ref_id: int, name: str, created_at=None):
+    """Put a reference card in a thread's timeline.
 
-    Returns the created Entry, or None on failure.
+    A file, a link, a linked thread or a folio landing on a thread is something
+    that happened, so it reads as a card in the timeline alongside the entries,
+    with its own Notes. The card and the thing it points at share one life.
+
+    `content` is a snapshot of the name at creation. It satisfies the not-null
+    constraint and gives activity rows something to show, but the read path
+    always resolves the live object, so a rename shows through.
+
+    Best-effort, like the activity log it replaces: a failure here never
+    poisons the caller's transaction. Returns the created Entry, or None.
     """
     try:
-        entry = models.Entry(thread_id=thread_id, type="entry", content=content)
+        entry = models.Entry(
+            thread_id=thread_id,
+            type="reference",
+            ref_kind=ref_kind,
+            ref_id=ref_id,
+            content=name,
+        )
+        if created_at is not None:
+            entry.created_at = created_at
         db.add(entry)
+
+        # Something landing on a thread is activity, so the thread and its area
+        # bubble up the same way they do when an entry is added.
+        stamp = datetime.now(timezone.utc)
+        thread = db.query(models.Thread).filter(models.Thread.id == thread_id).first()
+        if thread:
+            thread.updated_at = stamp
+            area = db.query(models.Area).filter(models.Area.id == thread.area_id).first()
+            if area:
+                area.updated_at = stamp
+
         db.commit()
         db.refresh(entry)
         return entry
@@ -22,6 +50,25 @@ def log_activity_entry(db: Session, thread_id: int, content: str):
         except Exception:
             pass
         return None
+
+
+def delete_reference_entry(db: Session, ref_kind: str, ref_id: int):
+    """Remove the card that points at an object being deleted.
+
+    The other half of the shared life. Best-effort for the same reason.
+    """
+    try:
+        db.query(models.Entry).filter(
+            models.Entry.type == "reference",
+            models.Entry.ref_kind == ref_kind,
+            models.Entry.ref_id == ref_id,
+        ).delete(synchronize_session=False)
+        db.commit()
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 def log_audit(

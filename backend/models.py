@@ -162,6 +162,28 @@ class Entry(Base):
     # would be one query per row.
     custom_type_id = Column(Integer, ForeignKey("custom_entry_types.id"), nullable=True, index=True)
 
+    # ── Title ────────────────────────────────────────────────────────────────
+    # Only the titled types carry one (see TITLED_TYPES in entry_text.py).
+    # title_source records who wrote it: 'user' is never overwritten by AI,
+    # 'ai' is a suggestion that arrived after the save, and 'fallback' is the
+    # entry's own first line, stored so one-line contexts always have something
+    # to show but never rendered as a heading on the card.
+    title = Column(Text, nullable=True)
+    title_source = Column(String(10), nullable=True)
+
+    # ── Reference entries ────────────────────────────────────────────────────
+    # Set only when type == 'reference'. The card and the thing it points at
+    # share one life: delete either and both go, except a Folio, which is
+    # unfiled rather than destroyed.
+    #
+    # No foreign key, because ref_id points at one of three tables depending on
+    # ref_kind. audit_logs makes the same choice for the same reason. `content`
+    # holds a snapshot of the name at creation, which satisfies the not-null
+    # constraint and gives activity rows something to show, but display always
+    # reads the live object while it exists.
+    ref_kind = Column(String(10), nullable=True)   # file | link | thread | folio
+    ref_id = Column(Integer, nullable=True)
+
     # ── In Hand (pinned strip on the dashboard) ──────────────────────────────
     # One nullable timestamp does three jobs: non-null means the entry is in
     # hand, it is the sort key (newest pin first), and it is where the row's
@@ -174,6 +196,17 @@ class Entry(Base):
 
     thread = relationship("Thread", back_populates="entries")
     custom_type = relationship("CustomEntryType", lazy="joined")
+    # Read-only view of the attachment a file or link card points at. There is
+    # no foreign key (ref_id addresses three tables), so the join condition is
+    # spelled out and marked viewonly: SQLAlchemy must never try to write it.
+    # Used for the link's hostname in AI prompt lines.
+    ref_attachment = relationship(
+        "Attachment",
+        primaryjoin="and_(foreign(Entry.ref_id) == Attachment.id,"
+                    " Entry.ref_kind.in_(['file', 'link']))",
+        viewonly=True,
+        uselist=False,
+    )
     # Self-referential: a todo's subtasks. Deleting a parent cascades to its
     # children. remote_side ties the backref 'parent' to this row's id.
     subtasks = relationship(
