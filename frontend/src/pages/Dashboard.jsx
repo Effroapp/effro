@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { MessageSquare, ArrowRight, RefreshCw, Clock, Sparkles, RotateCcw, Leaf, ChevronDown, X, Plus, LayoutGrid } from 'lucide-react'
 import { formatDistanceToNow, format, differenceInDays, differenceInCalendarDays, parseISO } from 'date-fns'
 import { parseUTC } from '../utils/time.js'
@@ -17,6 +17,9 @@ import { stripMarkdown } from '../utils/markdownEditing'
 import { useDisplayName } from '../hooks/useDisplayName'
 import { useAIConfigured } from '../hooks/useAIConfigured'
 import { BionicText } from '../utils/bionic.jsx'
+import Zone from '../components/Zone'
+import { useDashboardStyling } from '../hooks/useDashboardStyling'
+import '../styles/dashboard-zones.css'
 
 const INACTIVITY_THRESHOLD_DAYS = 7
 
@@ -120,6 +123,22 @@ export default function Dashboard() {
 
   useEffect(() => { load() }, [])
 
+  // The dashboard owns the upcoming to-dos, because two things read them: the
+  // status line counts them and Coming Up lists them.
+  const [upcomingTodos, setUpcomingTodos] = useState([])
+  const [inHandCount, setInHandCount] = useState(0)
+
+  const loadUpcoming = useCallback(() => {
+    entriesApi.getUpcoming(100).then(setUpcomingTodos).catch(() => {})
+  }, [])
+  useEffect(() => { loadUpcoming() }, [loadUpcoming])
+  useEntriesChanged(loadUpcoming)
+
+  // Layout and section style, both per device. They land on the root as data
+  // attributes and one CSS file does the rest.
+  const { layout, sectionStyle } = useDashboardStyling()
+
+
   // Filtered/sorted areas based on view mode
   const displayAreas = viewMode === 'priority'
     ? [...areas].sort((a, b) => {
@@ -135,14 +154,33 @@ export default function Dashboard() {
   if (loading) return <DashboardSkeleton />
   if (error)   return <ErrorState message={error} onRetry={load} />
 
-  const filterNotice = (() => {
-    if (viewMode === 'priority') return 'Priority order - blocked first'
-    if (viewMode === 'focus')    return 'Focus mode - stable areas hidden'
-    return null
+  // One deterministic line under the date, built from what is already on the
+  // page. No AI, and nothing that needs fetching.
+  const dueThisWeek = upcomingTodos.filter((t) => {
+    const g = getDueGroup(t.due_date)
+    return g === 'today' || g === 'week'
+  }).length
+  const statusLine = (() => {
+    const parts = []
+    if (inHandCount > 0) parts.push(`${inHandCount} in hand`)
+    if (dueThisWeek > 0) parts.push(`${dueThisWeek} due this week`)
+    return parts.length ? `${parts.join(', ')}.` : null
   })()
 
+  // "12" normally, "4 of 12" when Focus is hiding some.
+  const areaCountLabel = areas.length === 0
+    ? null
+    : displayAreas.length === areas.length
+      ? String(areas.length)
+      : `${displayAreas.length} of ${areas.length}`
+
+
   return (
-    <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800 bg-grid-light dark:bg-grid-dark">
+    <div
+      className="dashboard flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800"
+      data-layout={layout}
+      data-section-style={sectionStyle}
+    >
       {/* ── Sub-toolbar (page-level, no brand) ── */}
       <header className="
         sticky top-0 z-10 px-8 py-5
@@ -159,9 +197,14 @@ export default function Dashboard() {
                 <>, <span className="text-clay-text">{firstName(displayName)}</span></>
               )}
             </h1>
-            <p className="text-xs font-mono uppercase tracking-[0.25em] text-paper-500 dark:text-paper-600 mt-2">
-              {format(new Date(), 'EEEE, d MMMM')}
-            </p>
+            <div className="status">
+              <p className="date text-xs font-mono uppercase tracking-[0.25em] text-paper-500 dark:text-paper-600">
+                {format(new Date(), 'EEEE, d MMMM')}
+              </p>
+              {/* Deterministic, from what is already on the page. Nothing here
+                  is a nag: it is a count, not a demand. */}
+              {statusLine && <p className="line">{statusLine}</p>}
+            </div>
             {/* Clay hairline closing the personal block. Fades out rather than
                 running the full width, so it reads as a flourish and not as a
                 second divider under the header's own border. */}
@@ -178,7 +221,6 @@ export default function Dashboard() {
               exists; on a fresh install the empty state below carries the page. */}
           {areas.length > 0 && (
           <div className="flex items-center gap-2 flex-shrink-0 pt-1">
-            <ViewSegmentedControl viewMode={viewMode} onChange={handleViewMode} />
             <button
               onClick={() => setRoundupOpen(true)}
               disabled={aiConfigured === false}
@@ -197,33 +239,49 @@ export default function Dashboard() {
           )}
         </div>
 
-        {filterNotice && (
-          <div className="max-w-[1600px] mx-auto mt-3 flex items-center gap-2">
-            <span className="text-xs font-mono uppercase tracking-widest text-paper-500 dark:text-paper-600">
-              {filterNotice}
-            </span>
-            <button
-              onClick={() => handleViewMode('default')}
-              className="
-                inline-flex items-center gap-1 text-xs font-mono
-                text-paper-500 dark:text-paper-600
-                hover:text-paper-700 dark:hover:text-paper-200
-                transition-colors
-              "
-            >
-              <RotateCcw size={11} /> reset
-            </button>
-          </div>
-        )}
       </header>
 
-      {/* ── Area grid ── */}
-      <main className="max-w-[1600px] mx-auto px-8 py-8">
+      {/* ── Zones ── */}
+      <main className="zones">
+        {/* In Hand renders nothing at all when nothing is pinned. */}
+        <InHandStrip onCount={setInHandCount} />
+
+        {/* Coming Up and Areas share a band. Split turns it into two columns,
+            the other two layouts leave it alone. */}
+        <div className="band">
+          <ComingUpStrip todos={upcomingTodos} />
+
+          <Zone
+            id="areas"
+            title="Areas"
+            count={areaCountLabel}
+            bodyClass="area-grid"
+            actions={<ViewSegmentedControl viewMode={viewMode} onChange={handleViewMode} />}
+          >
+            {areas.length === 0 ? (
+              <EmptyState onCreate={() => setNewAreaOpen(true)} />
+            ) : displayAreas.length === 0 ? (
+              /* Focus mode with every area stable - a good day, not an error. */
+              <p className="py-10 text-center text-sm italic text-paper-500 dark:text-paper-600">
+                Everything is stable right now. Nothing needs your focus.
+              </p>
+            ) : (
+              <>
+                {displayAreas.map((area) => (
+                  <AreaCard key={area.id} area={area} />
+                ))}
+                <NewAreaTile onClick={() => setNewAreaOpen(true)} />
+              </>
+            )}
+          </Zone>
+        </div>
+      </main>
+
         {/* Daily insight - ambient by design: one muted, italic line on the
             page background (no box, no tint), a small leaf mark, and quiet
             controls that surface on hover. Minimal real-estate. */}
         {areas.length > 0 && nudge?.text && !nudgeDismissed && (
-          <div className="group flex items-start gap-2 mb-5 text-sm leading-snug text-paper-500 dark:text-pitch-100">
+          <footer className="nudge group">
             <Leaf size={14} className="flex-shrink-0 mt-[3px] text-clay-fill" />
             <p className="flex-1 italic">{nudge.text}</p>
             <div className="flex items-center gap-0.5 flex-shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
@@ -245,37 +303,9 @@ export default function Dashboard() {
                 <X size={12} />
               </button>
             </div>
-          </div>
+          </footer>
         )}
 
-        {/* In Hand - pinned entries, directly above the area grid. Renders
-            nothing at all when nothing is pinned. */}
-        <InHandStrip />
-
-        {areas.length === 0 ? (
-          <EmptyState onCreate={() => setNewAreaOpen(true)} />
-        ) : displayAreas.length === 0 ? (
-          /* Focus mode with every area stable - a good day, not an error. */
-          <p className="py-10 text-center text-sm italic text-paper-500 dark:text-paper-600">
-            Everything is stable right now. Nothing needs your focus.
-          </p>
-        ) : (
-          <div
-            className="grid gap-4"
-            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}
-          >
-            {displayAreas.map((area) => (
-              <AreaCard key={area.id} area={area} />
-            ))}
-            <NewAreaTile onClick={() => setNewAreaOpen(true)} />
-          </div>
-        )}
-      </main>
-
-      {/* ── Below-fold sections ── */}
-      <div className="max-w-[1600px] mx-auto px-8 pb-12">
-        <ComingUpStrip />
-      </div>
 
       <WeeklyRoundupModal isOpen={roundupOpen} onClose={() => setRoundupOpen(false)} />
       <NewAreaModal isOpen={newAreaOpen} onClose={() => setNewAreaOpen(false)} />
@@ -293,7 +323,7 @@ function NewAreaTile({ onClick }) {
     <button
       onClick={onClick}
       className="
-        group flex flex-col items-center justify-center gap-2 rounded-xl
+        newtile group flex flex-col items-center justify-center gap-2 rounded-xl
         min-h-[11rem] border-2 border-dashed
         border-paper-300 dark:border-pitch-500
         text-paper-500 dark:text-paper-600
@@ -341,7 +371,7 @@ function EmptyState({ onCreate }) {
 
 function ViewSegmentedControl({ viewMode, onChange }) {
   return (
-    <div className="inline-flex items-center gap-0.5 p-0.5 rounded-md bg-paper-200 dark:bg-pitch-700/60 border border-paper-300 dark:border-pitch-500">
+    <div className="seg inline-flex items-center gap-0.5 p-0.5 rounded-md bg-paper-200 dark:bg-pitch-700/60 border border-paper-300 dark:border-pitch-500">
       {VIEW_MODES.map(({ key, label }) => (
         <button
           key={key}
@@ -349,7 +379,7 @@ function ViewSegmentedControl({ viewMode, onChange }) {
           className={`
             px-3 py-1 rounded text-xs font-display uppercase tracking-wide transition-colors
             ${viewMode === key
-              ? 'bg-mint-50 dark:bg-mint-900/20 text-mint-700 dark:text-mint-300 shadow-sm'
+              ? 'is-on bg-mint-50 dark:bg-mint-900/20 text-mint-700 dark:text-mint-300 shadow-sm'
               : 'text-paper-600 dark:text-paper-500 hover:text-pitch-700 dark:hover:text-paper-300'
             }
           `}
@@ -375,7 +405,7 @@ function AreaCard({ area }) {
     <Link
       to={`/area/${area.id}`}
       className={`
-        group relative flex flex-col rounded-xl border overflow-hidden
+        acard group relative flex flex-col rounded-xl border overflow-hidden
         bg-white dark:bg-pitch-700
         border-paper-300 dark:border-pitch-500
         hover:border-paper-400 dark:hover:border-paper-700
@@ -397,35 +427,37 @@ function AreaCard({ area }) {
 
       <div className="p-5 flex flex-col flex-1">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="ahead flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2.5 min-w-0">
             {area.icon && (
               <span className="text-paper-700 dark:text-paper-200 flex-shrink-0">
                 <AreaIcon name={area.icon} size={18} />
               </span>
             )}
-            <h2 className="font-display font-bold text-base text-pitch-800 dark:text-white truncate">
+            <h2 className="atitle font-display font-bold text-base text-pitch-800 dark:text-white truncate">
               {area.name}
             </h2>
           </div>
-          <StatusBadge status={area.status} type="area" size="xs" />
+          <span className="badge">
+            <StatusBadge status={area.status} type="area" size="xs" />
+          </span>
         </div>
 
         {/* Card text: the current overview when there is one, else the stable
             description - a freshly created area shows its description here
             until an overview is written or generated. */}
-        <p className="text-sm text-paper-600 dark:text-paper-500 leading-relaxed flex-1 line-clamp-3 mb-4">
+        <p className="abody text-sm leading-relaxed flex-1 line-clamp-3 mb-4">
           {(area.summary || area.description) ? (
             <BionicText>{stripMarkdown(area.summary || area.description)}</BionicText>
           ) : (
-            <span className="italic text-paper-400 dark:text-paper-700">
+            <span className="italic" style={{ color: 'var(--placeholder)' }}>
               No overview yet - click to add one.
             </span>
           )}
         </p>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-3 border-t border-paper-200 dark:border-pitch-500">
+        <div className="afoot flex items-center justify-between pt-3 border-t border-paper-200 dark:border-pitch-500">
           <span className="flex items-center gap-1.5 text-xs text-paper-500 dark:text-paper-600">
             <MessageSquare size={12} />
             <span className="font-mono">
@@ -456,7 +488,7 @@ function AreaCard({ area }) {
 
 function DashboardSkeleton() {
   return (
-    <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800 bg-grid-light dark:bg-grid-dark">
+    <div className="dashboard flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800">
       <div
         className="max-w-[1600px] mx-auto px-8 py-8 grid gap-4"
         style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}
@@ -502,123 +534,77 @@ function getDueGroup(dueDateStr) {
 // view stays predictable (ADHD: predictable destinations beat surprises).
 // Hides entirely when nothing is due. Counts use the functional status
 // palette (terracotta, amber-muted), never brand mint.
-function ComingUpStrip() {
-  const [todos, setTodos] = useState([])
-  const [collapsed, setCollapsed] = useState(
-    () => localStorage.getItem('comingUpCollapsed') !== 'false'
-  )
+function ComingUpStrip({ todos }) {
+  const navigate = useNavigate()
+  const [expanded, setExpanded] = useState(false)
+  const [showPast, setShowPast] = useState(false)
 
-  // In Hand shows the same to-dos from a different angle, so ticking one there
-  // has to be reflected here rather than waiting for a reload.
-  const load = useCallback(() => {
-    entriesApi.getUpcoming(50).then(setTodos).catch(() => {})
-  }, [])
-
-  useEffect(() => { load() }, [load])
-  useEntriesChanged(load)
-
-  const toggle = () => {
-    setCollapsed((c) => {
-      const next = !c
-      localStorage.setItem('comingUpCollapsed', String(next))
-      return next
-    })
-  }
-
-  // Bucket the todos once, derive counts from the buckets.
+  // Bucket once, derive everything from the buckets.
   const buckets = { overdue: [], today: [], week: [] }
   todos.forEach((t) => {
     const g = getDueGroup(t.due_date)
     if (g === 'overdue' || g === 'today' || g === 'week') buckets[g].push(t)
   })
-  const counts = {
-    overdue: buckets.overdue.length,
-    today:   buckets.today.length,
-    week:    buckets.week.length,
-  }
 
-  const nothing = counts.overdue + counts.today + counts.week === 0
-  if (nothing) return null
+  const soon = [...buckets.today, ...buckets.week].sort((a, b) => {
+    const byDate = String(a.due_date).localeCompare(String(b.due_date))
+    return byDate !== 0 ? byDate : String(a.created_at).localeCompare(String(b.created_at))
+  })
+  const overdue = buckets.overdue
 
-  const SECTIONS = [
-    { key: 'overdue', label: 'Overdue',   colorClass: 'text-terracotta' },
-    { key: 'today',   label: 'Today',     colorClass: 'text-amber-muted' },
-    { key: 'week',    label: 'This Week', colorClass: 'text-paper-600 dark:text-paper-500' },
-  ]
+  // The existing rule: nothing coming and nothing late means nothing to show.
+  if (soon.length === 0 && overdue.length === 0) return null
+
+  const shown = expanded ? soon : soon.slice(0, 5)
+  const weekLabel = soon.length > 0 ? `${soon.length} this week` : null
+  const seeAll = soon.length > 5 ? (
+    <button type="button" className="zact" onClick={() => setExpanded((v) => !v)}>
+      {expanded ? 'Show fewer' : 'See all'}
+    </button>
+  ) : null
+
+  const open = (t) => navigate(`/thread/${t.thread_id}?highlight=${t.id}`)
 
   return (
-    <div className="rounded-xl bg-paper-200 dark:bg-pitch-700 overflow-hidden">
-      {/* Strip header - click anywhere to expand/collapse */}
-      <button
-        onClick={toggle}
-        aria-expanded={!collapsed}
-        className="
-          w-full flex items-center gap-4 px-4 py-3 text-sm
-          hover:bg-paper-300/60 dark:hover:bg-pitch-600/60
-          transition-colors
-        "
-      >
-        <span className="font-mono uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
-          Coming Up
-        </span>
-        {counts.overdue > 0 && (
-          <span className="font-medium text-terracotta">{counts.overdue} overdue</span>
-        )}
-        {counts.today > 0 && (
-          <span className="font-medium text-amber-muted">{counts.today} today</span>
-        )}
-        {counts.week > 0 && (
-          <span className="text-paper-600 dark:text-paper-500">{counts.week} this week</span>
-        )}
-        <ChevronDown
-          size={15}
-          className={`ml-auto flex-shrink-0 text-paper-500 dark:text-paper-600 transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`}
-        />
-      </button>
+    <Zone id="coming" title="Coming up" count={weekLabel} bodyClass="card" actions={seeAll}>
+      {shown.map((t) => (
+        <ComingUpRow key={t.id} todo={t} onOpen={open} />
+      ))}
 
-      {/* Expanded list - bucketed items, each linking to its thread */}
-      {!collapsed && (
-        <div className="border-t border-paper-300/70 dark:border-pitch-600/70 divide-y divide-paper-300/60 dark:divide-pitch-600/60">
-          {SECTIONS.map(({ key, label, colorClass }) => {
-            const items = buckets[key]
-            if (items.length === 0) return null
-            return (
-              <div key={key} className="px-4 py-2.5">
-                <p className={`font-mono uppercase tracking-widest text-2xs mb-1.5 ${colorClass}`}>
-                  {label}
-                </p>
-                <div className="space-y-0.5">
-                  {items.map((t) => (
-                    <Link
-                      key={t.id}
-                      to={`/thread/${t.thread_id}`}
-                      className="
-                        flex items-center gap-3 px-2 py-1.5 rounded-md
-                        hover:bg-paper-300/60 dark:hover:bg-pitch-600/60
-                        transition-colors
-                      "
-                    >
-                      <span className="font-display uppercase tracking-wide text-2xs text-pitch-700 dark:text-paper-200 flex-shrink-0">
-                        {t.area_name}
-                      </span>
-                      <span className="text-paper-400 dark:text-paper-700 text-xs flex-shrink-0">/</span>
-                      <span className="flex-1 text-xs text-pitch-600 dark:text-paper-300 truncate">
-                        <BionicText>{displayTitle(t)}</BionicText>
-                      </span>
-                      {t.due_date && (
-                        <span className="font-mono text-xs text-paper-500 dark:text-paper-600 flex-shrink-0">
-                          {format(parseISO(t.due_date), 'EEE d MMM')}
-                        </span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+      {/* Late items sit at the foot rather than the top, and never in red.
+          Nothing here is an alarm. */}
+      {overdue.length > 0 && (
+        <>
+          <div className="past">
+            <span className="dot" />
+            <span>
+              {overdue.length === 1 ? '1 past its date' : `${overdue.length} past their date`}
+            </span>
+            <button type="button" className="zact" onClick={() => setShowPast((v) => !v)}>
+              See these
+            </button>
+          </div>
+          {showPast && overdue.map((t) => (
+            <ComingUpRow key={t.id} todo={t} onOpen={open} showDate />
+          ))}
+        </>
       )}
-    </div>
+    </Zone>
   )
 }
 
+function ComingUpRow({ todo, onOpen, showDate = false }) {
+  const when = showDate
+    ? format(parseISO(todo.due_date), 'd MMM')
+    : getDueGroup(todo.due_date) === 'today'
+      ? 'Today'
+      : format(parseISO(todo.due_date), 'EEE')
+
+  return (
+    <button type="button" className="cu-row" onClick={() => onOpen(todo)}>
+      <span className="when">{when}</span>
+      <span className="cu-text">{displayTitle(todo)}</span>
+      <span className="where">{todo.area_name}</span>
+    </button>
+  )
+}

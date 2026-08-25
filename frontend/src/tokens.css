@@ -131,6 +131,26 @@
   --space-8: 64px;
 
   /* ── Radius scale ──────────────────────────────────────────────────────── */
+  /* ── Dashboard zones ────────────────────────────────────────────────────
+     Surfaces and hairlines the dashboard's zone chrome needs. --sheet is one
+     step lighter than the page, so a lifted zone reads as raised without a
+     border. --lift is the shadow that does the lifting. */
+  --sheet:        #FBFAF6;              /* lifted surface */
+  --placeholder:  #A8A49E;              /* empty-state italic text */
+  --rule-soft:    rgba(20, 19, 15, .06); /* hairline between rows */
+  --lift: 0 1px 1px rgba(20,19,15,.03), 0 2px 6px rgba(20,19,15,.05), 0 10px 28px rgba(20,19,15,.06);
+  /* The folder tab and its body are one silhouette, so the shadow is a filter
+     on the whole zone rather than a box-shadow on each part. */
+  --lift-drop:    drop-shadow(0 8px 18px rgba(20, 19, 15, .10));
+  /* Margin's rule down the left of a zone. */
+  --margin-line:  rgba(20, 19, 15, .18);
+
+  /* The dashboard CSS names fonts through these. --font-sans follows the
+     reading-font setting, so the Lexend and OpenDyslexic opt-ins reach zone
+     labels and item text rather than stopping at prose. */
+  --font-sans: var(--font-body, 'Geist Sans'), 'Lexend', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -148,6 +168,21 @@
 /* ── Dark mode overrides - applied when html.dark is present ─────────────── */
 html.dark {
   --rail-ground: var(--pitch);
+
+  /* Shadows do not read on pitch. A hairline ring carries the lift instead,
+     with a faint dark drop under it. Folder and Margin need the same
+     treatment: ink at low alpha vanishes here, so both flip to paper. */
+  --sheet:        #1E1D19;
+  --placeholder:  #6B6862;
+  --rule-soft:    rgba(247, 244, 237, .06);
+  --lift: 0 0 0 1px rgba(247,244,237,.06), 0 6px 18px rgba(0,0,0,.35);
+  /* drop-shadow() takes no spread radius, unlike box-shadow, so the hairline
+     ring --lift uses cannot be spelled the same way here. A 1px blur at zero
+     offset gives the same faint light edge, and an invalid value takes the
+     whole filter down to none rather than degrading. */
+  --lift-drop:    drop-shadow(0 0 1px rgba(247, 244, 237, .22)) drop-shadow(0 6px 14px rgba(0, 0, 0, .45));
+  --margin-line:  rgba(247, 244, 237, .18);
+
   --rule:        rgba(247, 244, 237, 0.10);
   --rule-strong: rgba(247, 244, 237, 0.18);
 

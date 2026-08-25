@@ -345,7 +345,10 @@ def _delete_reference_target(db: Session, entry, performed_by: int):
 
 
 @router.get("/todos/upcoming", response_model=list[schemas.UpcomingTodo])
-def get_upcoming_todos(limit: int = Query(default=10, le=50), db: Session = Depends(get_db)):
+def get_upcoming_todos(limit: int = Query(default=10, le=100), db: Session = Depends(get_db)):
+    # Raised from 50: the dashboard reads one page and buckets it into overdue,
+    # today and this week, so a heavy user with a long overdue tail could push
+    # the whole week off the end.
     rows = (
         db.query(models.Entry, models.Thread, models.Area)
         .join(models.Thread, models.Entry.thread_id == models.Thread.id)

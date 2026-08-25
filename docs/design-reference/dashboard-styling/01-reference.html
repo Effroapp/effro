@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Effro dashboard styling, frozen reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F4ED; --paper-50:#FBFAF6; --sheet:#FBFAF6; --paper-2:#EFECE3; --paper-3:#E5E1D6; --stone:#D4CFC2;
+  --ink-muted:#8A877F; --ink-soft:#4A4845; --ink:#14130F; --placeholder:#A8A49E;
+  --pitch:#0F0E0C; --pitch-2:#181714; --pitch-3:#232220; --stone-dark:#38352F;
+  --paper-d:#EDEAE3; --paper-soft-d:#A8A49E; --paper-muted-d:#6B6862;
+  --mint:#10B981; --mint-700:#047857;
+  --sage:#7A9579; --mustard:#C9A85C; --terracotta:#B86A5C;
+  --rule:rgba(20,19,15,.10); --rule-soft:rgba(20,19,15,.06);
+  --sans:'Geist','Geist Sans',ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --mono:'Geist Mono','JetBrains Mono',ui-monospace,monospace;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --lift:0 1px 1px rgba(20,19,15,.03),0 2px 6px rgba(20,19,15,.05),0 10px 28px rgba(20,19,15,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--pitch);color:var(--paper-d);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+button:focus-visible{outline:2px solid var(--mint);outline-offset:2px;border-radius:6px}
+.ic{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* ── Mock harness (dark, deliberately not the app) ─────────────────────── */
+.harness{padding:18px 24px 40px}
+.bar{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.bar-title{font-size:14px;font-weight:600;letter-spacing:-.01em}
+.bar-title span{font-weight:400;color:var(--paper-muted-d);margin-left:8px}
+.tabs,.widths,.heads{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--stone-dark);border-radius:8px;background:var(--pitch-2)}
+.tab,.wbtn,.hbtn{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:6px;font-size:13px;color:var(--paper-soft-d);transition:background .15s,color .15s}
+.tab:hover,.wbtn:hover,.hbtn:hover{color:var(--paper-d)}
+.tab,.wbtn,.hbtn{position:relative;cursor:pointer;user-select:none}
+.tab:has(input:checked),.wbtn:has(input:checked),.hbtn:has(input:checked){background:var(--pitch-3);color:var(--paper-d)}
+.tab:has(input:focus-visible),.wbtn:has(input:focus-visible),.hbtn:has(input:focus-visible){outline:2px solid var(--mint);outline-offset:2px}
+.grp{align-self:center;padding:0 6px 0 8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--paper-muted-d)}
+.key{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:4px;background:var(--stone-dark);font-family:var(--mono);font-size:11px;color:var(--paper-d)}
+.tab:has(input:checked) .key{background:var(--mint-700);color:#fff}
+.heads{margin-left:auto}
+.note{display:none;margin:12px 0 4px;max-width:960px;font-size:13px;line-height:1.55;color:var(--paper-soft-d)}
+.note-h{margin:0 0 14px;color:var(--paper-muted-d)}
+.harness:has(#lay-current:checked) .note[data-for="lay-current"]{display:block}
+.harness:has(#lay-a:checked) .note[data-for="lay-a"]{display:block}
+.harness:has(#lay-b:checked) .note[data-for="lay-b"]{display:block}
+.harness:has(#lay-c:checked) .note[data-for="lay-c"]{display:block}
+.harness:has(#heads-heading:checked) .note[data-for="heads-heading"]{display:block}
+.harness:has(#heads-lifted:checked) .note[data-for="heads-lifted"]{display:block}
+.harness:has(#heads-sheet:checked) .note[data-for="heads-sheet"]{display:block}
+.harness:has(#heads-inset:checked) .note[data-for="heads-inset"]{display:block}
+.harness:has(#heads-tab:checked) .note[data-for="heads-tab"]{display:block}
+.harness:has(#heads-margin:checked) .note[data-for="heads-margin"]{display:block}
+.harness:has(#heads-card:checked) .note[data-for="heads-card"]{display:block}
+.note-h b{font-weight:500;color:var(--paper-soft-d)}
+.frame-wrap{overflow-x:auto;padding-bottom:8px}
+.frame{position:relative;height:840px;margin:0 auto;border:1px solid var(--stone-dark);border-radius:12px;background:var(--paper);color:var(--ink);overflow:hidden;transition:width .25s var(--ease)}
+.harness:has(#wid-wide:checked) .frame{width:1600px}
+.harness:has(#wid-narrow:checked) .frame{width:1100px}
+.harness:has(#lay-current:checked) .app-next{display:none}
+.harness:not(:has(#lay-current:checked)) .app-current{display:none}
+
+/* ── App shell ─────────────────────────────────────────────────────────── */
+.app{position:relative;height:100%;overflow-y:auto;display:flex;flex-direction:column}
+.app::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(var(--rule-soft) 1px,transparent 1px),linear-gradient(90deg,var(--rule-soft) 1px,transparent 1px);
+  background-size:24px 24px}
+/* Grid paper fades out below the content in the new layouts */
+.app-next::before{-webkit-mask-image:linear-gradient(to bottom,#000 0,#000 40%,transparent 78%);mask-image:linear-gradient(to bottom,#000 0,#000 40%,transparent 78%)}
+.app>*{position:relative}
+
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:20px 32px;border-bottom:1px solid var(--rule);background:rgba(247,244,237,.9)}
+.greet{margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+.date{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-muted)}
+.status{display:flex;align-items:baseline;gap:14px;margin:7px 0 0}
+.status .line{font-size:14px;color:var(--ink-soft)}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;background:var(--paper-2);border:1px solid var(--rule);font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+.help{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#F1D9C6;color:var(--ink-soft);font-size:13px;font-weight:500;margin-left:14px}
+.seg{display:inline-flex;gap:2px;padding:2px;border-radius:6px;background:var(--paper-2);border:1px solid var(--rule)}
+.seg label{position:relative;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-muted);cursor:pointer}
+.seg label:has(input:checked){background:var(--paper-50);color:var(--mint-700);box-shadow:0 1px 2px rgba(20,19,15,.08)}
+.seg label:has(input:focus-visible){outline:2px solid var(--mint);outline-offset:1px}
+
+/* ── Shared zone pattern ──────────────────────────────────── */
+.zones{display:flex;flex-direction:column;gap:28px;padding:24px 32px;max-width:1600px;width:100%;margin:0 auto}
+.band{display:contents}
+.zone-head{display:flex;align-items:center;gap:12px;margin:0 4px 8px;min-height:30px}
+.zone-title{display:flex;align-items:baseline;gap:12px}
+.label{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-muted)}
+.count{font-size:13px;color:var(--ink-soft)}
+.zone-tools{margin-left:auto;display:flex;align-items:center;gap:8px}
+.zact{font-size:12px;color:var(--ink-muted);padding:3px 8px;border-radius:6px;border:1px solid transparent;white-space:nowrap}
+.zact:hover{color:var(--ink-soft);border-color:var(--rule);background:var(--paper-2)}
+.chev{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;color:var(--ink-muted);font-size:14px;cursor:pointer;position:relative}
+.chev .ic{transition:transform .2s var(--ease)}
+.chev-in,.seg input,.ctl input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.chev:has(.chev-in:focus-visible){outline:2px solid var(--mint);outline-offset:2px}
+.chev:hover{background:var(--paper-2);color:var(--ink-soft)}
+.zone:has(.chev-in:checked) .chev .ic{transform:rotate(-90deg)}
+.zone:has(.chev-in:checked) .zone-body{display:none}
+.card{background:var(--paper-50);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+
+/* In hand */
+.ih-row{display:flex;align-items:flex-start;gap:14px;padding:14px 18px;border-top:1px solid var(--rule-soft)}
+.ih-row:first-child{border-top:0}
+.box{width:16px;height:16px;margin-top:3px;border:1.5px solid var(--stone);border-radius:4px;background:#fff;flex-shrink:0}
+.ih-text{flex:1;font-size:16px;font-weight:500;line-height:1.4;color:var(--ink);letter-spacing:-.005em}
+.age{font-family:var(--mono);font-size:11px;color:var(--ink-muted);padding-top:5px}
+
+/* Coming up */
+.cu-row{display:flex;align-items:center;gap:14px;padding:11px 18px;border-top:1px solid var(--rule-soft)}
+.cu-row:first-child{border-top:0}
+.when{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-muted);width:44px;flex-shrink:0}
+.cu-text{flex:1;font-size:14px;color:var(--ink);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.where{font-size:12px;color:var(--ink-muted);white-space:nowrap}
+.past{display:flex;align-items:center;gap:10px;padding:10px 18px;border-top:1px solid var(--rule);background:var(--paper-2);font-size:13px;color:var(--ink-soft)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--mustard);flex-shrink:0}
+.past .zact{margin-left:auto}
+
+/* Areas */
+.area-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.acard{position:relative;display:flex;flex-direction:column;min-height:176px;padding:16px 20px 12px;border-radius:12px;background:var(--paper-2);border:1px solid var(--rule);border-top:3px solid rgba(122,149,121,.45);text-decoration:none;color:inherit;transition:background .15s}
+.acard:hover{background:var(--paper-3)}
+.ahead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ahead>.ic{font-size:16px;color:var(--ink-soft)}
+.atitle{flex:1;min-width:0;font-size:16px;font-weight:600;letter-spacing:-.01em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--sage);background:rgba(122,149,121,.10);border:1px solid rgba(122,149,121,.30);white-space:nowrap}
+.badge::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--sage)}
+.abody{margin:0 0 14px;font-size:14px;line-height:1.5;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.abody.empty{font-style:italic;color:var(--placeholder)}
+.afoot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--rule);font-family:var(--mono);font-size:12px;color:var(--ink-muted)}
+.afoot .l,.afoot .r{display:flex;align-items:center;gap:6px}
+.afoot .n{color:var(--ink-soft)}
+.afoot .ic{font-size:13px}
+.newtile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:176px;border:2px dashed var(--stone);border-radius:12px;color:var(--ink-muted);font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;transition:border-color .15s,color .15s}
+.newtile .ic{font-size:18px}
+.newtile:hover{border-color:rgba(16,185,129,.5);color:var(--mint-700)}
+
+/* Nudge, now at the foot of the page */
+.nudge{margin:auto auto 0;display:flex;align-items:flex-start;gap:8px;padding:16px 32px 22px;max-width:1600px;width:100%;font-size:13px;line-height:1.45;color:var(--ink-muted);font-style:italic}
+.nudge .ic{color:rgba(5,150,105,.6);margin-top:2px}
+.nudge .tools{margin-left:auto;display:flex;gap:2px;opacity:.4;font-style:normal;transition:opacity .15s}
+.nudge:hover .tools{opacity:1}
+.nudge .tools button{display:grid;place-items:center;width:20px;height:20px;border-radius:4px;color:var(--ink-muted)}
+
+.app-next .greet{font-size:22px}
+
+/* ── Section styles ─────────────────────────── */
+/* Plain: a real heading in the display face, one step below the greeting
+   and one above card titles. Count and actions stay in the quiet voice. */
+.harness:has(#heads-heading:checked) .zone-head{margin-bottom:10px}
+.harness:has(#heads-heading:checked) .zone-head .label{font-family:var(--sans);font-size:18px;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--ink)}
+.harness:has(#heads-heading:checked) .zone-head .count{font-family:var(--mono);font-size:12px;color:var(--ink-muted)}
+
+/* Sheet: between Plain and Boxed. The heading lives inside the zone's
+   surface so it belongs to the content, but the surface is a lifted sheet of
+   paper with a soft shadow rather than a bordered box with a tinted title bar.
+   Shadow is three warm layers so it reads as paper on a desk, not a modal. */
+.harness:has(#heads-sheet:checked) .zone{background:var(--paper-50);border-radius:12px;overflow:hidden;
+  box-shadow:var(--lift)}
+.harness:has(#heads-sheet:checked) .zone-head{margin:0;padding:14px 18px 10px;min-height:0;border-bottom:1px solid var(--rule-soft)}
+.harness:has(#heads-sheet:checked) .zone:has(.chev-in:checked) .zone-head{border-bottom:0}
+.harness:has(#heads-sheet:checked) .zone-head .label{font-family:var(--sans);font-size:17px;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--ink)}
+.harness:has(#heads-sheet:checked) .zone-head .count{font-family:var(--mono);font-size:12px;color:var(--ink-muted)}
+.harness:has(#heads-sheet:checked) .zone-body.card{border:0;border-radius:0;background:transparent}
+.harness:has(#heads-sheet:checked) .zone-areas .zone-body{padding:16px}
+.harness:has(#heads-sheet:checked) .acard{border-color:var(--rule);background:var(--paper-2)}
+.harness:has(#heads-sheet:checked) .seg{background:var(--paper-2)}
+
+/* Lifted: the heading stays outside, in the display face. The body loses its
+   border and sits on the shadow instead, and the gap closes to 6px so the
+   shadow does the associating. Area cards lift the same way. */
+.harness:has(#heads-lifted:checked) .zone-head{margin:0 4px 6px}
+.harness:has(#heads-lifted:checked) .zone-head .label{font-family:var(--sans);font-size:17px;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--ink)}
+.harness:has(#heads-lifted:checked) .zone-head .count{font-family:var(--mono);font-size:12px;color:var(--ink-muted)}
+.harness:has(#heads-lifted:checked) .zone-body.card{border:0;box-shadow:var(--lift)}
+.harness:has(#heads-lifted:checked) .acard{border:0;border-top:3px solid rgba(122,149,121,.45);box-shadow:var(--lift)}
+.harness:has(#heads-lifted:checked):has(#lay-c:checked):has(#wid-wide:checked) .acard{border-top:0;border-left:3px solid rgba(122,149,121,.45)}
+
+/* Inset: heading on a lifted sheet, rows set into an inner panel the colour
+   of the page. The header area is the sheet's own margin. */
+.harness:has(#heads-inset:checked) .zone{background:var(--paper-50);border-radius:14px;padding:6px;box-shadow:var(--lift)}
+.harness:has(#heads-inset:checked) .zone-head{margin:0;padding:8px 12px 10px;min-height:0}
+.harness:has(#heads-inset:checked) .zone-head .label{font-family:var(--sans);font-size:17px;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--ink)}
+.harness:has(#heads-inset:checked) .zone-head .count{font-family:var(--mono);font-size:12px;color:var(--ink-muted)}
+.harness:has(#heads-inset:checked) .zone-body.card{background:var(--paper);border:1px solid var(--rule-soft);border-radius:10px}
+.harness:has(#heads-inset:checked) .zone-areas .zone-body{background:var(--paper);border:1px solid var(--rule-soft);border-radius:10px;padding:12px}
+.harness:has(#heads-inset:checked) .past{background:var(--paper-2)}
+.harness:has(#heads-inset:checked) .seg{background:var(--paper-2)}
+
+/* Folder: the heading is a folder tab on the sheet. Tab and body are one
+   silhouette, so the shadow is a drop-shadow filter on the whole zone. */
+.harness:has(#heads-tab:checked) .zone{filter:drop-shadow(0 1px 1px rgba(20,19,15,.04)) drop-shadow(0 5px 12px rgba(20,19,15,.07))}
+.harness:has(#heads-tab:checked) .zone-head{margin:0;min-height:0;align-items:flex-end}
+.harness:has(#heads-tab:checked) .zone-title{background:var(--paper-50);border-radius:12px 12px 0 0;padding:10px 20px 11px 18px;margin-bottom:-1px}
+.harness:has(#heads-tab:checked) .zone:has(.chev-in:checked) .zone-title{border-radius:12px;margin-bottom:0}
+.harness:has(#heads-tab:checked) .zone-tools{align-self:center;padding-right:4px}
+.harness:has(#heads-tab:checked) .zone-head .label{font-family:var(--sans);font-size:16px;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--ink)}
+.harness:has(#heads-tab:checked) .zone-head .count{font-family:var(--mono);font-size:12px;color:var(--ink-muted)}
+.harness:has(#heads-tab:checked) .zone-body.card{border:0;border-radius:0 12px 12px 12px}
+.harness:has(#heads-tab:checked) .zone-areas .zone-body{background:var(--paper-50);border-radius:0 12px 12px 12px;padding:16px}
+.harness:has(#heads-tab:checked) .seg{background:transparent;border-color:var(--rule)}
+
+/* Margin: a notebook margin line runs down the left of heading and body.
+   Flat, no shadow. The shared line is the association. */
+.harness:has(#heads-margin:checked) .zone{border-left:2px solid rgba(20,19,15,.18);padding-left:16px}
+.harness:has(#heads-margin:checked) .zone-head{margin:0 0 8px;min-height:0}
+.harness:has(#heads-margin:checked) .zone-head .label{font-family:var(--sans);font-size:17px;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--ink)}
+.harness:has(#heads-margin:checked) .zone-head .count{font-family:var(--mono);font-size:12px;color:var(--ink-muted)}
+
+
+/* Boxed: the header becomes the card's own title bar, the way the current
+   In Hand strip does it. The zone is one bordered surface. */
+.harness:has(#heads-card:checked) .zone{background:var(--paper-50);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+.harness:has(#heads-card:checked) .zone-head{margin:0;padding:11px 18px;background:var(--paper-2);border-bottom:1px solid var(--rule);min-height:0}
+.harness:has(#heads-card:checked) .zone:has(.chev-in:checked) .zone-head{border-bottom:0}
+.harness:has(#heads-card:checked) .zone-head .label{font-size:12px;font-weight:500;letter-spacing:.14em;color:var(--ink-soft)}
+.harness:has(#heads-card:checked) .zone-head .count{font-size:13px;color:var(--ink-muted)}
+.harness:has(#heads-card:checked) .zone-body.card{border:0;border-radius:0}
+.harness:has(#heads-card:checked) .zone-areas .zone-body{padding:16px}
+.harness:has(#heads-card:checked) .seg{background:var(--paper-50)}
+
+/* ── Split (wide only) ────────────────────────────────────────────────── */
+.harness:has(#lay-b:checked):has(#wid-wide:checked) .band{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:24px;align-items:start}
+.harness:has(#lay-b:checked):has(#wid-wide:checked) .area-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.harness:has(#lay-b:checked):has(#wid-wide:checked) .atitle{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}
+.harness:has(#lay-b:checked):has(#wid-wide:checked) .ahead{align-items:flex-start}
+.harness:has(#lay-b:checked):has(#wid-wide:checked) .ahead>.ic{margin-top:2px}
+.harness:has(#lay-b:checked):has(#wid-wide:checked) .newtile{grid-column:1/-1;flex-direction:row;min-height:0;padding:12px 16px;gap:10px}
+.harness:has(#lay-b:checked):has(#wid-wide:checked) .newtile .ic{font-size:14px}
+
+/* ── Rail (wide only) ─────────────────────────────────────────────────── */
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .zones{display:grid;grid-template-columns:minmax(0,1fr) 420px;grid-template-rows:auto auto 1fr;grid-template-areas:"inhand rail" "coming rail" ". rail";column-gap:28px;row-gap:28px;align-items:start;align-content:start}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .zone-inhand{grid-area:inhand}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .zone-coming{grid-area:coming}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .zone-areas{grid-area:rail}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .area-grid{grid-template-columns:1fr;gap:8px}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .acard{display:grid;grid-template-columns:18px minmax(0,1fr) auto;grid-template-areas:"icon title meta" "icon body meta";column-gap:12px;row-gap:3px;align-items:center;min-height:0;padding:12px 14px;border-top:1px solid var(--rule);border-left:3px solid rgba(122,149,121,.45)}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .ahead{display:contents}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .ahead>.ic{grid-area:icon;font-size:16px}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .atitle{grid-area:title;font-size:15px}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .badge{display:none}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .abody{grid-area:body;margin:0;font-size:13px;line-height:1.4;-webkit-line-clamp:1}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .afoot{grid-area:meta;flex-direction:column;align-items:flex-end;gap:2px;border:0;padding:0;font-size:11px}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .afoot .ic{display:none}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .newtile{flex-direction:row;min-height:0;padding:11px 14px;justify-content:flex-start;gap:10px}
+.harness:has(#lay-c:checked):has(#wid-wide:checked) .newtile .ic{font-size:14px}
+
+/* ── Current layout, reproduced for comparison ─────────────────────────── */
+.cur-body{display:flex;flex-direction:column;gap:24px;padding:24px 32px;max-width:1600px;width:100%;margin:0 auto}
+.cur-nudge{display:flex;align-items:flex-start;gap:8px;margin-bottom:-4px;font-size:13px;font-style:italic;color:var(--ink-muted)}
+.cur-nudge .ic{color:rgba(5,150,105,.6);margin-top:2px}
+.cur-nudge .tools{margin-left:auto;opacity:.4;display:flex;gap:2px;font-style:normal}
+.cur-inhand-head{display:flex;align-items:baseline;gap:10px;padding:12px 16px;border-bottom:1px solid var(--rule-soft)}
+.app-current .ih-row{padding:11px 16px}
+.app-current .ih-text{font-size:14px;font-weight:400}
+.app-current .afoot{color:#BDB8AB}
+.app-current .afoot .n{color:#BDB8AB}
+.app-current .abody.empty{color:#C9C4B6}
+.cur-coming{display:flex;align-items:center;gap:16px;padding:12px 16px;border-radius:12px;background:var(--paper-2)}
+.cur-coming .ov{color:var(--terracotta);font-weight:500;font-size:14px}
+.cur-coming .wk{color:var(--ink-soft);font-size:14px}
+.cur-coming .ic{margin-left:auto;color:var(--ink-muted);font-size:15px}
+
+/* ── Settings menu mock. Live: its labels point at the same radios as the bar. ── */
+.settings-mock{max-width:1600px;margin:28px auto 0;display:grid;grid-template-columns:320px minmax(0,1fr);gap:28px;align-items:start}
+.sm-caption{font-size:13px;line-height:1.55;color:var(--paper-soft-d);padding-top:6px}
+.sm-caption b{color:var(--paper-d);font-weight:500}
+.sm-panel{background:var(--paper);color:var(--ink);border:1px solid var(--stone);border-radius:12px;padding:14px;box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:14px;font-family:var(--sans)}
+.sm-label{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--placeholder);margin-bottom:6px}
+.sm-sub{font-size:12px;color:var(--ink-muted);margin:8px 0 5px}
+.sm-seg{display:flex;gap:2px;padding:2px;border-radius:6px;background:var(--paper-2);border:1px solid var(--rule)}
+.sm-seg span,.sm-seg label{flex:1;text-align:center;padding:5px 8px;border-radius:4px;font-size:12px;color:var(--ink-muted)}
+.sm-seg label{cursor:pointer}
+.sm-seg .on{background:var(--paper-50);color:var(--mint-700);box-shadow:0 1px 2px rgba(20,19,15,.08)}
+.harness:has(#lay-a:checked) .sm-seg label[for="lay-a"],
+.harness:has(#lay-b:checked) .sm-seg label[for="lay-b"],
+.harness:has(#lay-c:checked) .sm-seg label[for="lay-c"]{background:var(--paper-50);color:var(--mint-700);box-shadow:0 1px 2px rgba(20,19,15,.08)}
+.sm-select{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:6px;background:var(--paper-50);border:1px solid var(--rule);font-size:13px}
+.sm-select .hint{font-family:var(--mono);font-size:11px;color:var(--ink-muted);margin-left:6px}
+.sm-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sm-tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 4px 7px;border-radius:8px;background:var(--paper-50);border:1px solid var(--rule);cursor:pointer;font-size:11px;color:var(--ink-soft)}
+.sm-tile svg{width:44px;height:30px;display:block}
+.sm-tile:hover{border-color:var(--stone)}
+.sm-tile .def{position:absolute;top:4px;right:5px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
+.harness:has(#heads-heading:checked) .sm-tile[for="heads-heading"],
+.harness:has(#heads-lifted:checked) .sm-tile[for="heads-lifted"],
+.harness:has(#heads-sheet:checked) .sm-tile[for="heads-sheet"],
+.harness:has(#heads-inset:checked) .sm-tile[for="heads-inset"],
+.harness:has(#heads-tab:checked) .sm-tile[for="heads-tab"],
+.harness:has(#heads-margin:checked) .sm-tile[for="heads-margin"],
+.harness:has(#heads-card:checked) .sm-tile[for="heads-card"]{border-color:var(--mint);box-shadow:0 0 0 1px var(--mint);color:var(--ink)}
+.sm-note{font-size:11px;line-height:1.5;color:var(--ink-muted);margin-top:2px}
+@media (max-width:900px){.settings-mock{grid-template-columns:1fr}}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-msg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></symbol>
+  <symbol id="i-bug" viewBox="0 0 24 24"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></symbol>
+  <symbol id="i-drive" viewBox="0 0 24 24"><path d="M22 12H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M6 16h.01"/><path d="M10 16h.01"/></symbol>
+
+  <symbol id="g-plain" viewBox="0 0 44 30"><rect x="2" y="3" width="14" height="3" rx="1.5" fill="var(--ink)"/><rect x="2.5" y="10.5" width="39" height="16" rx="3" fill="var(--sheet)" stroke="var(--rule)"/></symbol>
+  <symbol id="g-lifted" viewBox="0 0 44 30"><rect x="2" y="3" width="14" height="3" rx="1.5" fill="var(--ink)"/><rect x="3" y="12" width="39" height="16" rx="3" fill="var(--ink)" opacity=".14" filter="url(#g-sh)"/><rect x="2.5" y="10.5" width="39" height="16" rx="3" fill="var(--sheet)"/></symbol>
+  <symbol id="g-sheet" viewBox="0 0 44 30"><rect x="3" y="5" width="39" height="23" rx="3" fill="var(--ink)" opacity=".14" filter="url(#g-sh)"/><rect x="2.5" y="3.5" width="39" height="23" rx="3" fill="var(--sheet)"/><rect x="6" y="7" width="13" height="3" rx="1.5" fill="var(--ink)"/><path d="M6 13.5h32" stroke="var(--rule)"/></symbol>
+  <symbol id="g-inset" viewBox="0 0 44 30"><rect x="3" y="5" width="39" height="23" rx="3" fill="var(--ink)" opacity=".14" filter="url(#g-sh)"/><rect x="2.5" y="3.5" width="39" height="23" rx="3" fill="var(--sheet)"/><rect x="6" y="7" width="13" height="3" rx="1.5" fill="var(--ink)"/><rect x="5.5" y="13.5" width="33" height="10" rx="2" fill="var(--paper)" stroke="var(--rule-soft)"/></symbol>
+  <symbol id="g-folder" viewBox="0 0 44 30"><g opacity=".14" filter="url(#g-sh)"><rect x="3" y="11" width="39" height="17" rx="3" fill="var(--ink)"/><rect x="3" y="5" width="17" height="8" rx="2" fill="var(--ink)"/></g><rect x="2.5" y="9.5" width="39" height="17" rx="3" fill="var(--sheet)"/><path d="M2.5 12.5v-7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v7z" fill="var(--sheet)"/><rect x="6" y="5.5" width="9" height="2.5" rx="1.25" fill="var(--ink)"/></symbol>
+  <symbol id="g-margin" viewBox="0 0 44 30"><path d="M3.5 3v24" stroke="var(--ink)" stroke-opacity=".28" stroke-width="2"/><rect x="8" y="3" width="14" height="3" rx="1.5" fill="var(--ink)"/><rect x="8.5" y="10.5" width="33" height="16" rx="3" fill="var(--sheet)" stroke="var(--rule)"/></symbol>
+  <symbol id="g-boxed" viewBox="0 0 44 30"><rect x="2.5" y="3.5" width="39" height="23" rx="3" fill="var(--sheet)" stroke="var(--rule)"/><path d="M2.5 6.5a3 3 0 0 1 3-3h33a3 3 0 0 1 3 3v5h-39z" fill="var(--paper-2)"/><path d="M2.5 11.5h39" stroke="var(--rule)"/><rect x="6" y="6" width="11" height="2.5" rx="1.25" fill="var(--ink-soft)"/></symbol>
+  <filter id="g-sh" x="-20%" y="-20%" width="140%" height="160%"><feGaussianBlur stdDeviation="1.3"/></filter>
+  <symbol id="i-clip" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></symbol>
+</svg>
+
+<div class="harness">
+  <div class="bar">
+    <div class="bar-title">Effro dashboard styling<span>frozen reference</span></div>
+    <div class="tabs ctl" role="radiogroup" aria-label="Layout">
+      <span class="grp">Layout</span>
+      <label class="tab"><input type="radio" name="lay" id="lay-current">Before</label>
+      <label class="tab"><input type="radio" name="lay" id="lay-a">Stacked</label>
+      <label class="tab"><input type="radio" name="lay" id="lay-b" checked>Split</label>
+      <label class="tab"><input type="radio" name="lay" id="lay-c">Rail</label>
+    </div>
+    <div class="heads ctl" role="radiogroup" aria-label="Section header style">
+      <span class="grp">Section style</span>
+      <label class="hbtn"><input type="radio" name="heads" id="heads-heading">Plain</label>
+      <label class="hbtn"><input type="radio" name="heads" id="heads-lifted">Lifted</label>
+      <label class="hbtn"><input type="radio" name="heads" id="heads-sheet">Sheet</label>
+      <label class="hbtn"><input type="radio" name="heads" id="heads-inset" checked>Inset</label>
+      <label class="hbtn"><input type="radio" name="heads" id="heads-tab">Folder</label>
+      <label class="hbtn"><input type="radio" name="heads" id="heads-margin">Margin</label>
+      <label class="hbtn"><input type="radio" name="heads" id="heads-card">Boxed</label>
+    </div>
+    <div class="widths ctl" role="radiogroup" aria-label="Viewport width">
+      <label class="wbtn"><input type="radio" name="wid" id="wid-wide" checked>Wide 1600</label>
+      <label class="wbtn"><input type="radio" name="wid" id="wid-narrow">Narrow 1100</label>
+    </div>
+  </div>
+  <p class="note" data-for="lay-current">Before. The dashboard as it is today, for comparison. The nudge takes the first slot, the area grid has no label, and Coming Up sits collapsed at the bottom with a red count.</p>
+  <p class="note" data-for="lay-a">Stacked. Same content, fixed order, full width. A status line replaces the nudge under the greeting. Every zone gets the same header with a count and one action. In Hand is the heaviest text on the page. Coming Up opens by default and overdue is one quiet line. The area filter moves into the Areas header.</p>
+  <p class="note" data-for="lay-b">Split. In Hand stays full width as the anchor. Coming Up and Areas share a 60/40 band beneath it on wide screens. Switch to Narrow to see it stack like Stacked. This is the default.</p>
+  <p class="note" data-for="lay-c">Rail. Two columns on wide screens. In Hand and Coming Up in the main column, Areas as a compact list in a right rail so the map is always in view. Switch to Narrow to see it stack like Stacked.</p>
+  <p class="note note-h" data-for="heads-heading"><b>Plain.</b> A floating heading in the display face. Nothing contains it, so the association is by proximity only.</p>
+  <p class="note note-h" data-for="heads-lifted"><b>Lifted.</b> The heading stays outside. The body loses its border and sits on a soft shadow, with the gap closed to 6px so the shadow does the associating.</p>
+  <p class="note note-h" data-for="heads-sheet"><b>Sheet.</b> Heading inside a lifted sheet with a hairline under it. No tinted bar, no border.</p>
+  <p class="note note-h" data-for="heads-inset"><b>Inset.</b> Heading on a lifted sheet, with the rows set into an inner panel. The header is the sheet's own margin. This is the default.</p>
+  <p class="note note-h" data-for="heads-tab"><b>Folder.</b> The heading is a folder tab on the sheet, one silhouette and one shadow. Reads as a labelled folder, though a lone tab can hint at other tabs that aren't there.</p>
+  <p class="note note-h" data-for="heads-margin"><b>Margin.</b> A notebook margin line runs down the left of heading and body. Flat, no shadow. The shared line is the association.</p>
+  <p class="note note-h" data-for="heads-card"><b>Boxed.</b> A tinted title bar inside a bordered box, the way the current In Hand strip does it.</p>
+
+  <div class="frame-wrap">
+  <div class="frame" id="frame">
+
+    <!-- ══ Current layout ══ -->
+    <div class="app app-current">
+      <header class="topbar">
+        <div>
+          <h1 class="greet">Good afternoon</h1>
+          <div class="date" style="margin-top:7px">Tuesday, 25 August</div>
+        </div>
+        <div class="topbar-actions">
+          <div class="seg"><label><input type="radio" name="seg-cur" checked>All</label><label><input type="radio" name="seg-cur">Priority</label><label><input type="radio" name="seg-cur">Focus</label></div>
+          <button class="pill"><svg class="ic"><use href="#i-spark"/></svg>Weekly roundup</button>
+          <div class="help">?</div>
+        </div>
+      </header>
+      <div class="cur-body">
+        <div class="cur-nudge">
+          <svg class="ic"><use href="#i-leaf"/></svg>
+          <span>Updating as you go means there's never a daunting backlog waiting for you.</span>
+          <span class="tools"><button aria-label="Show another"><svg class="ic"><use href="#i-refresh"/></svg></button><button aria-label="Dismiss"><svg class="ic"><use href="#i-x"/></svg></button></span>
+        </div>
+
+        <div class="card">
+          <div class="cur-inhand-head"><span class="label">In hand</span><span class="count">2 in hand</span></div>
+          <div class="ih-row"><span class="box"></span><span class="ih-text">Flag the 95 percent language question in Pack C, whether traceability needs a simpler binary form of the performance claim</span><span class="age">now</span></div>
+          <div class="ih-row"><span class="box"></span><span class="ih-text">Have Divya load the software requirements into Spira with trace links by 23 Oct, then review and baseline the software layer on 30 Oct with change control applying to anything new</span><span class="age">now</span></div>
+        </div>
+
+        <div class="area-grid">
+          <a class="acard" href="#"><div class="ahead"><svg class="ic"><use href="#i-clip"/></svg><span class="atitle">December Audit</span><span class="badge">Stable</span></div><p class="abody">Stage 1 runs on 14 and 15 December, the first half of a two-stage ISO 13485 certification audit. The original plan was to complete both stages before the year end, with the second stage now moving into the new year.</p><div class="afoot"><span class="l"><svg class="ic"><use href="#i-msg"/></svg><span class="n">10</span>/10 active</span><span class="r">19 days ago<svg class="ic"><use href="#i-arrow"/></svg></span></div></a>
+          <a class="acard" href="#"><div class="ahead"><svg class="ic"><use href="#i-code"/></svg><span class="atitle">Alpha Light Development</span><span class="badge">Stable</span></div><p class="abody empty">No overview yet - click to add one.</p><div class="afoot"><span class="l"><svg class="ic"><use href="#i-msg"/></svg><span class="n">16</span>/16 active</span><span class="r">4 days ago<svg class="ic"><use href="#i-arrow"/></svg></span></div></a>
+          <a class="acard" href="#"><div class="ahead"><svg class="ic"><use href="#i-bug"/></svg><span class="atitle">Software Testing</span><span class="badge">Stable</span></div><p class="abody">Covering all software testing aspects within Axithra, this function is lead by Divya Hari.</p><div class="afoot"><span class="l"><svg class="ic"><use href="#i-msg"/></svg><span class="n">1</span>/1 active</span><span class="r">7 days ago<svg class="ic"><use href="#i-arrow"/></svg></span></div></a>
+          <a class="acard" href="#"><div class="ahead"><svg class="ic"><use href="#i-drive"/></svg><span class="atitle">Alpha Lite Hardware</span><span class="badge">Stable</span></div><p class="abody empty">No overview yet - click to add one.</p><div class="afoot"><span class="l"><svg class="ic"><use href="#i-msg"/></svg><span class="n">1</span>/1 active</span><span class="r">4 days ago<svg class="ic"><use href="#i-arrow"/></svg></span></div></a>
+          <button class="newtile"><svg class="ic"><use href="#i-plus"/></svg>New area</button>
+        </div>
+
+        <div class="cur-coming"><span class="label">Coming up</span><span class="ov">13 overdue</span><span class="wk">5 this week</span><svg class="ic"><use href="#i-chev"/></svg></div>
+      </div>
+    </div>
+
+    <!-- ══ New layouts A, B and C share this tree. CSS moves the zones. ══ -->
+    <div class="app app-next">
+      <header class="topbar">
+        <div>
+          <h1 class="greet">Good afternoon</h1>
+          <div class="status"><span class="date">Tuesday, 25 August</span><span class="line">2 in hand, 5 due this week.</span></div>
+        </div>
+        <div class="topbar-actions">
+          <button class="pill"><svg class="ic"><use href="#i-spark"/></svg>Weekly roundup</button>
+          <div class="help">?</div>
+        </div>
+      </header>
+
+      <main class="zones">
+
+        <section class="zone zone-inhand">
+          <div class="zone-head">
+            <div class="zone-title"><span class="label">In hand</span><span class="count">2</span></div>
+            <div class="zone-tools"><button class="zact">Tidy</button><label class="chev"><input type="checkbox" class="chev-in" aria-label="Collapse In hand"><svg class="ic"><use href="#i-chev"/></svg></label></div>
+          </div>
+          <div class="zone-body card">
+            <div class="ih-row"><span class="box"></span><span class="ih-text">Flag the 95 percent language question in Pack C, whether traceability needs a simpler binary form of the performance claim</span><span class="age">now</span></div>
+            <div class="ih-row"><span class="box"></span><span class="ih-text">Have Divya load the software requirements into Spira with trace links by 23 Oct, then review and baseline the software layer on 30 Oct with change control applying to anything new</span><span class="age">now</span></div>
+          </div>
+        </section>
+
+        <div class="band">
+
+          <section class="zone zone-coming">
+            <div class="zone-head">
+              <div class="zone-title"><span class="label">Coming up</span><span class="count">5 this week</span></div>
+              <div class="zone-tools"><button class="zact">See all</button><label class="chev"><input type="checkbox" class="chev-in" aria-label="Collapse Coming up"><svg class="ic"><use href="#i-chev"/></svg></label></div>
+            </div>
+            <div class="zone-body card">
+              <div class="cu-row"><span class="when">Wed</span><span class="cu-text">Confirm the Stage 1 agenda with the certification body</span><span class="where">December Audit</span></div>
+              <div class="cu-row"><span class="when">Thu</span><span class="cu-text">Check Divya's trace-link mapping before the Spira load</span><span class="where">Software Testing</span></div>
+              <div class="cu-row"><span class="when">Thu</span><span class="cu-text">Send the Pack C performance claim wording for review</span><span class="where">December Audit</span></div>
+              <div class="cu-row"><span class="when">Fri</span><span class="cu-text">Sign off the Alpha Lite hardware test plan</span><span class="where">Alpha Lite Hardware</span></div>
+              <div class="cu-row"><span class="when">Mon</span><span class="cu-text">Prepare the Axithra testing sync</span><span class="where">Software Testing</span></div>
+              <div class="past"><span class="dot"></span><span>13 past their date</span><button class="zact">See these</button></div>
+            </div>
+          </section>
+
+          <section class="zone zone-areas">
+            <div class="zone-head">
+              <div class="zone-title"><span class="label">Areas</span><span class="count">4</span></div>
+              <div class="zone-tools"><div class="seg"><label><input type="radio" name="seg-new" checked>All</label><label><input type="radio" name="seg-new">Priority</label><label><input type="radio" name="seg-new">Focus</label></div><label class="chev"><input type="checkbox" class="chev-in" aria-label="Collapse Areas"><svg class="ic"><use href="#i-chev"/></svg></label></div>
+            </div>
+            <div class="zone-body area-grid">
+              <a class="acard" href="#"><div class="ahead"><svg class="ic"><use href="#i-clip"/></svg><span class="atitle">December Audit</span><span class="badge">Stable</span></div><p class="abody">Stage 1 runs on 14 and 15 December, the first half of a two-stage ISO 13485 certification audit. The original plan was to complete both stages before the year end, with the second stage now moving into the new year.</p><div class="afoot"><span class="l"><svg class="ic"><use href="#i-msg"/></svg><span class="n">10</span>/10 active</span><span class="r">19 days ago<svg class="ic"><use href="#i-arrow"/></svg></span></div></a>
+              <a class="acard" href="#"><div class="ahead"><svg class="ic"><use href="#i-code"/></svg><span class="atitle">Alpha Light Development</span><span class="badge">Stable</span></div><p class="abody empty">No overview yet - click to add one.</p><div class="afoot"><span class="l"><svg class="ic"><use href="#i-msg"/></svg><span class="n">16</span>/16 active</span><span class="r">4 days ago<svg class="ic"><use href="#i-arrow"/></svg></span></div></a>
+              <a class="acard" href="#"><div class="ahead"><svg class="ic"><use href="#i-bug"/></svg><span class="atitle">Software Testing</span><span class="badge">Stable</span></div><p class="abody">Covering all software testing aspects within Axithra, this function is lead by Divya Hari.</p><div class="afoot"><span class="l"><svg class="ic"><use href="#i-msg"/></svg><span class="n">1</span>/1 active</span><span class="r">7 days ago<svg class="ic"><use href="#i-arrow"/></svg></span></div></a>
+              <a class="acard" href="#"><div class="ahead"><svg class="ic"><use href="#i-drive"/></svg><span class="atitle">Alpha Lite Hardware</span><span class="badge">Stable</span></div><p class="abody empty">No overview yet - click to add one.</p><div class="afoot"><span class="l"><svg class="ic"><use href="#i-msg"/></svg><span class="n">1</span>/1 active</span><span class="r">4 days ago<svg class="ic"><use href="#i-arrow"/></svg></span></div></a>
+              <button class="newtile"><svg class="ic"><use href="#i-plus"/></svg>New area</button>
+            </div>
+          </section>
+
+        </div>
+      </main>
+
+      <footer class="nudge">
+        <svg class="ic"><use href="#i-leaf"/></svg>
+        <span>Updating as you go means there's never a daunting backlog waiting for you.</span>
+        <span class="tools"><button aria-label="Show another"><svg class="ic"><use href="#i-refresh"/></svg></button><button aria-label="Dismiss for today"><svg class="ic"><use href="#i-x"/></svg></button></span>
+      </footer>
+    </div>
+
+  </div>
+  </div>
+
+  <section class="settings-mock" aria-label="Settings menu, Dashboard styling section">
+    <div class="sm-panel">
+      <div><div class="sm-label">Theme</div><div class="sm-seg"><span class="on">Light</span><span>Dark</span></div></div>
+      <div><div class="sm-label">Font</div><div class="sm-select"><span>Geist<span class="hint">default</span></span><svg class="ic" style="color:var(--ink-muted)"><use href="#i-chev"/></svg></div></div>
+      <div><div class="sm-label">Text size</div><div class="sm-seg"><span>Small</span><span class="on">Medium</span><span>Large</span></div></div>
+      <div>
+        <div class="sm-label">Dashboard styling</div>
+        <div class="sm-sub">Layout</div>
+        <div class="sm-seg"><label for="lay-a">Stacked</label><label for="lay-b">Split</label><label for="lay-c">Rail</label></div>
+        <div class="sm-sub">Section style</div>
+        <div class="sm-tiles">
+          <label class="sm-tile" for="heads-heading"><svg><use href="#g-plain"/></svg>Plain</label>
+          <label class="sm-tile" for="heads-lifted"><svg><use href="#g-lifted"/></svg>Lifted</label>
+          <label class="sm-tile" for="heads-sheet"><svg><use href="#g-sheet"/></svg>Sheet</label>
+          <label class="sm-tile" for="heads-inset"><span class="def">Default</span><svg><use href="#g-inset"/></svg>Inset</label>
+          <label class="sm-tile" for="heads-tab"><svg><use href="#g-folder"/></svg>Folder</label>
+          <label class="sm-tile" for="heads-margin"><svg><use href="#g-margin"/></svg>Margin</label>
+          <label class="sm-tile" for="heads-card"><svg><use href="#g-boxed"/></svg>Boxed</label>
+        </div>
+        <p class="sm-note">Applies to the dashboard only. Split and Inset are the defaults.</p>
+      </div>
+    </div>
+    <div class="sm-caption"><b>Settings menu, new section.</b> This sits after Text size in the existing menu. Both controls here are live and drive the frame above, so you can try the picker as a user would. The tile glyphs are the ones to ship. The Theme, Font and Text size rows are static stand-ins for what's already there.</div>
+  </section>
+</div>
+
+<!-- No JavaScript. Every control is a radio or checkbox and the CSS :has() selector does the switching, so the file works in sandboxed previews that block scripts. -->
+</body>
+</html>

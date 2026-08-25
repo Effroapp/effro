@@ -242,6 +242,9 @@ Work that is owed but not scheduled. Add to this rather than let it live only
 in someone's head.
 - `frontend/src/pages/SystemSettings.jsx` wants breaking up. It is over 1500
   lines and carries every settings tab in one file.
+- The frontend has no test runner. `package.json` carries only dev, build and
+  preview, so the dashboard styling hook, the status-line composer and the zone
+  collapse migration are covered by hand rather than by unit tests.
 - There is no `npm run lint` script and no ESLint config. `npm run build` only
   catches what breaks the bundle, so an undefined identifier compiles happily
   and throws at runtime. `scripts/check-jsx-imports.mjs` covers the specific
