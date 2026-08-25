@@ -116,6 +116,10 @@ class CustomEntryType(Base):
     # never to a class name built at runtime, because Tailwind only generates
     # what it can see written out.
     colour = Column(String(20), nullable=False)
+    # A Lucide icon name in kebab case, such as 'circle-dot'. The colour
+    # narrows a type down to one of six; the icon is what tells two of them
+    # apart at a glance on the timeline rail, so it is unique per workspace.
+    icon = Column(String(60), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
 

@@ -34,6 +34,7 @@ class CustomEntryTypeOut(BaseModel):
     id: int
     name: str
     colour: str
+    icon: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -47,11 +48,13 @@ class CustomEntryTypeListed(CustomEntryTypeOut):
 class CustomEntryTypeCreate(BaseModel):
     name: str
     colour: str
+    icon: Optional[str] = None
 
 
 class CustomEntryTypeUpdate(BaseModel):
     name: Optional[str] = None
     colour: Optional[str] = None
+    icon: Optional[str] = None
 
 
 class CustomEntryTypeDeleted(BaseModel):

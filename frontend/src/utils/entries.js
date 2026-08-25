@@ -19,10 +19,12 @@ const TITLE_CUT = 60
 // the thing it points at. Everything else gets one.
 export const TITLED_TYPES = new Set(['entry', 'decision', 'custom', 'blockage', 'todo'])
 
-// The types whose title is prose the user writes, so the composer offers a
-// field for it. A To Do's title is the short form of what they already typed,
-// generated after the save, so asking for one up front would be friction.
-export const AUTHORED_TITLE_TYPES = new Set(['entry', 'decision', 'custom', 'blockage'])
+// The types whose title the composer offers a field for, which is now every
+// type that carries one. A To Do's short form is still generated after the
+// save when the field is left blank, so nobody has to write one, but someone
+// who already knows the short version can say so rather than waiting for a
+// model to guess it.
+export const AUTHORED_TITLE_TYPES = TITLED_TYPES
 
 // A to-do shorter than this already fits wherever it is listed, so there is
 // nothing to shorten. Matches TODO_TITLE_FLOOR on the server.

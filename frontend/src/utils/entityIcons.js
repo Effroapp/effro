@@ -247,3 +247,58 @@ export const SECTION_ICONS = {
   files:      Paperclip,
   links:      Link2,
 }
+
+// ── Icon search ──────────────────────────────────────────────────────────────
+
+// The ten offered without searching. All unclaimed by a built-in type, so a
+// custom type picked from here stays distinct on the timeline rail.
+export const QUICK_PICK_ICONS = [
+  'flag', 'tag', 'clock', 'message-square', 'refresh-cw',
+  'history', 'link', 'paperclip', 'search', 'circle-dot',
+]
+
+// Icons a built-in type already wears. Two meanings behind one shape is what
+// the rail exists to avoid. Mirrors BUILT_IN_ICONS in routers/entry_types.py.
+export const BUILT_IN_ICONS = new Set([
+  'square-check-big', 'scale', 'pen-line', 'circle-slash', 'calendar',
+])
+
+let iconNames = null
+
+/**
+ * Every Lucide icon name, in kebab case.
+ *
+ * Built once, lazily, from Lucide's own export map, so it cannot drift from
+ * what is actually renderable. Lucide ships each icon under several aliases
+ * (Flag, FlagIcon, LucideFlag); only the bare name is kept, or the list is
+ * three times longer and full of duplicates.
+ */
+export function allIconNames() {
+  if (iconNames) return iconNames
+  const seen = new Set()
+  for (const key of Object.keys(LucideIcons)) {
+    if (!/^[A-Z][A-Za-z0-9]*$/.test(key)) continue
+    if (key.startsWith('Lucide') || key.endsWith('Icon')) continue
+    const kebab = key
+      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+      .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+      .toLowerCase()
+    if (!BUILT_IN_ICONS.has(kebab)) seen.add(kebab)
+  }
+  iconNames = [...seen].sort()
+  return iconNames
+}
+
+/** Names matching a query, best matches first, capped for rendering. */
+export function searchIconNames(query, limit = 40) {
+  const q = (query || '').trim().toLowerCase().replace(/\s+/g, '-')
+  if (!q) return []
+  const starts = []
+  const contains = []
+  for (const name of allIconNames()) {
+    if (name.startsWith(q)) starts.push(name)
+    else if (name.includes(q)) contains.push(name)
+    if (starts.length >= limit) break
+  }
+  return [...starts, ...contains].slice(0, limit)
+}

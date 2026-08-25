@@ -879,6 +879,10 @@ export default function ThreadView() {
                 value={entryTitle}
                 onChange={setEntryTitle}
                 content={newEntryContent}
+                entryType={entryType}
+                placeholder={entryType === 'todo'
+                  ? 'Short form (optional)'
+                  : 'Title (optional)'}
                 onAiFlagChange={setTitleFromAi}
                 onEnter={() => composerRef.current?.focus()}
               />
@@ -1021,10 +1025,10 @@ export default function ThreadView() {
               No entries yet. Add the first one above.
             </div>
           ) : (
-            <div className="relative pl-12">
+            <div className="relative">
               {/* The rail. One line behind the type medallions, inset so it
                   does not run past the first or last of them. */}
-              <div className="absolute left-[15px] top-2 bottom-2 w-px bg-paper-200 dark:bg-pitch-500" />
+              <div className="absolute left-4 top-2 bottom-2 w-px bg-paper-200 dark:bg-pitch-500" />
 
               <div className="flex flex-col gap-3">
                 {sortedEntries.map((entry) => (

@@ -70,14 +70,17 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
   return (
     <div
       id={`entry-${entry.id}`}
-      className={`relative group animate-fade-in rounded-lg transition-all duration-700 ${
+      className={`relative pl-12 group animate-fade-in rounded-lg transition-all duration-700 ${
         highlighted
           ? 'ring-2 ring-mint/60 bg-mint-50/40 dark:bg-mint-900/15 -mx-2 px-2'
           : 'ring-0'
       }`}
     >
-      {/* Rail medallion. The type, readable down a long thread without
-          reading any of it. Opaque, so the rail line does not show through. */}
+      {/* Rail medallion. The type, readable down a long thread without reading
+          any of it. It sits in this entry's own 48px gutter, so `left-0` is the
+          gutter rather than the card: putting the padding on the list instead
+          landed it on top of the card. Opaque, so the rail line cannot show
+          through it. */}
       <div
         className="absolute left-0 top-3 w-8 h-8 rounded-[10px] z-10 flex items-center justify-center"
         style={{
@@ -102,7 +105,7 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
       >
         {/* Entry header */}
         <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-paper-100 dark:border-pitch-500">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <span className="text-xs font-mono font-medium text-paper-700 dark:text-paper-200">
               {format(date, 'dd MMM yyyy')}
             </span>
@@ -125,6 +128,12 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
               </Tooltip>
             )}
           </div>
+          {isCustom && (
+            <span className="ml-auto mr-2 flex-shrink-0 text-2xs font-mono uppercase
+                             tracking-widest text-paper-400 dark:text-paper-700">
+              Custom
+            </span>
+          )}
           {/* A reference card has no pin and no edit. It brings its own
               delete, which sits with the name it is about to remove. */}
           {!isReference && (
@@ -165,8 +174,8 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
 
         {/* Content */}
         <div className="px-[18px] pt-[15px] pb-4">
-          {/* The type, said once in words. The rail says it in colour and
-              shape, this says it for anyone reading rather than scanning. */}
+          {/* The type in words, above the title. The rail says it in colour
+              and shape; this says it for anyone reading rather than scanning. */}
           {!isReference && !editing && (
             <p
               className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] mb-[7px]"
@@ -215,8 +224,7 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
               >
                 {entry.title}
               </h3>
-              {/* The hairline is the fourth thing separating title from prose,
-                  after size, weight and ink. */}
+              {/* The fourth separator, after size, weight and ink. */}
               <div className="my-[14px] border-t border-paper-200 dark:border-pitch-500" />
             </>
           )}
