@@ -11,6 +11,11 @@ on:
   push:
     branches:
       - main
+  # Manual trigger. A push event can be lost: during the GitHub Actions outage of
+  # 2026-08-26 a merge to main created no workflow run at all, so main carried a
+  # commit the rolling beta had never been built from and there was nothing to
+  # re-run. This lets a beta be rebuilt from main without an empty commit.
+  workflow_dispatch:
 
 concurrency:
   group: desktop-beta
