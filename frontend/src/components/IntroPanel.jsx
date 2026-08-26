@@ -31,7 +31,7 @@ export default function IntroPanel({ icon: Icon, title, storageKey, children }) 
   const dismiss = () => setSeen(true)
 
   return (
-    <div className="relative rounded-xl bg-gradient-to-br from-mint/10 to-mint/[0.03] dark:from-mint/[0.12] dark:to-mint/[0.03] p-5 pr-10 mb-6 animate-rise motion-reduce:animate-none">
+    <div className="relative rounded-xl bg-mint/[0.06] border border-mint/20 p-5 pr-10 mb-6 animate-rise motion-reduce:animate-none">
       <button
         onClick={dismiss}
         aria-label="Dismiss"

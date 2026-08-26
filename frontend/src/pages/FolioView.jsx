@@ -18,13 +18,6 @@ import { parseUTC } from '../utils/time.js'
 
 // Brand tones cycled across section kickers and topic chips, so the piece has
 // a little colour variety while mint stays the lead accent (first in the cycle).
-const SECTION_TONES = [
-  { bar: 'bg-mint', text: 'text-mint-700 dark:text-mint-300' },
-  { bar: 'bg-sage', text: 'text-sage' },
-  { bar: 'bg-sky-muted', text: 'text-sky-muted' },
-  { bar: 'bg-mustard', text: 'text-mustard' },
-  { bar: 'bg-lavender', text: 'text-lavender' },
-]
 const TOPIC_TONES = [
   'bg-mint/10 border-mint/20 text-mint-700 dark:text-mint-300',
   'bg-sage/10 border-sage/25 text-sage',
@@ -401,20 +394,17 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
             everything traceable to a capture (quotes verified verbatim). */}
         {sections.map((sec, i) => (
           <section key={i} className="mb-8">
+            {/* The heading alone. There used to be a numbered kicker and a
+                coloured bar above it, cycling the brand palette, and the comment
+                beside it said the cycle was "for gentle variety", which is
+                decoration admitting to itself. The numbers encoded nothing a
+                reader needs either: a digest is themed sections, not a sequence.
+                ProcessView keeps its 01/02/03, because pick an area, drop or
+                paste, review and approve genuinely is one. */}
             {sec.heading && (
-              <>
-                {/* A numbered kicker lifts each section title off the page; the
-                    tone cycles through the brand palette for gentle variety. */}
-                <div className="flex items-center gap-2.5 mb-2" aria-hidden>
-                  <span className={`h-[3px] w-7 rounded-full ${SECTION_TONES[i % SECTION_TONES.length].bar}`} />
-                  <span className={`font-mono text-2xs tracking-[0.18em] ${SECTION_TONES[i % SECTION_TONES.length].text}`}>
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                </div>
-                <h2 className="title-section text-pitch-800 dark:text-pitch-50 mb-3">
-                  {sec.heading}
-                </h2>
-              </>
+              <h2 className="title-section text-pitch-800 dark:text-pitch-50 mb-3">
+                {sec.heading}
+              </h2>
             )}
             {(sec.body || '').split(/\n{2,}/).map((para, j) => (
               <p key={j} className="font-lexend text-[0.9375rem] leading-[1.7] text-pitch-800 dark:text-pitch-50 mb-3">

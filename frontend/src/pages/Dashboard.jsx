@@ -330,7 +330,7 @@ function NewAreaTile({ onClick }) {
         transition-colors animate-fade-in
       "
     >
-      <Plus size={18} className="transition-transform duration-200 group-hover:scale-110" />
+      <Plus size={18} />
       <span className="text-xs font-sans font-medium uppercase tracking-wide">New area</span>
     </button>
   )

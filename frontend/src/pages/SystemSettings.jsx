@@ -4,7 +4,7 @@ import {
   Settings as SettingsIcon, ArrowLeft, Cpu, FolderOpen, RefreshCw,
   AlertCircle, Download, Zap, ChevronRight, ChevronLeft,
   CheckCircle2, XCircle, Loader2, ExternalLink,
-  Database, CloudOff, Plug, Info, Users, ShieldCheck, Sparkles, KeyRound,
+  Database, CloudOff, Plug, Info, Users, ShieldCheck, KeyRound,
 } from 'lucide-react'
 import {
   isTauri,
@@ -1310,7 +1310,7 @@ function DemoDataSection() {
   return (
     <Card>
       <CardHeader
-        icon={Sparkles}
+        icon={Database}
         title="Demo data"
         subtitle="Fill this instance with a realistic sample workspace for showing Effro to others."
       />
@@ -1325,7 +1325,7 @@ function DemoDataSection() {
           onClick={() => setConfirming(true)}
           className="btn btn-md btn-primary"
         >
-          <Sparkles size={14} />
+          <Database size={14} />
           Load demo data
         </button>
       ) : (

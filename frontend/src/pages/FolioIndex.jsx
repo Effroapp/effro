@@ -271,7 +271,7 @@ function TileCard({ folio, onOpen }) {
       onClick={onOpen}
       className="group text-left flex flex-col rounded-2xl overflow-hidden
                  bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
-                 shadow-sm hover:-translate-y-0.5 hover:shadow-md hover:border-paper-400 dark:hover:border-pitch-500
+                 shadow-sm hover:border-paper-400 dark:hover:border-pitch-500
                  transition motion-reduce:transform-none motion-reduce:transition-none"
     >
       <div className="h-32 bg-paper-100 dark:bg-pitch-800 border-b border-paper-300 dark:border-pitch-400">
@@ -365,7 +365,7 @@ function Hero({ folio, onOpen }) {
       onClick={onOpen}
       className="w-full text-left flex flex-col sm:flex-row gap-5 rounded-2xl p-5
                  bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
-                 shadow-sm hover:-translate-y-0.5 hover:shadow-md hover:border-paper-400 dark:hover:border-pitch-500
+                 shadow-sm hover:border-paper-400 dark:hover:border-pitch-500
                  transition motion-reduce:transform-none motion-reduce:transition-none"
     >
       <div className="flex-1 min-w-0">
@@ -420,7 +420,7 @@ function DiveCard({ folio, onOpen }) {
       onClick={onOpen}
       className="text-left flex flex-col gap-2.5 rounded-2xl p-4
                  bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
-                 shadow-sm hover:-translate-y-0.5 hover:shadow-md hover:border-paper-400 dark:hover:border-pitch-500
+                 shadow-sm hover:border-paper-400 dark:hover:border-pitch-500
                  transition motion-reduce:transform-none motion-reduce:transition-none"
     >
       <div className="flex items-start justify-between gap-2.5">
