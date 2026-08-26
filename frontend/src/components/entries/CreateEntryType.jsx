@@ -148,7 +148,7 @@ export default function CreateEntryType({ onCreate, onCancel, busy = false, erro
 
         <span
           className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full
-                     font-mono text-[11px] font-medium uppercase tracking-[0.1em]"
+                     font-mono text-2xs font-medium uppercase tracking-[0.1em]"
           style={{
             color: `var(--${colour})`,
             background: `color-mix(in srgb, var(--${colour}) 12%, transparent)`,
@@ -181,7 +181,7 @@ export default function CreateEntryType({ onCreate, onCancel, busy = false, erro
         <button
           onClick={submit}
           disabled={!canCreate}
-          className="px-3 py-1.5 text-xs font-display uppercase tracking-wide rounded
+          className="px-3 py-1.5 text-xs font-sans font-medium uppercase tracking-wide rounded
                      bg-mint-700 hover:bg-mint-800 text-white
                      disabled:opacity-50 transition-colors"
         >
@@ -207,7 +207,7 @@ const FIELD = `w-full px-3 py-2.5 text-sm rounded-md
 
 function Label({ children, className = 'mb-1.5' }) {
   return (
-    <p className={`font-mono text-[11px] uppercase tracking-[0.12em]
+    <p className={`font-mono text-2xs uppercase tracking-[0.12em]
                    text-paper-500 dark:text-paper-600 ${className}`}>
       {children}
     </p>

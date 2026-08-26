@@ -48,7 +48,7 @@ export default function FolioRail({ folio, related = [] }) {
       {shown.map((k, i) => (
         <div key={k} className="effro-rise" style={{ animationDelay: `${i * 70}ms` }}>{render[k]()}</div>
       ))}
-      <p className="text-center font-mono text-[10px] tracking-wide text-paper-400 dark:text-pitch-300 pt-0.5">
+      <p className="text-center font-mono text-2xs tracking-wide text-paper-400 dark:text-pitch-300 pt-0.5">
         drawn only from your captures and workspace
       </p>
     </div>
@@ -105,14 +105,14 @@ function TensionsCard({ tensions }) {
       <div className="mt-3 flex flex-col gap-3">
         {tensions.map((t, i) => (
           <div key={i} className={i > 0 ? 'border-t border-paper-200 dark:border-pitch-600 pt-3' : ''}>
-            <p className="font-lexend text-[12.5px] leading-snug text-pitch-800 dark:text-pitch-50 mb-1.5">{t.point}</p>
+            <p className="font-lexend text-xs leading-snug text-pitch-800 dark:text-pitch-50 mb-1.5">{t.point}</p>
             <div className="flex flex-col gap-1">
               {(t.sides || []).map((s, j) => {
                 const tone = SIDE_TONES[j % SIDE_TONES.length]
                 return (
                   <div key={j} className="flex items-start gap-2">
                     <span className={`flex-shrink-0 w-1.5 h-1.5 rounded-full mt-[5px] ${tone.dot}`} />
-                    <span className="text-[11.5px] leading-snug text-paper-600 dark:text-pitch-100">
+                    <span className="text-xs leading-snug text-paper-600 dark:text-pitch-100">
                       {s.source && <span className={tone.text}>{s.source}</span>}
                       {s.source && ' — '}{s.stance}
                     </span>
@@ -133,7 +133,7 @@ function GoodToKnowCard({ points }) {
     <Card icon={Lightbulb} iconClass="text-mustard" title="Good to know">
       <div className="mt-2.5 flex flex-col gap-2.5">
         {shown.map((p, i) => (
-          <div key={i} className="flex gap-2.5 font-lexend text-[12.5px] leading-snug text-pitch-800 dark:text-pitch-50">
+          <div key={i} className="flex gap-2.5 font-lexend text-xs leading-snug text-pitch-800 dark:text-pitch-50">
             <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-sage mt-[6px]" />{p}
           </div>
         ))}
@@ -149,8 +149,8 @@ function KeyTermsCard({ terms }) {
       <div className="mt-2.5 flex flex-col gap-2.5">
         {terms.map((t, i) => (
           <div key={i}>
-            <span className="font-medium text-[12.5px] text-mint-700 dark:text-mint-300">{t.term}</span>
-            <p className="font-lexend text-[11.5px] leading-snug text-paper-600 dark:text-pitch-100 mt-0.5">{t.definition}</p>
+            <span className="font-medium text-xs text-mint-700 dark:text-mint-300">{t.term}</span>
+            <p className="font-lexend text-xs leading-snug text-paper-600 dark:text-pitch-100 mt-0.5">{t.definition}</p>
           </div>
         ))}
       </div>
@@ -178,7 +178,7 @@ function SourcesCard({ sources }) {
                        className="flex-shrink-0 w-5 h-5 rounded bg-paper-200 dark:bg-pitch-600 object-contain" />
                 : <span className="flex-shrink-0 w-5 h-5 rounded bg-paper-200 dark:bg-pitch-600 grid place-items-center text-2xs text-paper-500 dark:text-pitch-200">{(domain || '?')[0]?.toUpperCase()}</span>}
               <span className="min-w-0 flex-1">
-                <span className="block text-[12.5px] text-pitch-800 dark:text-pitch-50 truncate">{domain}</span>
+                <span className="block text-xs text-pitch-800 dark:text-pitch-50 truncate">{domain}</span>
                 {m.title && <span className="block text-2xs text-paper-500 dark:text-pitch-300 truncate">{m.title}</span>}
               </span>
               <ExternalLink size={13} className="flex-shrink-0 text-paper-400 dark:text-pitch-300 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -211,15 +211,15 @@ function RelatedThreadsCard({ threads, onOpen }) {
           >
             <span className={`flex-shrink-0 w-[7px] h-[7px] rounded-full mt-[5px] ${STATUS_DOT[t.status] || 'bg-paper-400 dark:bg-pitch-400'}`} />
             <span className="min-w-0 flex-1">
-              <span className="block text-[12.5px] text-pitch-800 dark:text-pitch-50 truncate">{t.title}</span>
-              <span className="block font-mono text-[10.5px] text-paper-500 dark:text-pitch-300">
+              <span className="block text-xs text-pitch-800 dark:text-pitch-50 truncate">{t.title}</span>
+              <span className="block font-mono text-2xs text-paper-500 dark:text-pitch-300">
                 {t.area ? `in ${t.area}` : 'thread'}{t.updated_at ? ` · ${formatDistanceToNow(parseUTC(t.updated_at), { addSuffix: true })}` : ''}
               </span>
             </span>
             <ArrowRight size={13} className="flex-shrink-0 text-paper-400 dark:text-pitch-300 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
           </button>
         ))}
-        <p className="font-mono text-[10px] text-paper-400 dark:text-pitch-300 px-1.5 py-1.5 tracking-wide">from your workspace</p>
+        <p className="font-mono text-2xs text-paper-400 dark:text-pitch-300 px-1.5 py-1.5 tracking-wide">from your workspace</p>
       </div>
     </Card>
   )

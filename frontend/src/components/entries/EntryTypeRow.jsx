@@ -15,7 +15,7 @@ import { CUSTOM_COLOURS, CUSTOM_PALETTE, ENTITY_TYPES } from '../../utils/entity
  * handful of their own types should see all of them at once, and a second row
  * of pills is calmer than a hidden list.
  */
-const PILL = 'px-3 py-1 rounded-full text-xs font-display uppercase tracking-wide transition-colors'
+const PILL = 'px-3 py-1 rounded-full text-xs font-sans font-medium uppercase tracking-wide transition-colors'
 const UNSELECTED = 'text-paper-600 dark:text-paper-500 bg-paper-200 dark:bg-pitch-700 hover:bg-paper-300 dark:hover:bg-pitch-500'
 
 export default function EntryTypeRow({ value, customTypeId, onChange }) {
@@ -158,7 +158,7 @@ function TypeManager({ types, onClose, onCreate, onRename, onRemove, selectedId,
                    bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500
                    shadow-lg animate-fade-in"
       >
-        <p className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
+        <p className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
           Your entry types
         </p>
 

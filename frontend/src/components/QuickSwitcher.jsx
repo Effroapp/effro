@@ -137,7 +137,7 @@ export default function QuickSwitcher({ isOpen, onClose }) {
           ) : (
             grouped.map((group) => (
               <div key={group.kind} className="mb-2 last:mb-0">
-                <div className="px-3 pt-2 pb-1 text-xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-700">
+                <div className="px-3 pt-2 pb-1 text-xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-700">
                   {SECTION_LABELS[group.kind]}
                 </div>
                 {group.items.map((item) => {
@@ -161,7 +161,7 @@ export default function QuickSwitcher({ isOpen, onClose }) {
                         {item.label}
                       </span>
                       {item.sublabel && (
-                        <span className="font-display text-xs text-paper-500 dark:text-paper-600 truncate max-w-[40%]">
+                        <span className="font-sans text-xs text-paper-500 dark:text-paper-600 truncate max-w-[40%]">
                           {item.sublabel}
                         </span>
                       )}

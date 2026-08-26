@@ -184,7 +184,7 @@ export default function Signals() {
                   text-paper-700 dark:text-paper-200
                   hover:bg-paper-200 dark:hover:bg-pitch-700
                   disabled:opacity-40
-                  font-display uppercase tracking-wide transition-colors
+                  font-sans font-medium uppercase tracking-wide transition-colors
                 "
               >
                 {isSyncing ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
@@ -272,7 +272,7 @@ export default function Signals() {
                     {SOURCE_META[src]?.logo
                       ? <ProviderLogo provider={SOURCE_META[src].logo} size={15} />
                       : <Radar size={14} className="text-paper-500 dark:text-paper-600" />}
-                    <h2 className="font-display text-sm font-semibold text-pitch-800 dark:text-white">
+                    <h2 className="font-sans text-sm font-semibold text-pitch-800 dark:text-white">
                       {SOURCE_META[src]?.label || src}
                     </h2>
                     <span className="font-mono text-2xs text-paper-500 dark:text-paper-600">
@@ -306,7 +306,7 @@ function CaughtUp() {
       <div className="inline-flex w-14 h-14 items-center justify-center rounded-full bg-mint-50 dark:bg-mint-900/20 mb-4">
         <CheckCircle2 size={26} className="text-mint-600 dark:text-mint-400" />
       </div>
-      <h2 className="font-display font-medium text-lg text-pitch-800 dark:text-white mb-1">
+      <h2 className="font-sans font-medium text-lg text-pitch-800 dark:text-white mb-1">
         You're all caught up
       </h2>
       <p className="text-sm text-paper-500 dark:text-paper-600 max-w-md mx-auto leading-snug">
@@ -322,7 +322,7 @@ function NothingConnected({ onConnect }) {
       <div className="inline-flex w-14 h-14 items-center justify-center rounded-full bg-paper-100 dark:bg-pitch-800 mb-4">
         <Plug size={24} className="text-paper-500 dark:text-paper-600" />
       </div>
-      <h2 className="font-display font-medium text-lg text-pitch-800 dark:text-white mb-1">
+      <h2 className="font-sans font-medium text-lg text-pitch-800 dark:text-white mb-1">
         Nothing set up yet
       </h2>
       <p className="text-sm text-paper-500 dark:text-paper-600 max-w-md mx-auto leading-snug mb-5">
@@ -406,7 +406,7 @@ function SignalCard({
           <SourceMetaLine signal={signal} />
           {/* Clamped: meeting subjects are short, but a forwarded Telegram
               message or email can be a wall of text - keep the card calm. */}
-          <h3 className="font-display font-medium text-base text-pitch-800 dark:text-white leading-tight line-clamp-3 break-words">
+          <h3 className="font-sans font-medium text-base text-pitch-800 dark:text-white leading-tight line-clamp-3 break-words">
             <BionicText>{signal.title}</BionicText>
           </h3>
         </div>
@@ -666,7 +666,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
       {isPickerOpen && (
         <div className="space-y-3 mt-1">
           <div>
-            <label className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 block mb-1">
+            <label className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600 block mb-1">
               Area
             </label>
             <select
@@ -695,7 +695,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
 
           {chosenAreaId && (
             <div>
-              <label className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 block mb-1">
+              <label className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600 block mb-1">
                 Thread
               </label>
               <select

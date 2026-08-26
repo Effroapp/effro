@@ -62,7 +62,7 @@ export default function ReferenceCard({ entry, onDelete, onSaveNotes }) {
     <>
       <div className="flex items-center gap-2 mb-1">
         <KindIcon size={12} className="flex-shrink-0 text-paper-500 dark:text-paper-600" />
-        <span className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600">
+        <span className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600">
           {label}
         </span>
       </div>

@@ -80,7 +80,7 @@ export default function AreaFolios({ areaId }) {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-xs text-pitch-800 dark:text-pitch-50 truncate">{f.title || 'Untitled deep dive'}</span>
-                <span className="font-mono text-[10px] text-paper-500 dark:text-pitch-200 inline-flex items-center gap-1">
+                <span className="font-mono text-2xs text-paper-500 dark:text-pitch-200 inline-flex items-center gap-1">
                   <Layers size={9} /> {f.capture_count}
                 </span>
               </span>

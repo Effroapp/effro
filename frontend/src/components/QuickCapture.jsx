@@ -116,7 +116,7 @@ export default function QuickCapture() {
               key={key}
               onClick={() => { setEntryType(key); setCustomTypeId(null); setDueDateOption(null); setDueDate(null) }}
               className={`
-                px-3 py-1 rounded-full text-xs font-display uppercase tracking-wide transition-colors
+                px-3 py-1 rounded-full text-xs font-sans font-medium uppercase tracking-wide transition-colors
                 ${entryType === key
                   ? 'bg-mint-700 text-white'
                   : 'text-paper-600 dark:text-paper-500 bg-paper-200 dark:bg-pitch-700 hover:bg-paper-300 dark:hover:bg-pitch-500'
@@ -135,7 +135,7 @@ export default function QuickCapture() {
                 onClick={() => { setEntryType('custom'); setCustomTypeId(t.id); setDueDateOption(null); setDueDate(null) }}
                 className={`
                   inline-flex items-center gap-1.5
-                  px-3 py-1 rounded-full text-xs font-display uppercase tracking-wide transition-colors
+                  px-3 py-1 rounded-full text-xs font-sans font-medium uppercase tracking-wide transition-colors
                   ${selected
                     ? 'bg-mint-700 text-white'
                     : 'text-paper-600 dark:text-paper-500 bg-paper-200 dark:bg-pitch-700 hover:bg-paper-300 dark:hover:bg-pitch-500'
@@ -162,7 +162,7 @@ export default function QuickCapture() {
 
         {/* Thread selector */}
         <div>
-          <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+          <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
             Thread
           </label>
           {threads.length === 0 ? (
@@ -197,7 +197,7 @@ export default function QuickCapture() {
         {/* Due date row - To Do only */}
         {entryType === 'todo' && (
           <div>
-            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+            <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
               Due Date
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -206,7 +206,7 @@ export default function QuickCapture() {
                   key={opt.label}
                   onClick={() => handleDueDateOption(opt)}
                   className={`
-                    px-2.5 py-1 rounded-full text-xs font-display uppercase tracking-wide transition-colors
+                    px-2.5 py-1 rounded-full text-xs font-sans font-medium uppercase tracking-wide transition-colors
                     ${dueDateOption === opt.label
                       ? 'bg-mint-700 text-white'
                       : 'text-paper-600 dark:text-paper-500 bg-paper-200 dark:bg-pitch-700 hover:bg-paper-300 dark:hover:bg-pitch-500'

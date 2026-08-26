@@ -38,7 +38,7 @@ export default function PageHeader({ icon: Icon, title, subtitle, accent = false
             )
           )}
           <div className="min-w-0 flex-1">
-            <h1 className="font-display font-semibold text-xl tracking-[-0.01em]
+            <h1 className="font-sans font-semibold text-xl tracking-[-0.01em]
                            text-paper-900 dark:text-pitch-50 leading-tight truncate">
               {title}
             </h1>

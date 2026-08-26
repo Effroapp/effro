@@ -120,7 +120,7 @@ export default function IntegrationsPanel() {
                 </div>
                 <button
                   onClick={() => setModalKey(i.key)}
-                  className="px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 font-display uppercase tracking-wide transition-colors"
+                  className="px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 font-sans font-medium uppercase tracking-wide transition-colors"
                 >
                   Manage
                 </button>

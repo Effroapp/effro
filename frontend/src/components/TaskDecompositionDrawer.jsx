@@ -125,7 +125,7 @@ export default function TaskDecompositionDrawer({
             </button>
           </div>
 
-          <h2 className="font-display font-medium text-base text-pitch-800 dark:text-white leading-snug">
+          <h2 className="font-sans font-medium text-base text-pitch-800 dark:text-white leading-snug">
             Here's a breakdown
           </h2>
           <p className="text-xs text-paper-500 dark:text-paper-600 mt-1 leading-relaxed">
@@ -134,7 +134,7 @@ export default function TaskDecompositionDrawer({
           </p>
 
           <div className="mt-3 px-3 py-2 rounded-md bg-paper-100 dark:bg-pitch-700 border border-paper-200 dark:border-pitch-500">
-            <p className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
+            <p className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
               Breaking down
             </p>
             <p className="text-sm text-pitch-700 dark:text-paper-200 leading-snug line-clamp-2">

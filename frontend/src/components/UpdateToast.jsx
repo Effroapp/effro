@@ -39,7 +39,7 @@ export default function UpdateToast({ updater }) {
         <div className="flex items-start gap-2.5 mb-3">
           <Zap size={15} className="flex-shrink-0 mt-0.5 text-mint" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-display uppercase tracking-widest text-mint-700 dark:text-mint-300">
+            <p className="text-xs font-sans font-medium uppercase tracking-widest text-mint-700 dark:text-mint-300">
               Update available
             </p>
             <p className="text-sm text-pitch-700 dark:text-paper-200 mt-1">
@@ -69,7 +69,7 @@ export default function UpdateToast({ updater }) {
               flex-1 flex items-center justify-center gap-1.5
               px-3 py-1.5 rounded-md text-xs
               bg-mint-700 hover:bg-mint-800 text-white
-              font-display uppercase tracking-wide transition-colors
+              font-sans font-medium uppercase tracking-wide transition-colors
             "
           >
             <Download size={11} />
@@ -81,7 +81,7 @@ export default function UpdateToast({ updater }) {
               px-3 py-1.5 rounded-md text-xs
               text-paper-600 dark:text-paper-400
               hover:bg-paper-200 dark:hover:bg-pitch-800
-              font-display uppercase tracking-wide transition-colors
+              font-sans font-medium uppercase tracking-wide transition-colors
             "
           >
             Later

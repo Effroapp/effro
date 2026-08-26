@@ -37,7 +37,7 @@ export default function EntryNotes({ initial, onSave }) {
         onClick={() => setOpen((v) => !v)}
         className="
           inline-flex items-center gap-1.5 px-1.5 py-0.5 -ml-1.5 rounded
-          text-2xs font-display uppercase tracking-widest
+          text-2xs font-sans font-medium uppercase tracking-widest
           text-paper-500 dark:text-paper-600
           hover:text-pitch-700 dark:hover:text-paper-200
           hover:bg-paper-100 dark:hover:bg-pitch-800

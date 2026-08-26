@@ -78,7 +78,7 @@ export default function UsersSection() {
     <div className="space-y-6">
       {/* Add / invite */}
       <form onSubmit={invite} className="rounded-xl border border-paper-300 dark:border-pitch-600 bg-paper-50 dark:bg-pitch-700/40 p-5">
-        <h3 className="font-display text-sm font-semibold text-pitch-800 dark:text-pitch-50 mb-3 flex items-center gap-2">
+        <h3 className="font-sans text-sm font-semibold text-pitch-800 dark:text-pitch-50 mb-3 flex items-center gap-2">
           <UserPlus size={15} className="text-mint-600 dark:text-mint-400" /> Add a teammate
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

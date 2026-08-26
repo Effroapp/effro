@@ -55,7 +55,7 @@ export default function MeetingBody({ entry, editing, onEditStart, onCancel, onS
   return (
     <div className="space-y-2">
       <div>
-        <label className="block text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
+        <label className="block text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
           Title
         </label>
         <input
@@ -71,7 +71,7 @@ export default function MeetingBody({ entry, editing, onEditStart, onCancel, onS
         />
       </div>
       <div>
-        <label className="block text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
+        <label className="block text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1">
           When
         </label>
         <input

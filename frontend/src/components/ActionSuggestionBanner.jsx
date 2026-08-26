@@ -46,7 +46,7 @@ export default function ActionSuggestionBanner({ actions, threadId, onCreateTodo
           {allCreated
             ? <Check size={13} className="text-mint-700 dark:text-mint-300 flex-shrink-0" />
             : <ListChecks size={13} className="text-mustard flex-shrink-0" />}
-          <span className={`text-xs font-display uppercase tracking-wide ${
+          <span className={`text-xs font-sans font-medium uppercase tracking-wide ${
             allCreated ? 'text-mint-700 dark:text-mint-300' : 'text-mustard'
           }`}>
             {allCreated

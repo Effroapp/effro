@@ -255,7 +255,7 @@ function TitleField({ folio, onSaved }) {
       placeholder="Untitled deep dive"
       spellCheck={false}
       aria-label="Folio title"
-      className="w-full min-w-0 font-display font-semibold text-xl tracking-[-0.01em]
+      className="w-full min-w-0 font-sans font-semibold text-xl tracking-[-0.01em]
                  text-pitch-800 dark:text-pitch-50 bg-transparent border-0 outline-none
                  px-1.5 -mx-1.5 py-0.5 rounded-md hover:bg-paper-200 dark:hover:bg-pitch-700
                  focus:ring-2 focus:ring-mint-500 transition-shadow placeholder:text-paper-400 dark:placeholder:text-pitch-300"
@@ -274,7 +274,7 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
     return (
       <div className="mt-5 rounded-2xl bg-paper-50 dark:bg-pitch-700/60 border border-paper-300 dark:border-pitch-400 p-10 text-center">
         <Sparkles size={22} className="mx-auto text-mint mb-3" />
-        <p className="font-display text-base text-pitch-800 dark:text-pitch-50 mb-1">Nothing pulled together yet</p>
+        <p className="font-sans text-base text-pitch-800 dark:text-pitch-50 mb-1">Nothing pulled together yet</p>
         <p className="font-lexend text-sm text-paper-600 dark:text-pitch-100 max-w-sm mx-auto mb-5 leading-relaxed">
           Add a few captures, then pull them together into one clear digest. It stays your work, drawn
           from your own material.
@@ -336,7 +336,7 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
             <Pencil size={13} /> Edit
           </button>
         </div>
-        <h1 className="font-display font-semibold text-[1.75rem] leading-[1.2] tracking-[-0.02em] text-pitch-800 dark:text-pitch-50 mt-3">
+        <h1 className="font-sans font-semibold text-[1.75rem] leading-[1.2] tracking-[-0.02em] text-pitch-800 dark:text-pitch-50 mt-3">
           {digest.headline || 'Your deep dive, pulled together'}
         </h1>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2.5 font-mono text-2xs text-paper-500 dark:text-pitch-200">
@@ -391,8 +391,8 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
 
         {/* Lede with a drop cap */}
         {digest.summary && (
-          <p className="font-lexend text-[16.5px] leading-[1.68] text-pitch-800 dark:text-pitch-50 mb-6
-                        first-letter:float-left first-letter:font-display first-letter:font-semibold
+          <p className="font-lexend text-base leading-[1.68] text-pitch-800 dark:text-pitch-50 mb-6
+                        first-letter:float-left first-letter:font-sans first-letter:font-semibold
                         first-letter:text-[3.2em] first-letter:leading-[0.82] first-letter:pr-3 first-letter:pt-1.5
                         first-letter:text-mint-700 dark:first-letter:text-mint-300">
             <BionicText>{digest.summary}</BionicText>
@@ -413,19 +413,19 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
                     {String(i + 1).padStart(2, '0')}
                   </span>
                 </div>
-                <h2 className="font-display font-semibold text-xl tracking-[-0.015em] text-pitch-800 dark:text-pitch-50 mb-3">
+                <h2 className="font-sans font-semibold text-xl tracking-[-0.015em] text-pitch-800 dark:text-pitch-50 mb-3">
                   {sec.heading}
                 </h2>
               </>
             )}
             {(sec.body || '').split(/\n{2,}/).map((para, j) => (
-              <p key={j} className="font-lexend text-[15px] leading-[1.7] text-pitch-800 dark:text-pitch-50 mb-3">
+              <p key={j} className="font-lexend text-[0.9375rem] leading-[1.7] text-pitch-800 dark:text-pitch-50 mb-3">
                 <BionicText>{para}</BionicText>
               </p>
             ))}
             {sec.quote?.text && (
               <blockquote className="my-5 pl-5 border-l-[3px] border-mint">
-                <p className="font-display text-xl leading-snug tracking-[-0.01em] text-pitch-800 dark:text-pitch-50">
+                <p className="font-sans text-xl leading-snug tracking-[-0.01em] text-pitch-800 dark:text-pitch-50">
                   “{sec.quote.text}”
                 </p>
                 {capturesById[sec.quote.capture] && (
@@ -611,7 +611,7 @@ function DigestEditor({ folio, onDone, onCancel }) {
       <FieldLabel>Headline</FieldLabel>
       <input value={headline} onChange={(e) => setHeadline(e.target.value)} maxLength={140}
         placeholder="A title for the piece"
-        className="w-full mb-5 px-3 py-2 rounded-lg font-display font-medium text-sm
+        className="w-full mb-5 px-3 py-2 rounded-lg font-sans font-medium text-sm
                    bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-400
                    text-pitch-800 dark:text-pitch-50 focus:outline-none focus:ring-2 focus:ring-mint-500" />
 
@@ -633,7 +633,7 @@ function DigestEditor({ folio, onDone, onCancel }) {
                   value={sec.heading || ''}
                   onChange={(e) => setSections(sections.map((s, j) => (j === i ? { ...s, heading: e.target.value } : s)))}
                   placeholder="Section heading"
-                  className="flex-1 px-3 py-1.5 rounded-lg font-display font-medium text-sm bg-paper-100 dark:bg-pitch-800
+                  className="flex-1 px-3 py-1.5 rounded-lg font-sans font-medium text-sm bg-paper-100 dark:bg-pitch-800
                              border border-paper-300 dark:border-pitch-400 text-pitch-800 dark:text-pitch-50
                              focus:outline-none focus:ring-2 focus:ring-mint-500"
                 />
@@ -876,14 +876,14 @@ function CaptureRow({ c, onRemove }) {
           <span className="opacity-50">·</span>
           <span>{formatDistanceToNow(parseUTC(c.created_at), { addSuffix: true })}</span>
           {c.type === 'image' && (
-            <span className={`px-1.5 py-0.5 rounded-full text-[9.5px] uppercase tracking-wide ${
+            <span className={`px-1.5 py-0.5 rounded-full text-2xs uppercase tracking-wide ${
               sm.vision_read ? 'bg-sage/15 text-sage' : 'bg-paper-300 dark:bg-pitch-600 text-paper-500 dark:text-pitch-200'
             }`}>
               {sm.vision_read ? 'text read' : 'not read'}
             </span>
           )}
           {c.type === 'link' && sm.error && (
-            <span className="px-1.5 py-0.5 rounded-full text-[9.5px] uppercase tracking-wide bg-paper-300 dark:bg-pitch-600 text-paper-500 dark:text-pitch-200">
+            <span className="px-1.5 py-0.5 rounded-full text-2xs uppercase tracking-wide bg-paper-300 dark:bg-pitch-600 text-paper-500 dark:text-pitch-200">
               link saved
             </span>
           )}

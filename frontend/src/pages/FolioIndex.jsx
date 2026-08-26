@@ -281,7 +281,7 @@ function TileCard({ folio, onOpen }) {
           : <div className="w-full h-full bg-gradient-to-br from-sky-muted to-sage opacity-80" />}
       </div>
       <div className="p-3.5 flex flex-col gap-1.5 flex-1">
-        <span className="font-display font-semibold text-sm leading-snug text-pitch-800 dark:text-pitch-50 line-clamp-2">
+        <span className="font-sans font-semibold text-sm leading-snug text-pitch-800 dark:text-pitch-50 line-clamp-2">
           <BionicText>{folio.title || 'Untitled deep dive'}</BionicText>
         </span>
         <div className="mt-auto pt-1"><MetaLine folio={folio} /></div>
@@ -299,7 +299,7 @@ function SmallCard({ folio, onOpen }) {
                  bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
                  shadow-sm hover:border-paper-400 dark:hover:border-pitch-500 transition-colors"
     >
-      <span className="font-display font-semibold text-sm leading-snug text-pitch-800 dark:text-pitch-50 line-clamp-2">
+      <span className="font-sans font-semibold text-sm leading-snug text-pitch-800 dark:text-pitch-50 line-clamp-2">
         {folio.title || 'Untitled deep dive'}
       </span>
       <MetaLine folio={folio} />
@@ -373,7 +373,7 @@ function Hero({ folio, onOpen }) {
         <span className="inline-flex items-center gap-1.5 font-mono text-2xs uppercase tracking-widest text-mint-700 dark:text-mint-300">
           <ArrowRight size={12} className="text-mint" /> Pick up where you left off
         </span>
-        <h2 className="font-display font-semibold text-xl tracking-[-0.01em] text-pitch-800 dark:text-pitch-50 mt-2 mb-2">
+        <h2 className="font-sans font-semibold text-xl tracking-[-0.01em] text-pitch-800 dark:text-pitch-50 mt-2 mb-2">
           <BionicText>{folio.title || 'Untitled deep dive'}</BionicText>
         </h2>
         <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -425,7 +425,7 @@ function DiveCard({ folio, onOpen }) {
                  transition-all motion-reduce:transform-none motion-reduce:transition-none"
     >
       <div className="flex items-start justify-between gap-2.5">
-        <span className="font-display font-semibold text-sm leading-snug text-pitch-800 dark:text-pitch-50">
+        <span className="font-sans font-semibold text-sm leading-snug text-pitch-800 dark:text-pitch-50">
           <BionicText>{folio.title || 'Untitled deep dive'}</BionicText>
         </span>
         {(folio.topics || [])[0] && <TopicTag name={folio.topics[0].name} />}
@@ -449,7 +449,7 @@ function EmptyState({ onStart, creating }) {
       <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-paper-200 dark:bg-pitch-700 mb-4">
         <Library size={22} className="text-paper-500 dark:text-pitch-200" />
       </div>
-      <p className="font-display text-base text-pitch-800 dark:text-pitch-50 mb-1">No deep dives yet</p>
+      <p className="font-sans text-base text-pitch-800 dark:text-pitch-50 mb-1">No deep dives yet</p>
       <p className="font-lexend text-sm text-paper-600 dark:text-pitch-100 max-w-sm mx-auto mb-5 leading-relaxed">
         Start one when you fall down a research rabbit hole. Drop in links, notes and files as you go,
         then pull them together when you are ready.

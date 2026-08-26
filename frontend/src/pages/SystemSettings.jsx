@@ -178,7 +178,7 @@ export default function SystemSettings({ updater }) {
             </Link>
             <div className="flex items-center gap-3">
               <SettingsIcon size={20} strokeWidth={1.75} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
-              <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 leading-tight">
+              <h1 className="font-sans font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 leading-tight">
                 Settings
               </h1>
             </div>
@@ -309,7 +309,7 @@ function AISummaryCard({ config, onEdit }) {
           className="
             flex-shrink-0 px-4 py-2 rounded-md text-xs
             bg-mint-700 hover:bg-mint-800 text-white
-            font-display uppercase tracking-wide transition-colors
+            font-sans font-medium uppercase tracking-wide transition-colors
           "
         >
           Set up
@@ -340,7 +340,7 @@ function AISummaryCard({ config, onEdit }) {
           flex-shrink-0 px-3 py-1.5 rounded-md text-xs
           text-paper-700 dark:text-paper-300
           hover:bg-paper-200 dark:hover:bg-pitch-700
-          font-display uppercase tracking-wide transition-colors
+          font-sans font-medium uppercase tracking-wide transition-colors
         "
       >
         Change
@@ -609,7 +609,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
 
       {/* What is this */}
       <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
-        <div className="text-2xs font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
+        <div className="text-2xs font-sans font-medium uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
           {guide.icon} {selected === 'gemini' ? 'Google Gemini' : selected === 'custom' ? 'Custom / Enterprise' : selected.charAt(0).toUpperCase() + selected.slice(1)} · {guide.time}
         </div>
         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">{guide.what}</div>
@@ -618,7 +618,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
       {/* Steps */}
       {guide.steps && (
         <div>
-          <div className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
+          <div className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
             {guide.keyLabel ? 'To get your key' : 'To get started'}
           </div>
           <div className="space-y-2">
@@ -841,7 +841,7 @@ function UpdateSection({ updater }) {
           <div className="flex items-start gap-2 mb-2">
             <Zap size={14} className="flex-shrink-0 mt-0.5 text-mint" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-display uppercase tracking-wide text-mint-700 dark:text-mint-300">
+              <p className="text-xs font-sans font-medium uppercase tracking-wide text-mint-700 dark:text-mint-300">
                 Update available
               </p>
               <p className="text-sm text-pitch-700 dark:text-paper-300 mt-0.5">
@@ -855,7 +855,7 @@ function UpdateSection({ updater }) {
               w-full flex items-center justify-center gap-1.5
               px-3 py-2 rounded-md text-xs
               bg-mint-700 hover:bg-mint-800 text-white
-              font-display uppercase tracking-wide transition-colors
+              font-sans font-medium uppercase tracking-wide transition-colors
             "
           >
             <Download size={11} />
@@ -926,7 +926,7 @@ function UpdateSection({ updater }) {
                 flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs
                 text-paper-700 dark:text-paper-300
                 hover:bg-paper-200 dark:hover:bg-pitch-700
-                disabled:opacity-40 font-display uppercase tracking-wide transition-colors
+                disabled:opacity-40 font-sans font-medium uppercase tracking-wide transition-colors
               "
             >
               {updater.status === 'checking'
@@ -1111,7 +1111,7 @@ function StorageSection({ id }) {
                   text-paper-700 dark:text-paper-300
                   hover:bg-paper-200 dark:hover:bg-pitch-700
                   disabled:opacity-40 transition-colors
-                  font-display uppercase tracking-wide
+                  font-sans font-medium uppercase tracking-wide
                 "
               >
                 {migrating ? 'Moving…' : 'Change…'}
@@ -1136,7 +1136,7 @@ function StorageSection({ id }) {
                     w-full flex items-center justify-center gap-1.5
                     px-3 py-2 rounded-md text-xs
                     bg-amber-500 hover:bg-amber-600 text-white
-                    font-display uppercase tracking-wide transition-colors
+                    font-sans font-medium uppercase tracking-wide transition-colors
                   "
                 >
                   <RefreshCw size={11} />
@@ -1184,7 +1184,7 @@ function StorageSection({ id }) {
               flex-shrink-0 px-3 py-1.5 rounded-md text-xs
               text-paper-700 dark:text-paper-300
               hover:bg-paper-200 dark:hover:bg-pitch-700
-              font-display uppercase tracking-wide transition-colors
+              font-sans font-medium uppercase tracking-wide transition-colors
             "
           >
             {storageConfig?.is_connected ? 'Manage' : 'Connect'}
@@ -1292,7 +1292,7 @@ function LicenceSection() {
         </div>
       )}
 
-      <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+      <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
         Renewal key
       </label>
       <textarea
@@ -1501,7 +1501,7 @@ function CardHeader({ icon: Icon, title, subtitle }) {
     <div className="flex items-start gap-3 mb-4">
       <Icon size={16} className="flex-shrink-0 mt-1 text-paper-500 dark:text-paper-600" />
       <div className="flex-1 min-w-0">
-        <h2 className="font-display font-medium text-base text-pitch-800 dark:text-white leading-tight">
+        <h2 className="font-sans font-medium text-base text-pitch-800 dark:text-white leading-tight">
           {title}
         </h2>
         {subtitle && (

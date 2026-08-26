@@ -11,7 +11,7 @@ const FIELD =
   'placeholder:text-paper-400 dark:placeholder:text-paper-700 ' +
   'focus:outline-none focus:ring-2 focus:ring-mint-500'
 const LABEL =
-  'block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5'
+  'block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -80,7 +80,7 @@ export default function LoginPage() {
           onSubmit={onSubmit}
           className="rounded-2xl border border-paper-300 dark:border-pitch-600 bg-paper-50 dark:bg-pitch-700 p-6 shadow-sm"
         >
-          <h1 className="font-display text-lg font-semibold text-pitch-800 dark:text-pitch-50 mb-1">
+          <h1 className="font-sans text-lg font-semibold text-pitch-800 dark:text-pitch-50 mb-1">
             Welcome back
           </h1>
           <p className="font-lexend text-sm text-paper-600 dark:text-pitch-100 mb-6">

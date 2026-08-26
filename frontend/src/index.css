@@ -183,11 +183,15 @@
 
 /* ─── Typography utilities ──────────────────────────────────────────────── */
 @layer utilities {
-  .font-display {
-    font-family: 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
-    font-weight: 500;
-    letter-spacing: -0.025em;
-  }
+  /* .font-display used to live here, carrying family + weight 500 + tracking
+     -0.025em. Because this block is emitted after every Tailwind weight and
+     tracking utility at equal specificity, it won, so on any font-display
+     element the authored `font-semibold` or `tracking-[-0.01em]` was dead and
+     everything rendered Geist / 500 / -0.025em. Nine headings written five
+     different ways all came out identical, and uppercase labels that asked for
+     positive tracking got -0.025em instead. Every call site now says font-sans
+     and states its own weight and tracking, so what is written is what renders.
+     tailwind.config.js keeps the family-only `display` alias. */
 
   .font-lexend {
     font-family: 'Lexend', 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
@@ -267,8 +271,20 @@
    Doubled class so these beat the .prose-entry defaults above rather than
    depending on which came last. */
 .prose-entry.entry-prose {
-  font-size: 14.5px;
-  font-weight: 300;
+  /* Rem, not px. This is the running body of every entry in every thread, and
+     at 14.5px it was the one piece of reading text in the app that ignored the
+     Text size setting. 0.9375rem rounds up rather than down, because reading
+     text should not get smaller in a fix aimed at readability.
+
+     Weight 400, not 300. timeline-entry-hierarchy.md specified 300, and the
+     title-to-body contrast it built rests on four things at once: size (21
+     against 14.5), weight, ink (primary against secondary) and typeface (Geist
+     against the reading font). At 700 against 400 the weight axis still carries
+     300 units and the other three are untouched, so the hierarchy holds. Geist
+     Light at 15px in secondary ink is thin for the readers this app is for, and
+     light weight, small size and reduced contrast were compounding. */
+  font-size: 0.9375rem;
+  font-weight: 400;
   line-height: 1.7;
   /* Set here rather than as a utility class, because .prose-entry above
      declares `color: inherit` and unlayered CSS beats a Tailwind utility. */
@@ -312,7 +328,7 @@ html.dark .prose-entry.entry-prose {
 }
 
 .prose-entry h1, .prose-entry h2, .prose-entry h3 {
-  @apply font-display font-semibold mb-1 mt-3 first:mt-0;
+  @apply font-sans font-semibold mb-1 mt-3 first:mt-0;
 }
 
 .prose-entry h1 { @apply text-base; }

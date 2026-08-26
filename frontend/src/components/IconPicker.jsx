@@ -189,7 +189,7 @@ export default function IconPicker({ value, onChange, children }) {
               "
             >
               <X size={12} />
-              <span className="font-display uppercase tracking-wide">Remove icon</span>
+              <span className="font-sans font-medium uppercase tracking-wide">Remove icon</span>
             </button>
           )}
         </div>
@@ -207,7 +207,7 @@ const FIELD = `w-full px-3 py-2.5 text-sm rounded-md
 
 function Label({ children }) {
   return (
-    <p className="font-mono text-[11px] uppercase tracking-[0.12em]
+    <p className="font-mono text-2xs uppercase tracking-[0.12em]
                   text-paper-500 dark:text-paper-600 mb-1.5">
       {children}
     </p>

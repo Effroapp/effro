@@ -94,7 +94,7 @@ export default function Modal({ isOpen, onClose, title, children, width = 'max-w
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-paper-200 dark:border-pitch-500">
-          <h2 className="font-display font-semibold text-sm uppercase tracking-wider text-pitch-700 dark:text-paper-200">
+          <h2 className="font-sans font-semibold text-sm uppercase tracking-wider text-pitch-700 dark:text-paper-200">
             {title}
           </h2>
           <button
@@ -120,7 +120,7 @@ export default function Modal({ isOpen, onClose, title, children, width = 'max-w
               <div className="flex gap-3 mb-4">
                 <AlertTriangle size={18} className="text-mustard flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-display uppercase tracking-wide text-xs text-pitch-800 dark:text-white mb-1">
+                  <p className="font-sans font-medium uppercase tracking-wide text-xs text-pitch-800 dark:text-white mb-1">
                     Discard changes?
                   </p>
                   <p className="text-xs text-paper-600 dark:text-paper-400 leading-relaxed">
@@ -132,7 +132,7 @@ export default function Modal({ isOpen, onClose, title, children, width = 'max-w
                 <button
                   onClick={() => setConfirming(false)}
                   className="
-                    px-3 py-1.5 text-xs rounded-md font-display uppercase tracking-wide
+                    px-3 py-1.5 text-xs rounded-md font-sans font-medium uppercase tracking-wide
                     text-paper-700 dark:text-paper-300
                     bg-paper-200 dark:bg-pitch-800
                     hover:bg-paper-300 dark:hover:bg-pitch-500
@@ -144,7 +144,7 @@ export default function Modal({ isOpen, onClose, title, children, width = 'max-w
                 <button
                   onClick={confirmDiscard}
                   className="
-                    px-3 py-1.5 text-xs rounded-md font-display uppercase tracking-wide
+                    px-3 py-1.5 text-xs rounded-md font-sans font-medium uppercase tracking-wide
                     text-white bg-terracotta hover:opacity-90
                     transition-colors
                   "

@@ -172,20 +172,20 @@ export default function GoogleIntegration() {
         <button
           onClick={handleSyncNow}
           disabled={isSyncing}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 disabled:opacity-40 font-display uppercase tracking-wide transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 disabled:opacity-40 font-sans font-medium uppercase tracking-wide transition-colors"
         >
           {isSyncing ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
           {isSyncing ? 'Syncing…' : 'Sync now'}
         </button>
         <button
           onClick={() => setEditingConfig(true)}
-          className="px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 font-display uppercase tracking-wide transition-colors"
+          className="px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 font-sans font-medium uppercase tracking-wide transition-colors"
         >
           Edit config
         </button>
         <button
           onClick={handleDisconnect}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-terracotta/80 hover:text-terracotta hover:bg-terracotta/10 font-display uppercase tracking-wide transition-colors"
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-terracotta/80 hover:text-terracotta hover:bg-terracotta/10 font-sans font-medium uppercase tracking-wide transition-colors"
         >
           <LogOut size={11} />
           Disconnect
@@ -231,7 +231,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <SetupGuide guide={GOOGLE_GUIDE} open={showGuide} onClose={() => setShowGuide(false)} />
       <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
-        <div className="text-2xs font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
+        <div className="text-2xs font-sans font-medium uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
           One-time Google setup
         </div>
         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">

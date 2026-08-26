@@ -40,7 +40,7 @@ export default function AddMeetingModal({ isOpen, onClose, onSubmit, submitting 
     <Modal isOpen={isOpen} onClose={onClose} title="Add meeting" width="max-w-md" isDirty={isDirty}>
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+          <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
             Title <span className="text-terracotta">*</span>
           </label>
           <input
@@ -59,7 +59,7 @@ export default function AddMeetingModal({ isOpen, onClose, onSubmit, submitting 
         </div>
 
         <div>
-          <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+          <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
             When <span className="text-terracotta">*</span>
           </label>
           <div className="flex items-center gap-2">
@@ -116,7 +116,7 @@ function QuickTime({ label, getDt, onPick }) {
       type="button"
       onClick={() => onPick(getDt())}
       className="
-        px-2.5 py-1 rounded-full text-xs font-display uppercase tracking-wide
+        px-2.5 py-1 rounded-full text-xs font-sans font-medium uppercase tracking-wide
         text-paper-600 dark:text-paper-500
         bg-paper-200 dark:bg-pitch-800
         hover:bg-paper-300 dark:hover:bg-pitch-500

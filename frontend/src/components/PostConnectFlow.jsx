@@ -81,7 +81,7 @@ export default function PostConnectFlow({
 
       {stage === 'hello' && (
         <div className="animate-rise motion-reduce:animate-none">
-          <h3 className="font-display font-semibold text-lg text-pitch-800 dark:text-white">Connected</h3>
+          <h3 className="font-sans font-semibold text-lg text-pitch-800 dark:text-white">Connected</h3>
           <p className="mt-1 text-sm text-paper-600 dark:text-paper-300 leading-relaxed max-w-xs mx-auto">
             Effro and {providerName} are now friends. New captures will arrive on their own from here.
           </p>
@@ -115,7 +115,7 @@ export default function PostConnectFlow({
             </div>
           ) : (
             <>
-              <h3 className="font-display font-semibold text-lg text-pitch-800 dark:text-white">
+              <h3 className="font-sans font-semibold text-lg text-pitch-800 dark:text-white">
                 {added > 0
                   ? `${added} new item${added === 1 ? '' : 's'} arrived`
                   : 'All caught up'}

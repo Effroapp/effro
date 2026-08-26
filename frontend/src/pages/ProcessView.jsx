@@ -74,7 +74,7 @@ function SourceChip({ source, onRemove }) {
       <span className="text-xs font-mono text-pitch-500 dark:text-paper-300 truncate flex-1 min-w-0">
         {source.name}
       </span>
-      <span className="font-display uppercase tracking-wider text-xs text-paper-500 dark:text-paper-600 flex-shrink-0">
+      <span className="font-sans font-medium uppercase tracking-wider text-xs text-paper-500 dark:text-paper-600 flex-shrink-0">
         {meta.label}
       </span>
       <span className="font-mono text-xs text-paper-400 dark:text-paper-700 flex-shrink-0">
@@ -105,7 +105,7 @@ function Step({ n, label, hint }) {
         {n}
       </span>
       <div className="min-w-0">
-        <div className="font-display uppercase tracking-wide text-xs text-pitch-800 dark:text-white">
+        <div className="font-sans font-medium uppercase tracking-wide text-xs text-pitch-800 dark:text-white">
           {label}
         </div>
         <div className="text-xs text-paper-600 dark:text-paper-500 mt-0.5 leading-snug">
@@ -232,7 +232,7 @@ function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApprov
         {/* Header strip */}
         <div className="px-4 py-2.5 bg-paper-100/50 dark:bg-pitch-800/30 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <span className={`font-display uppercase text-xs px-1.5 py-0.5 rounded flex-shrink-0 inline-flex items-center gap-1 ${badge}`}>
+            <span className={`font-sans font-medium uppercase text-xs px-1.5 py-0.5 rounded flex-shrink-0 inline-flex items-center gap-1 ${badge}`}>
               <TypeIcon size={10} />
               {meta.label}
             </span>
@@ -254,7 +254,7 @@ function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApprov
         {/* Action row */}
         {status === 'approved' ? (
           <div className="px-4 py-3 border-t border-paper-100 dark:border-pitch-700">
-            <span className="text-xs font-display uppercase tracking-wide text-paper-700 dark:text-paper-200">
+            <span className="text-xs font-sans font-medium uppercase tracking-wide text-paper-700 dark:text-paper-200">
               Added ✓
             </span>
           </div>
@@ -278,7 +278,7 @@ function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApprov
               <button
                 onClick={discard}
                 className="
-                  px-3 py-1.5 text-xs font-display uppercase tracking-wide rounded-md
+                  px-3 py-1.5 text-xs font-sans font-medium uppercase tracking-wide rounded-md
                   text-paper-600 dark:text-paper-500 hover:bg-paper-200 dark:hover:bg-pitch-500
                   transition-colors
                 "
@@ -289,7 +289,7 @@ function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApprov
                 onClick={handleRefine}
                 disabled={!rejectionReason.trim() || status === 'refining'}
                 className="
-                  flex items-center gap-1.5 px-3 py-1.5 text-xs font-display uppercase tracking-wide rounded-md
+                  flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium uppercase tracking-wide rounded-md
                   bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-200 hover:bg-paper-300 dark:hover:bg-pitch-600
                   disabled:opacity-50 transition-colors
                 "
@@ -306,7 +306,7 @@ function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApprov
               disabled={status === 'approving'}
               title="Approve this item"
               className="
-                flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display uppercase tracking-wide
+                flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-medium uppercase tracking-wide
                 bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-200 hover:bg-paper-300 dark:hover:bg-pitch-600
                 transition-colors disabled:opacity-50
               "
@@ -366,7 +366,7 @@ function WaveLoader({ count, label }) {
 // real thread will wear once it exists.
 function NewThreadPill() {
   return (
-    <span className="inline-flex items-center gap-1 flex-shrink-0 whitespace-nowrap font-display font-medium rounded uppercase tracking-wide text-xs px-1.5 py-0.5 text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/25 border border-mint/30">
+    <span className="inline-flex items-center gap-1 flex-shrink-0 whitespace-nowrap font-sans font-medium rounded uppercase tracking-wide text-xs px-1.5 py-0.5 text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/25 border border-mint/30">
       <Plus size={10} strokeWidth={3} />
       New
     </span>
@@ -410,7 +410,7 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
             className={`flex-shrink-0 text-paper-400 dark:text-paper-600 transition-transform ${collapsed ? '' : 'rotate-90'}`}
           />
           <MessageSquare size={15} className="flex-shrink-0 text-paper-500 dark:text-paper-400" />
-          <span className="font-display font-medium text-sm text-pitch-800 dark:text-white truncate min-w-0">
+          <span className="font-sans font-medium text-sm text-pitch-800 dark:text-white truncate min-w-0">
             {dest.title}
           </span>
           {dest.isExisting
@@ -424,7 +424,7 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
           <button
             onClick={() => setEditing((e) => !e)}
             title="Change which thread these items go into"
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-2xs font-display uppercase tracking-wide transition-colors ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-2xs font-sans font-medium uppercase tracking-wide transition-colors ${
               editing
                 ? 'text-pitch-700 dark:text-white bg-paper-300 dark:bg-pitch-600'
                 : 'text-paper-600 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-600'
@@ -438,7 +438,7 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
               onClick={onApproveAll}
               disabled={busy}
               title={`Approve all ${n} items in this thread`}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-2xs font-display uppercase tracking-wide text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/20 hover:bg-mint-100 dark:hover:bg-mint-900/35 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-2xs font-sans font-medium uppercase tracking-wide text-mint-700 dark:text-mint-300 bg-mint-50 dark:bg-mint-900/20 hover:bg-mint-100 dark:hover:bg-mint-900/35 disabled:opacity-50 transition-colors"
             >
               <CheckCheck size={12} />
               Approve all
@@ -450,13 +450,13 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
       {/* Destination editor - pick an existing thread, or name a new one */}
       {editing && (
         <div className="px-4 py-3 border-b border-paper-200 dark:border-pitch-500 bg-paper-100/30 dark:bg-pitch-800/20 space-y-3">
-          <p className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-400">
+          <p className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-400">
             File these {n} item{n === 1 ? '' : 's'} into
           </p>
 
           {/* Create / rename a new thread */}
           <div className="flex items-center gap-2">
-            <span className="flex-shrink-0 inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 text-2xs font-display uppercase tracking-wide">
+            <span className="flex-shrink-0 inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 text-2xs font-sans font-medium uppercase tracking-wide">
               <Plus size={12} strokeWidth={3} /> New
             </span>
             <input
@@ -469,7 +469,7 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
             <button
               onClick={applyNew}
               disabled={!newTitle.trim()}
-              className="flex-shrink-0 px-3 py-1.5 text-xs font-display uppercase tracking-wide rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
+              className="flex-shrink-0 px-3 py-1.5 text-xs font-sans font-medium uppercase tracking-wide rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
             >
               Use
             </button>
@@ -478,7 +478,7 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
           {/* Or file into an existing thread */}
           {areaThreads.length > 0 && (
             <div>
-              <p className="text-2xs font-display uppercase tracking-widest text-paper-400 dark:text-paper-600 mb-1.5">
+              <p className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-400 dark:text-paper-600 mb-1.5">
                 Or an existing thread
               </p>
               <div className="max-h-44 overflow-y-auto space-y-1 pr-1">
@@ -920,14 +920,14 @@ export default function ProcessView() {
           `}
         >
           <div className="flex items-center justify-between mb-4">
-            <p className="font-display uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
+            <p className="font-sans font-medium uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
               Generate from notes
             </p>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={parsing}
               className="
-                flex items-center gap-1.5 text-xs font-display uppercase tracking-wide transition-colors
+                flex items-center gap-1.5 text-xs font-sans font-medium uppercase tracking-wide transition-colors
                 text-paper-500 dark:text-paper-600
                 hover:text-paper-700 dark:hover:text-paper-200
                 disabled:opacity-50
@@ -947,7 +947,7 @@ export default function ProcessView() {
 
           {/* Area selector */}
           <div className="mb-4">
-            <p className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+            <p className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
               Area <span className="text-terracotta">*</span>
             </p>
             <div className={`
@@ -962,7 +962,7 @@ export default function ProcessView() {
                 key={area.id}
                 onClick={() => setSelectedAreaId(area.id)}
                 className={`
-                  px-3 py-1.5 rounded-full text-xs font-display transition-colors
+                  px-3 py-1.5 rounded-full text-xs font-sans transition-colors
                   ${selectedAreaId === area.id
                     ? 'bg-mint-700 text-white'
                     : 'text-paper-600 dark:text-paper-500 bg-paper-200 dark:bg-pitch-700 hover:bg-paper-300 dark:hover:bg-pitch-500'
@@ -1011,7 +1011,7 @@ export default function ProcessView() {
               border-2 border-dashed border-mint-500
             ">
               <Upload size={28} className="text-mint-700" />
-              <p className="font-display uppercase tracking-widest text-sm text-paper-700 dark:text-paper-200">
+              <p className="font-sans font-medium uppercase tracking-widest text-sm text-paper-700 dark:text-paper-200">
                 Drop to parse
               </p>
               <p className="font-mono text-xs text-paper-600 dark:text-paper-500">
@@ -1027,7 +1027,7 @@ export default function ProcessView() {
               bg-white/70 dark:bg-pitch-700/80 backdrop-blur-sm pointer-events-none
             ">
               <Spinner size={24} className="text-mint-700" />
-              <p className="font-display uppercase tracking-widest text-xs text-paper-600 dark:text-paper-500">
+              <p className="font-sans font-medium uppercase tracking-widest text-xs text-paper-600 dark:text-paper-500">
                 Parsing…
               </p>
             </div>
@@ -1037,7 +1037,7 @@ export default function ProcessView() {
               the results panel (waves of cards), so here we just show a compact
               "working" state in place of the button. */}
           {processing ? (
-            <div className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-mint-700/85 text-white text-sm font-display uppercase tracking-wide">
+            <div className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-mint-700/85 text-white text-sm font-sans font-medium uppercase tracking-wide">
               <Spinner size={14} />
               Extracting…
             </div>
@@ -1055,7 +1055,7 @@ export default function ProcessView() {
                 className="
                   w-full flex items-center justify-center gap-2 py-2.5 rounded-lg
                   bg-mint-700 hover:bg-mint-800 text-white text-sm
-                  font-display uppercase tracking-wide
+                  font-sans font-medium uppercase tracking-wide
                   disabled:opacity-50 disabled:cursor-not-allowed transition-colors
                 "
               >
@@ -1071,7 +1071,7 @@ export default function ProcessView() {
               <p className="text-sm text-terracotta">{error}</p>
               <button
                 onClick={() => { setError(null); handleProcess() }}
-                className="mt-2 text-xs font-display uppercase tracking-wide text-paper-500 hover:text-pitch-500 dark:hover:text-paper-300 transition-colors"
+                className="mt-2 text-xs font-sans font-medium uppercase tracking-wide text-paper-500 hover:text-pitch-500 dark:hover:text-paper-300 transition-colors"
               >
                 Retry
               </button>
@@ -1086,7 +1086,7 @@ export default function ProcessView() {
             px-6 py-5 flex items-center justify-between gap-4
           ">
             <div>
-              <p className="font-display uppercase tracking-widest text-xs text-paper-700 dark:text-paper-200 mb-0.5">
+              <p className="font-sans font-medium uppercase tracking-widest text-xs text-paper-700 dark:text-paper-200 mb-0.5">
                 All items reviewed
               </p>
               <p className="text-xs text-paper-500 dark:text-paper-600">
@@ -1098,7 +1098,7 @@ export default function ProcessView() {
               className="
                 flex items-center gap-2 px-4 py-2 rounded-lg
                 bg-paper-200 dark:bg-pitch-700 hover:bg-paper-300 dark:hover:bg-pitch-500
-                text-xs font-display uppercase tracking-wide text-paper-700 dark:text-paper-400
+                text-xs font-sans font-medium uppercase tracking-wide text-paper-700 dark:text-paper-400
                 transition-colors flex-shrink-0
               "
             >
@@ -1113,7 +1113,7 @@ export default function ProcessView() {
           <div>
             <div className="flex items-start justify-between mb-1">
               <div>
-                <span className="font-display uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
+                <span className="font-sans font-medium uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
                   Extracted Items
                 </span>
                 <p className="text-xs text-paper-600 dark:text-paper-500 italic mt-1">
@@ -1173,7 +1173,7 @@ export default function ProcessView() {
                 onClick={handleBulkApprove}
                 disabled={bulkApproving}
                 className="
-                  mt-4 w-full py-2.5 text-xs font-display uppercase tracking-wide rounded-lg
+                  mt-4 w-full py-2.5 text-xs font-sans font-medium uppercase tracking-wide rounded-lg
                   text-paper-600 dark:text-paper-500 bg-paper-200 dark:bg-pitch-700
                   hover:bg-paper-300 dark:hover:bg-pitch-500
                   disabled:opacity-50 transition-colors

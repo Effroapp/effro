@@ -48,7 +48,7 @@ function LogRow({ record }) {
       <span className="font-mono text-paper-400 dark:text-paper-700 flex-shrink-0 w-28">
         {format(new Date(record.occurred_at), 'dd MMM HH:mm')}
       </span>
-      <span className="font-display font-semibold text-pitch-700 dark:text-paper-200 flex-shrink-0">
+      <span className="font-sans font-semibold text-pitch-700 dark:text-paper-200 flex-shrink-0">
         {record.area_name}
       </span>
       {record.thread_title && (
@@ -59,7 +59,7 @@ function LogRow({ record }) {
           </span>
         </>
       )}
-      <span className={`font-display uppercase px-1.5 py-0.5 rounded flex-shrink-0 ${ACTION_BADGE[record.action] ?? ACTION_BADGE.updated}`}>
+      <span className={`font-sans font-medium uppercase px-1.5 py-0.5 rounded flex-shrink-0 ${ACTION_BADGE[record.action] ?? ACTION_BADGE.updated}`}>
         {record.action}
       </span>
       <span className="text-paper-600 dark:text-paper-500 flex-1 truncate">
@@ -122,7 +122,7 @@ export default function LogView() {
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <History size={20} strokeWidth={1.75} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
-            <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 leading-tight">
+            <h1 className="font-sans font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 leading-tight">
               Audit Log
             </h1>
             {!loading && (
@@ -142,7 +142,7 @@ export default function LogView() {
                 border border-paper-300 dark:border-paper-700
                 text-pitch-500 dark:text-paper-300
                 focus:outline-none focus:ring-2 focus:ring-mint-500
-                font-display uppercase tracking-wide
+                font-sans font-medium uppercase tracking-wide
               "
             >
               <option value="">All Areas</option>

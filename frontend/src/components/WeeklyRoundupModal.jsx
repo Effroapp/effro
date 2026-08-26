@@ -77,7 +77,7 @@ export default function WeeklyRoundupModal({ isOpen, onClose }) {
               />
             ))}
           </div>
-          <p className="font-display uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
+          <p className="font-sans font-medium uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
             Generating weekly roundup…
           </p>
         </div>
@@ -85,7 +85,7 @@ export default function WeeklyRoundupModal({ isOpen, onClose }) {
 
       {phase === 'review' && (
         <div>
-          <p className="font-display uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600 mb-3">
+          <p className="font-sans font-medium uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600 mb-3">
             Weekly Roundup - W/E {formattedDate}
           </p>
 
@@ -93,7 +93,7 @@ export default function WeeklyRoundupModal({ isOpen, onClose }) {
             <div className="mb-4 px-3 py-2.5 rounded-lg bg-mustard/5 dark:bg-mustard/10 border border-mustard/30">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Clock size={12} className="text-mustard" />
-                <span className="font-display uppercase tracking-widest text-xs text-mustard">
+                <span className="font-sans font-medium uppercase tracking-widest text-xs text-mustard">
                   Quiet · 14+ days
                 </span>
               </div>
@@ -105,7 +105,7 @@ export default function WeeklyRoundupModal({ isOpen, onClose }) {
                     onClick={onClose}
                     className="text-xs text-pitch-500 dark:text-paper-300 hover:text-paper-700 dark:hover:text-paper-200 transition-colors"
                   >
-                    <span className="font-display">{a.name}</span>
+                    <span className="font-sans">{a.name}</span>
                     <span className="ml-1.5 font-mono text-paper-500 dark:text-paper-600">{a.days_inactive}d</span>
                   </RouterLink>
                 ))}
@@ -128,7 +128,7 @@ export default function WeeklyRoundupModal({ isOpen, onClose }) {
             <button
               onClick={handleCopy}
               className="
-                flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display uppercase tracking-wide transition-colors
+                flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-medium uppercase tracking-wide transition-colors
                 bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-400
                 hover:bg-paper-300 dark:hover:bg-pitch-500
               "
@@ -139,7 +139,7 @@ export default function WeeklyRoundupModal({ isOpen, onClose }) {
             <button
               onClick={onClose}
               className="
-                flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display uppercase tracking-wide transition-colors
+                flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-medium uppercase tracking-wide transition-colors
                 bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-400
                 hover:bg-paper-300 dark:hover:bg-pitch-500
               "
@@ -156,7 +156,7 @@ export default function WeeklyRoundupModal({ isOpen, onClose }) {
           <button
             onClick={handleGenerate}
             className="
-              px-4 py-2 rounded-md text-xs font-display uppercase tracking-wide transition-colors
+              px-4 py-2 rounded-md text-xs font-sans font-medium uppercase tracking-wide transition-colors
               bg-paper-200 dark:bg-pitch-700 text-paper-700 dark:text-paper-400
               hover:bg-paper-300 dark:hover:bg-pitch-500
             "

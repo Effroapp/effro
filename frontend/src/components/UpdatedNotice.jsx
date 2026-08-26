@@ -34,7 +34,7 @@ export default function UpdatedNotice() {
       <div className="p-3.5 flex items-start gap-2.5">
         <Sparkles size={15} className="flex-shrink-0 mt-0.5 text-mint" />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-display uppercase tracking-widest text-mint-700 dark:text-mint-300">
+          <p className="text-xs font-sans font-medium uppercase tracking-widest text-mint-700 dark:text-mint-300">
             You are up to date
           </p>
           <p className="text-sm text-pitch-700 dark:text-paper-200 mt-1">
@@ -42,7 +42,7 @@ export default function UpdatedNotice() {
           </p>
           <button
             onClick={() => openExternal('https://github.com/Effroapp/effro/releases')}
-            className="mt-2 text-xs font-display uppercase tracking-wide text-mint-700 dark:text-mint-300 hover:underline"
+            className="mt-2 text-xs font-sans font-medium uppercase tracking-wide text-mint-700 dark:text-mint-300 hover:underline"
           >
             See what is new
           </button>

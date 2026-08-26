@@ -138,7 +138,7 @@ export default function Sidebar({
               <Logo size={28} />
               <div className="min-w-0 flex flex-col">
                 <span
-                  className="font-display font-medium text-xl tracking-tightest text-pitch-800 dark:text-white leading-none inline-flex items-baseline"
+                  className="font-sans font-medium text-xl tracking-tightest text-pitch-800 dark:text-white leading-none inline-flex items-baseline"
                 >
                   Effro
                   {/* Mint dot acting as the full stop. Same character, brand colour. */}
@@ -218,7 +218,7 @@ export default function Sidebar({
           built, as distinct from the fixed nav above. */}
       {!collapsed && (
         <div className="flex items-center gap-2 pl-4 pr-4 pt-[18px] pb-2">
-          <span className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-clay-text">
+          <span className="font-mono text-2xs font-medium uppercase tracking-[0.18em] text-clay-text">
             Areas
           </span>
           <span
@@ -293,7 +293,7 @@ export default function Sidebar({
               {area.icon ? (
                 <AreaIcon name={area.icon} size={13} className="flex-shrink-0 opacity-80" />
               ) : null}
-              <span className="flex-1 truncate font-medium text-[13px] !tracking-[-0.005em] font-display">
+              <span className="flex-1 truncate font-sans font-medium text-[0.8125rem] tracking-soft">
                 {area.name}
               </span>
               {area.open_thread_count > 0 && (
@@ -324,7 +324,7 @@ export default function Sidebar({
             "
           >
             <Plus size={12} className="flex-shrink-0" />
-            <span className="font-display uppercase tracking-wide">
+            <span className="font-sans font-medium uppercase tracking-wide">
               {areas.length === 0 ? 'Add your first area' : 'Add area'}
             </span>
           </button>
@@ -429,7 +429,7 @@ function NavLink({ to, icon: Icon, label, active, collapsed, badge }) {
       `}
     >
       <Icon size={15} className="flex-shrink-0" />
-      <span className="font-display uppercase tracking-wide text-xs flex-1">{label}</span>
+      <span className="font-sans font-medium uppercase tracking-wide text-xs flex-1">{label}</span>
       {showBadge && (
         <span className="
           ml-auto text-2xs font-mono px-1.5 py-0.5 rounded-full
@@ -492,7 +492,7 @@ function FooterIconLink({ to, icon: Icon, label, active, badge = false }) {
 function ShortcutHint({ label, keys }) {
   return (
     <div className="flex items-center justify-between gap-4 text-xs text-paper-500 dark:text-paper-700">
-      <span className="font-display uppercase tracking-wide">{label}</span>
+      <span className="font-sans font-medium uppercase tracking-wide">{label}</span>
       <span className="flex items-center gap-0.5">
         {keys.map((k) => (
           <kbd
@@ -538,7 +538,7 @@ function FooterShortcuts() {
         group-hover/keys:opacity-100 group-hover/keys:translate-y-0
         transition-all duration-150
       ">
-        <p className="font-display uppercase tracking-widest text-2xs text-paper-400 dark:text-paper-600 mb-1.5">
+        <p className="font-sans font-medium uppercase tracking-widest text-2xs text-paper-400 dark:text-paper-600 mb-1.5">
           Shortcuts
         </p>
         <ShortcutHint label="Capture" keys={['N']} />

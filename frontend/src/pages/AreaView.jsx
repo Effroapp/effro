@@ -449,7 +449,7 @@ export default function AreaView() {
             </IconPicker>
             <div className="min-w-0">
               <div className="flex items-center gap-3 min-w-0">
-                <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 truncate">
+                <h1 className="font-sans font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 truncate">
                   {area.name}
                 </h1>
 
@@ -466,7 +466,7 @@ export default function AreaView() {
                       key={key}
                       onClick={() => changeStatus(key)}
                       className={`
-                        flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-display uppercase tracking-wide hover:bg-paper-100 dark:hover:bg-pitch-700 transition-colors
+                        flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-sans font-medium uppercase tracking-wide hover:bg-paper-100 dark:hover:bg-pitch-700 transition-colors
                         ${key === area.status ? 'bg-paper-100 dark:bg-pitch-700' : ''}
                         ${cfg.textClass}
                       `}
@@ -499,7 +499,7 @@ export default function AreaView() {
             onClick={() => openNewThread()}
             className="
               flex-shrink-0 self-start whitespace-nowrap
-              flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display font-medium uppercase tracking-wide
+              flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-medium uppercase tracking-wide
               bg-mint-700 hover:bg-mint-800 text-white
               shadow-sm hover:shadow-mint-500/25
               transition-all duration-150
@@ -545,7 +545,7 @@ export default function AreaView() {
       {/* Threads section */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-semibold uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
+          <h2 className="font-sans font-semibold uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
             Threads{' '}
             <span className="font-mono text-paper-400 dark:text-paper-700">
               ({threads.length})
@@ -555,7 +555,7 @@ export default function AreaView() {
             <button
               onClick={addGroup}
               title="Make a group to file threads under"
-              className="flex items-center gap-1.5 px-2 py-1 rounded-md text-2xs font-display uppercase tracking-wide
+              className="flex items-center gap-1.5 px-2 py-1 rounded-md text-2xs font-sans font-medium uppercase tracking-wide
                          text-paper-500 dark:text-paper-500 hover:text-paper-700 dark:hover:text-paper-300
                          hover:bg-paper-200/60 dark:hover:bg-pitch-700 transition-colors"
             >
@@ -605,13 +605,13 @@ export default function AreaView() {
                           if (e.key === 'Enter') e.target.blur()
                           if (e.key === 'Escape') setRenamingGroupId(null)
                         }}
-                        className="min-w-0 flex-shrink px-1.5 py-0.5 text-sm font-display font-semibold rounded
+                        className="min-w-0 flex-shrink px-1.5 py-0.5 text-sm font-sans font-semibold rounded
                                    bg-paper-100 dark:bg-pitch-700 text-pitch-800 dark:text-white
                                    border border-mint-500 focus:outline-none focus:ring-1 focus:ring-mint-500"
                       />
                     ) : (
                       <button onClick={() => setRenamingGroupId(group.id)} title="Rename group" className="group/name flex items-center gap-1.5 min-w-0">
-                        <span className="font-display font-semibold text-sm text-paper-700 dark:text-paper-200 truncate">{group.name}</span>
+                        <span className="font-sans font-semibold text-sm text-paper-700 dark:text-paper-200 truncate">{group.name}</span>
                         <Pencil size={11} className="flex-shrink-0 opacity-0 group-hover/name:opacity-100 text-paper-400 dark:text-paper-600 transition-opacity" />
                       </button>
                     )}
@@ -646,7 +646,7 @@ export default function AreaView() {
                         <p className="text-2xs text-paper-400 dark:text-paper-700">Empty. Drag a thread here, or use the folder menu on any thread.</p>
                         <button
                           onClick={() => openNewThread(group.id)}
-                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-2xs font-display uppercase tracking-wide
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-2xs font-sans font-medium uppercase tracking-wide
                                      text-mint-700 dark:text-mint-300 bg-mint/10 hover:bg-mint/20 transition-colors"
                         >
                           <Plus size={12} /> New thread
@@ -750,7 +750,7 @@ export default function AreaView() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+            <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
               Title *
             </label>
             <input
@@ -772,7 +772,7 @@ export default function AreaView() {
           </div>
 
           <div>
-            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+            <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
               Description
             </label>
             <MarkdownArea
@@ -785,7 +785,7 @@ export default function AreaView() {
           </div>
 
           <div>
-            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+            <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
               Status
             </label>
             <div className="flex flex-wrap gap-2">
@@ -794,7 +794,7 @@ export default function AreaView() {
                   key={key}
                   onClick={() => setThreadForm((f) => ({ ...f, status: key }))}
                   className={`
-                    flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display uppercase tracking-wide border transition-colors
+                    flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-medium uppercase tracking-wide border transition-colors
                     ${threadForm.status === key
                       ? `${cfg.textClass} ${cfg.bgClass} ${cfg.borderClass}`
                       : 'text-paper-600 dark:text-paper-500 border-paper-300 dark:border-pitch-500 hover:border-paper-400 dark:hover:border-paper-700'
@@ -809,12 +809,12 @@ export default function AreaView() {
           </div>
 
           <div>
-            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+            <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
               Group
             </label>
             <div className="flex flex-wrap gap-2">
               {(() => {
-                const pill = (active) => `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display uppercase tracking-wide border transition-colors ${
+                const pill = (active) => `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-medium uppercase tracking-wide border transition-colors ${
                   active
                     ? 'text-mint-700 dark:text-mint-300 bg-mint/10 border-mint-500'
                     : 'text-paper-600 dark:text-paper-500 border-paper-300 dark:border-pitch-500 hover:border-paper-400 dark:hover:border-paper-700'
@@ -927,7 +927,7 @@ function AreaDescription({ area, onSave, onError }) {
       <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-paper-300/70 dark:border-pitch-600/70">
         <div className="flex items-center gap-2 min-w-0">
           <AlignLeft size={13} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
-          <span className="text-xs font-display uppercase tracking-widest text-paper-500 dark:text-pitch-100">
+          <span className="text-xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-pitch-100">
             Description
           </span>
         </div>
@@ -1095,7 +1095,7 @@ function AreaAuditRow({ record }) {
       <span className="text-paper-600 dark:text-paper-500 truncate w-36 flex-shrink-0">
         {record.thread_title || <span className="italic text-paper-400 dark:text-paper-700">area</span>}
       </span>
-      <span className={`font-display uppercase px-1.5 py-0.5 rounded flex-shrink-0 ${ACTION_BADGE[record.action] ?? ACTION_BADGE.updated}`}>
+      <span className={`font-sans font-medium uppercase px-1.5 py-0.5 rounded flex-shrink-0 ${ACTION_BADGE[record.action] ?? ACTION_BADGE.updated}`}>
         {record.action}
       </span>
       <span className="text-paper-600 dark:text-paper-500 flex-1 truncate">
@@ -1147,7 +1147,7 @@ function AreaAuditPanel({ areaId }) {
         onClick={open ? () => setOpen(false) : expand}
         className="
           w-full flex items-center gap-2 py-3
-          font-display uppercase tracking-widest text-xs
+          font-sans font-medium uppercase tracking-widest text-xs
           text-paper-400 dark:text-pitch-500
           hover:text-paper-600 dark:hover:text-paper-600
           cursor-pointer transition-colors

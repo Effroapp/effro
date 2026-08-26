@@ -11,7 +11,7 @@ const FIELD =
   'placeholder:text-paper-400 dark:placeholder:text-paper-700 ' +
   'focus:outline-none focus:ring-2 focus:ring-mint-500'
 const LABEL =
-  'block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5'
+  'block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5'
 
 /**
  * Public landing for an emailed invite / reset link (/set-password?token=...).
@@ -81,7 +81,7 @@ export default function SetPasswordPage() {
 
           {status === 'valid' && (
             <form onSubmit={onSubmit}>
-              <h1 className="font-display text-lg font-semibold text-pitch-800 dark:text-pitch-50 mb-1">
+              <h1 className="font-sans text-lg font-semibold text-pitch-800 dark:text-pitch-50 mb-1">
                 Set your password
               </h1>
               <p className="font-lexend text-sm text-paper-600 dark:text-pitch-100 mb-6">
