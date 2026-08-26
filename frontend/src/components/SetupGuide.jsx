@@ -99,21 +99,21 @@ export default function SetupGuide({ guide, open, onClose }) {
           <button
             onClick={() => setI((n) => Math.max(0, n - 1))}
             disabled={first}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm text-paper-600 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="btn btn-md btn-ghost"
           >
             <ChevronLeft size={15} /> Back
           </button>
           {last ? (
             <button
               onClick={onClose}
-              className="btn btn-sm btn-primary"
+              className="btn btn-md btn-primary"
             >
               <Check size={15} /> Done, let me paste
             </button>
           ) : (
             <button
               onClick={() => setI((n) => Math.min(steps.length - 1, n + 1))}
-              className="btn btn-sm btn-primary"
+              className="btn btn-md btn-primary"
             >
               Next <ChevronRight size={15} />
             </button>
