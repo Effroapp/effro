@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import PageHeader from '../components/PageHeader'
+import PageShell from '../components/PageShell'
 import IntroPanel, { Key } from '../components/IntroPanel'
 import JiraIssueType from '../components/JiraIssueType'
 import ProviderLogo from '../components/ProviderLogos'
@@ -152,47 +153,48 @@ export default function Signals() {
   )
 
   return (
-    <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
-      <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
-      {/* Header */}
-      <PageHeader
-        icon={Radar}
-        title="Signals"
-        subtitle="What needs your attention, from your connected tools."
-        right={
-          <>
-            {data && data.pending_count > 0 && (
-              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-mint-50 dark:bg-mint-900/30 text-mint-700 dark:text-mint-300">
-                {data.pending_count} pending
-              </span>
-            )}
-            {data?.last_synced && !isSyncing && (
-              <span
-                className="hidden sm:flex items-center gap-1.5 text-2xs font-mono text-paper-500 dark:text-pitch-200"
-                title={`Last synced ${format(parseUTC(data.last_synced), 'EEE d MMM, HH:mm')}`}
+    <PageShell
+      bodyClassName="py-8"
+      header={
+        <PageHeader
+          icon={Radar}
+          title="Signals"
+          subtitle="What needs your attention, from your connected tools."
+          right={
+            <>
+              {data && data.pending_count > 0 && (
+                <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-mint-50 dark:bg-mint-900/30 text-mint-700 dark:text-mint-300">
+                  {data.pending_count} pending
+                </span>
+              )}
+              {data?.last_synced && !isSyncing && (
+                <span
+                  className="hidden sm:flex items-center gap-1.5 text-2xs font-mono text-paper-500 dark:text-pitch-200"
+                  title={`Last synced ${format(parseUTC(data.last_synced), 'EEE d MMM, HH:mm')}`}
+                >
+                  <Clock size={11} className="flex-shrink-0" />
+                  Synced {formatDistanceToNow(parseUTC(data.last_synced))} ago
+                </span>
+              )}
+              <button
+                onClick={handleSyncNow}
+                disabled={isSyncing}
+                className="
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs
+                  text-paper-700 dark:text-paper-200
+                  hover:bg-paper-200 dark:hover:bg-pitch-700
+                  disabled:opacity-40
+                  font-display uppercase tracking-wide transition-colors
+                "
               >
-                <Clock size={11} className="flex-shrink-0" />
-                Synced {formatDistanceToNow(parseUTC(data.last_synced))} ago
-              </span>
-            )}
-            <button
-              onClick={handleSyncNow}
-              disabled={isSyncing}
-              className="
-                flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs
-                text-paper-700 dark:text-paper-200
-                hover:bg-paper-200 dark:hover:bg-pitch-700
-                disabled:opacity-40
-                font-display uppercase tracking-wide transition-colors
-              "
-            >
-              {isSyncing ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
-              {isSyncing ? 'Syncing…' : 'Sync now'}
-            </button>
-          </>
-        }
-      />
-
+                {isSyncing ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                {isSyncing ? 'Syncing…' : 'Sync now'}
+              </button>
+            </>
+          }
+        />
+      }
+    >
       {/* First-run explainer - shown once, then dismissed for good. */}
       <IntroPanel icon={Radar} title="Welcome to Signals" storageKey="effro.signalsIntroSeen">
         Signals is a gentle holding area for the things your connected tools
@@ -292,8 +294,7 @@ export default function Signals() {
           <FiledReveal items={visibleFiled} show={showFiled} onToggle={() => setShowFiled((v) => !v)} renderCard={renderCard} />
         </>
       )}
-      </div>
-    </div>
+    </PageShell>
   )
 }
 

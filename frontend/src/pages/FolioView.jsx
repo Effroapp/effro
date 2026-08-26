@@ -8,6 +8,7 @@ import {
 import { formatDistanceToNow, format } from 'date-fns'
 import { useToast } from '../components/Toast'
 import PageHeader from '../components/PageHeader'
+import PageShell from '../components/PageShell'
 import FolioRail from '../components/FolioRail'
 import FolioFiledUnder from '../components/FolioFiledUnder'
 import Logo from '../components/Logo'
@@ -109,9 +110,11 @@ export default function FolioView() {
 
   if (!folio) {
     return (
-      <div className="min-h-screen bg-paper-100 dark:bg-pitch-800 flex justify-center pt-24 text-paper-500 dark:text-pitch-200">
-        <Loader2 size={22} className="animate-spin" />
-      </div>
+      <PageShell bodyClassName="py-24">
+        <div className="flex justify-center text-paper-500 dark:text-pitch-200">
+          <Loader2 size={22} className="animate-spin" />
+        </div>
+      </PageShell>
     )
   }
 
@@ -129,87 +132,90 @@ export default function FolioView() {
   )
 
   return (
-    <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
-      <div className="max-w-7xl mx-auto px-6 md:px-10 py-8">
-        {/* Back */}
-        <button
-          onClick={() => navigate('/folios')}
-          className="inline-flex items-center gap-1.5 text-sm text-paper-500 dark:text-pitch-200
-                     hover:text-pitch-800 dark:hover:text-pitch-50 px-2 py-1 -ml-2 rounded-md
-                     hover:bg-paper-200 dark:hover:bg-pitch-700 transition-colors"
-        >
-          <ChevronLeft size={15} /> Folios
-        </button>
-
-        {/* Header: the dive's icon (mint accent chip) + editable title + meta.
-            The view toggle and Add live on their own row below, so the title
-            gets the full width instead of being squeezed by the actions. */}
-        <div className="mt-4">
-          <PageHeader
-            icon={BookOpen}
-            accent
-            title={<TitleField folio={folio} onSaved={setFolio} />}
-            subtitle={
-              <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 font-mono text-2xs text-paper-500 dark:text-pitch-200">
-                {(folio.topics || []).map((t, i) => (
-                  <span key={t.id} className={`px-2 py-0.5 rounded-full border ${TOPIC_TONES[i % TOPIC_TONES.length]}`}>
-                    {t.name}
-                  </span>
-                ))}
-                <span className="inline-flex items-center gap-1"><Layers size={11} /> {capCount} capture{capCount === 1 ? '' : 's'}</span>
-                <span className="opacity-50">·</span>
-                <span>updated {formatDistanceToNow(parseUTC(folio.updated_at), { addSuffix: true })}</span>
-              </span>
-            }
-          />
-        </div>
-
-        {/* Toolbar: view toggle + where the dive is filed + always-visible Add. */}
-        <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="inline-flex bg-paper-200 dark:bg-pitch-700 rounded-lg p-0.5 gap-0.5">
-              <Tab on={view === 'read'} onClick={() => setView('read')}><BookOpen size={13} /> Read</Tab>
-              <Tab on={view === 'captures'} onClick={() => setView('captures')}>
-                Captures <span className="text-paper-500 dark:text-pitch-200">{capCount}</span>
-              </Tab>
-            </div>
-            <FolioFiledUnder folio={folio} onSaved={setFolio} />
-          </div>
+    <PageShell
+      bodyClassName="py-8"
+      header={
+        <>
+          {/* Back */}
           <button
-            onClick={focusAdd}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium
-                       bg-paper-50 dark:bg-pitch-600 border border-paper-400 dark:border-pitch-400
-                       text-pitch-800 dark:text-pitch-50 hover:border-mint/40 hover:bg-mint/5
-                       transition-colors"
+            onClick={() => navigate('/folios')}
+            className="inline-flex items-center gap-1.5 text-sm text-paper-500 dark:text-pitch-200
+                       hover:text-pitch-800 dark:hover:text-pitch-50 px-2 py-1 -ml-2 rounded-md
+                       hover:bg-paper-200 dark:hover:bg-pitch-700 transition-colors"
           >
-            <Plus size={15} className="text-mint" /> Add capture
+            <ChevronLeft size={15} /> Folios
           </button>
-        </div>
 
-        {/* Read view with a populated rail becomes a magazine spread: the digest
-            on the left, grounded widgets filling the right. The rail is sticky
-            on wide screens and drops below the digest on narrow ones. Everything
-            else (captures, the empty/edit states) keeps the centred measure. */}
-        {view === 'read' && railHasContent ? (
-          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_19rem] gap-6 items-start">
-            <div className="min-w-0">
-              <ReadView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} onGoCaptures={focusAdd} />
-            </div>
-            {/* mt-5 matches the article card's own top margin so the rail and
-                the digest share a baseline (they're separate grid columns). */}
-            <div className="mt-5 xl:sticky xl:top-6">
-              <FolioRail folio={folio} related={related} />
-            </div>
+          {/* Header: the dive's icon (mint accent chip) + editable title + meta.
+              The view toggle and Add live on their own row below, so the title
+              gets the full width instead of being squeezed by the actions. */}
+          <div className="mt-3">
+            <PageHeader
+              icon={BookOpen}
+              accent
+              title={<TitleField folio={folio} onSaved={setFolio} />}
+              subtitle={
+                <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 font-mono text-2xs text-paper-500 dark:text-pitch-200">
+                  {(folio.topics || []).map((t, i) => (
+                    <span key={t.id} className={`px-2 py-0.5 rounded-full border ${TOPIC_TONES[i % TOPIC_TONES.length]}`}>
+                      {t.name}
+                    </span>
+                  ))}
+                  <span className="inline-flex items-center gap-1"><Layers size={11} /> {capCount} capture{capCount === 1 ? '' : 's'}</span>
+                  <span className="opacity-50">·</span>
+                  <span>updated {formatDistanceToNow(parseUTC(folio.updated_at), { addSuffix: true })}</span>
+                </span>
+              }
+            />
           </div>
-        ) : (
-          <div className="max-w-4xl mx-auto">
-            {view === 'read'
-              ? <ReadView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} onGoCaptures={focusAdd} />
-              : <CapturesView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} noteRef={noteRef} />}
+        </>
+      }
+    >
+      {/* Toolbar: view toggle + where the dive is filed + always-visible Add. */}
+      <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="inline-flex bg-paper-200 dark:bg-pitch-700 rounded-lg p-0.5 gap-0.5">
+            <Tab on={view === 'read'} onClick={() => setView('read')}><BookOpen size={13} /> Read</Tab>
+            <Tab on={view === 'captures'} onClick={() => setView('captures')}>
+              Captures <span className="text-paper-500 dark:text-pitch-200">{capCount}</span>
+            </Tab>
           </div>
-        )}
+          <FolioFiledUnder folio={folio} onSaved={setFolio} />
+        </div>
+        <button
+          onClick={focusAdd}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium
+                     bg-paper-50 dark:bg-pitch-600 border border-paper-400 dark:border-pitch-400
+                     text-pitch-800 dark:text-pitch-50 hover:border-mint/40 hover:bg-mint/5
+                     transition-colors"
+        >
+          <Plus size={15} className="text-mint" /> Add capture
+        </button>
       </div>
-    </div>
+
+      {/* Read view with a populated rail becomes a magazine spread: the digest
+          on the left, grounded widgets filling the right. The rail is sticky
+          on wide screens and drops below the digest on narrow ones. Everything
+          else (captures, the empty/edit states) keeps the centred measure. */}
+      {view === 'read' && railHasContent ? (
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_19rem] gap-6 items-start">
+          <div className="min-w-0">
+            <ReadView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} onGoCaptures={focusAdd} />
+          </div>
+          {/* mt-5 matches the article card's own top margin so the rail and
+              the digest share a baseline (they're separate grid columns). */}
+          <div className="mt-5 xl:sticky xl:top-6">
+            <FolioRail folio={folio} related={related} />
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-4xl mx-auto">
+          {view === 'read'
+            ? <ReadView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} onGoCaptures={focusAdd} />
+            : <CapturesView folio={folio} onReload={load} onPull={pullTogether} pulling={pulling} noteRef={noteRef} />}
+        </div>
+      )}
+    </PageShell>
   )
 }
 

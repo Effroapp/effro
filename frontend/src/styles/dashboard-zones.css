@@ -34,7 +34,7 @@
   --dz-placeholder: #A8A49E;                /* empty-state italic */
   --dz-rule:        var(--rule);            /* flips in tokens.css already */
   --dz-rule-soft:   rgba(20,19,15,.06);     /* hairline between rows */
-  --dz-grid:        rgba(20,19,15,.025);    /* same texture as .bg-grid-light */
+  --dz-grid:        rgba(20,19,15,.025);    /* same texture as --page-grid   */
   --dz-topbar:      rgba(247,244,237,.9);
   --dz-lift:        0 1px 1px rgba(20,19,15,.03),0 2px 6px rgba(20,19,15,.05),0 10px 28px rgba(20,19,15,.06);
   --dz-folder-shadow: drop-shadow(0 1px 1px rgba(20,19,15,.04)) drop-shadow(0 5px 12px rgba(20,19,15,.07));
@@ -51,7 +51,7 @@ html.dark .dashboard,html.dark .dz-tokens{
   --dz-text-muted:  var(--paper-muted-d);   /* #6B6862 */
   --dz-placeholder: var(--paper-muted-d);
   --dz-rule-soft:   rgba(247,244,237,.06);
-  --dz-grid:        rgba(247,244,237,.025); /* same texture as .bg-grid-dark */
+  --dz-grid:        rgba(247,244,237,.025); /* same texture as --page-grid   */
   --dz-topbar:      rgba(15,14,12,.9);
   /* Shadows barely read on pitch. A hairline ring carries the lift, with a real drop beneath. */
   --dz-lift:        0 0 0 1px rgba(247,244,237,.06),0 6px 18px rgba(0,0,0,.35);

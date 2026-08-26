@@ -8,6 +8,7 @@ import StatusBadge from '../components/StatusBadge'
 import ThreadCard from '../components/ThreadCard'
 import AreaFolios from '../components/AreaFolios'
 import Modal from '../components/Modal'
+import PageShell from '../components/PageShell'
 import IconPicker, { AreaIcon } from '../components/IconPicker'
 import OverviewCard from '../components/OverviewCard'
 import { useToast } from '../components/Toast'
@@ -412,14 +413,9 @@ export default function AreaView() {
   if (!area) return null
 
   return (
-    <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800 bg-grid-light dark:bg-grid-dark">
-      {/* Area header */}
-      <header className="
-        sticky top-0 z-10 px-8 py-5
-        bg-paper-100/90 dark:bg-pitch-800/90 backdrop-blur-md
-        border-b border-paper-200 dark:border-pitch-700
-      ">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 pr-14">
+    <PageShell
+      header={
+        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <IconPicker
               value={area.icon}
@@ -513,235 +509,233 @@ export default function AreaView() {
             New Thread
           </button>
         </div>
-      </header>
+      }
+    >
+      {/* Description - full width, above the Current Overview + rail grid,
+          signifying its hierarchy: what the area IS comes before where it
+          currently stands. Editable, but written to be set once and left. */}
+      <AreaDescription
+        area={area}
+        onSave={async (text) => {
+          const updated = await areasApi.update(areaId, { description: text })
+          setArea(updated)
+        }}
+        onError={(e) => toast(e.message, 'error')}
+      />
 
-      <div className="max-w-6xl mx-auto px-8 py-6">
-        {/* Description - full width, above the Current Overview + rail grid,
-            signifying its hierarchy: what the area IS comes before where it
-            currently stands. Editable, but written to be set once and left. */}
-        <AreaDescription
-          area={area}
-          onSave={async (text) => {
-            const updated = await areasApi.update(areaId, { description: text })
-            setArea(updated)
-          }}
-          onError={(e) => toast(e.message, 'error')}
-        />
-
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_19rem] gap-6 items-start">
-        {/* Main column: overview + threads grouped by status */}
-        <div className="min-w-0 flex flex-col gap-6">
-        {/* Overview - shared OverviewCard (identical for areas and threads) */}
-        <OverviewCard
-          data={area}
-          aiConfigured={aiConfigured}
-          onSuggest={() => areasApi.suggestSummary(areaId)}
-          onSave={(text) => areasApi.update(areaId, { summary: text })}
-          onToggleAuto={(enabled) => areasApi.update(areaId, { auto_update: enabled })}
-          onSetAutoAll={async () => { await areasApi.setAutoUpdateAll(true); return areasApi.get(areaId) }}
-          onChange={(updated) => setArea(updated)}
-          onError={(e) => toast(e.message, 'error')}
-          scopeNoun="area"
-          emptyHint="No overview yet. Click Update to generate one, or write your own."
-          placeholder="Describe what's happening in this area..."
-        />
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_19rem] gap-6 items-start">
+      {/* Main column: overview + threads grouped by status */}
+      <div className="min-w-0 flex flex-col gap-6">
+      {/* Overview - shared OverviewCard (identical for areas and threads) */}
+      <OverviewCard
+        data={area}
+        aiConfigured={aiConfigured}
+        onSuggest={() => areasApi.suggestSummary(areaId)}
+        onSave={(text) => areasApi.update(areaId, { summary: text })}
+        onToggleAuto={(enabled) => areasApi.update(areaId, { auto_update: enabled })}
+        onSetAutoAll={async () => { await areasApi.setAutoUpdateAll(true); return areasApi.get(areaId) }}
+        onChange={(updated) => setArea(updated)}
+        onError={(e) => toast(e.message, 'error')}
+        scopeNoun="area"
+        emptyHint="No overview yet. Click Update to generate one, or write your own."
+        placeholder="Describe what's happening in this area..."
+      />
 
 
-        {/* Threads section */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display font-semibold uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
-              Threads{' '}
-              <span className="font-mono text-paper-400 dark:text-paper-700">
-                ({threads.length})
-              </span>
-            </h2>
-            {threads.length > 0 && (
-              <button
-                onClick={addGroup}
-                title="Make a group to file threads under"
-                className="flex items-center gap-1.5 px-2 py-1 rounded-md text-2xs font-display uppercase tracking-wide
-                           text-paper-500 dark:text-paper-500 hover:text-paper-700 dark:hover:text-paper-300
-                           hover:bg-paper-200/60 dark:hover:bg-pitch-700 transition-colors"
-              >
-                <FolderPlus size={13} /> New group
-              </button>
-            )}
-          </div>
-
-          {threads.length === 0 ? (
-            <div className="text-center py-16 border-2 border-dashed border-paper-300 dark:border-pitch-500 rounded-xl">
-              <p className="text-sm text-paper-500 dark:text-paper-700 mb-4">No threads yet for this area.</p>
-              <button
-                onClick={() => openNewThread()}
-                className="flex items-center gap-2 px-4 py-2 rounded-md bg-mint-700 hover:bg-mint-800 text-white text-sm mx-auto transition-colors"
-              >
-                <Plus size={14} />
-                Create first thread
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-6">
-              {/* Custom groups - a calm editable heading + splitter per group */}
-              {groups.map((group) => {
-                const items = threads.filter((t) => t.group_id === group.id)
-                const collapsed = collapsedGroups.has(`grp-${group.id}`)
-                const isRenaming = renamingGroupId === group.id
-                const isDropOver = dropTarget?.type === 'group' && dropTarget.id === group.id
-                return (
-                  <div
-                    key={group.id}
-                    onDragOver={(e) => { if (dragId != null) { e.preventDefault(); setDropTarget({ type: 'group', id: group.id }) } }}
-                    onDrop={(e) => dropOnGroup(e, group.id)}
-                    className={`rounded-xl transition-all ${isDropOver ? 'ring-2 ring-mint/50 bg-mint/5' : ''}`}
-                  >
-                    {/* Group header: chevron, name (editable), count, splitter, remove */}
-                    <div className="flex items-center gap-2 mb-2.5">
-                      <button onClick={() => toggleGroup(`grp-${group.id}`)} title={collapsed ? 'Expand' : 'Collapse'} className="flex-shrink-0 text-paper-400 dark:text-paper-700">
-                        <ChevronDown size={14} className={`transition-transform motion-reduce:transition-none ${collapsed ? '-rotate-90' : ''}`} />
-                      </button>
-                      <Folder size={13} className="flex-shrink-0 text-paper-400 dark:text-paper-600" />
-                      {isRenaming ? (
-                        <input
-                          autoFocus
-                          defaultValue={group.name}
-                          onBlur={(e) => renameGroup(group.id, e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') e.target.blur()
-                            if (e.key === 'Escape') setRenamingGroupId(null)
-                          }}
-                          className="min-w-0 flex-shrink px-1.5 py-0.5 text-sm font-display font-semibold rounded
-                                     bg-paper-100 dark:bg-pitch-700 text-pitch-800 dark:text-white
-                                     border border-mint-500 focus:outline-none focus:ring-1 focus:ring-mint-500"
-                        />
-                      ) : (
-                        <button onClick={() => setRenamingGroupId(group.id)} title="Rename group" className="group/name flex items-center gap-1.5 min-w-0">
-                          <span className="font-display font-semibold text-sm text-paper-700 dark:text-paper-200 truncate">{group.name}</span>
-                          <Pencil size={11} className="flex-shrink-0 opacity-0 group-hover/name:opacity-100 text-paper-400 dark:text-paper-600 transition-opacity" />
-                        </button>
-                      )}
-                      <span className="font-mono text-2xs text-paper-400 dark:text-paper-700 flex-shrink-0">{items.length}</span>
-                      <div className="flex-1 h-px bg-paper-200 dark:bg-pitch-600" />
-                      <button
-                        onClick={() => openNewThread(group.id)}
-                        title="New thread in this group"
-                        className="flex-shrink-0 text-paper-400 dark:text-paper-700 hover:text-mint-600 dark:hover:text-mint-300 transition-colors"
-                      >
-                        <Plus size={14} />
-                      </button>
-                      {confirmDeleteId === group.id ? (
-                        <span className="flex items-center gap-1.5 text-2xs flex-shrink-0">
-                          <span className="text-paper-500 dark:text-paper-500">Remove group?</span>
-                          <button onClick={() => removeGroup(group.id)} className="font-medium text-terracotta">Yes</button>
-                          <button onClick={() => setConfirmDeleteId(null)} className="text-paper-400 dark:text-paper-600">No</button>
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => setConfirmDeleteId(group.id)}
-                          title="Remove group (threads are kept)"
-                          className="flex-shrink-0 text-paper-400 dark:text-paper-700 hover:text-terracotta transition-colors"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
-                    </div>
-                    {!collapsed && (
-                      items.length === 0 ? (
-                        <div className="flex flex-col items-center gap-2.5 py-5 border border-dashed border-paper-300 dark:border-pitch-500 rounded-lg">
-                          <p className="text-2xs text-paper-400 dark:text-paper-700">Empty. Drag a thread here, or use the folder menu on any thread.</p>
-                          <button
-                            onClick={() => openNewThread(group.id)}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-2xs font-display uppercase tracking-wide
-                                       text-mint-700 dark:text-mint-300 bg-mint/10 hover:bg-mint/20 transition-colors"
-                          >
-                            <Plus size={12} /> New thread
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-2">
-                          {items.map((thread) => renderRow(thread))}
-                        </div>
-                      )
-                    )}
-                  </div>
-                )
-              })}
-
-              {/* Make-a-new-group drop zone, shown only while dragging a thread */}
-              {dragId != null && (
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setDropTarget({ type: 'newgroup' }) }}
-                  onDrop={dropOnNewGroup}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-xs transition-colors ${
-                    dropTarget?.type === 'newgroup'
-                      ? 'border-mint bg-mint/5 text-mint-600 dark:text-mint-300'
-                      : 'border-paper-300 dark:border-pitch-500 text-paper-400 dark:text-paper-700'
-                  }`}
-                >
-                  <FolderPlus size={14} /> Drop here to make a new group
-                </div>
-              )}
-
-              {/* Ungrouped pile - grouped by status, exactly as before when no
-                  custom groups exist. Droppable to lift a thread out of a group. */}
-              <div
-                onDragOver={(e) => { if (dragId != null && groups.length > 0) { e.preventDefault(); setDropTarget({ type: 'ungrouped' }) } }}
-                onDrop={(e) => {
-                  if (groups.length === 0) return
-                  e.preventDefault()
-                  const id = dragId
-                  setDragId(null); setDropTarget(null)
-                  if (id != null) assignToGroup(id, null)
-                }}
-                className={`flex flex-col gap-5 rounded-xl transition-all ${dropTarget?.type === 'ungrouped' ? 'ring-2 ring-mint/40' : ''}`}
-              >
-                {groups.length > 0 && ungrouped.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-2xs uppercase tracking-widest text-paper-400 dark:text-paper-700">Ungrouped</span>
-                    <div className="flex-1 h-px bg-paper-200 dark:bg-pitch-600" />
-                  </div>
-                )}
-                {/* One flat, freely-reorderable list - drag any thread above or
-                    below any other, the same as inside a group. Status shows on
-                    each card, so no status splitting to get in the way. */}
-                <div className="flex flex-col gap-2">
-                  {ungrouped.map((thread) => renderRow(thread))}
-                </div>
-              </div>
-            </div>
+      {/* Threads section */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display font-semibold uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
+            Threads{' '}
+            <span className="font-mono text-paper-400 dark:text-paper-700">
+              ({threads.length})
+            </span>
+          </h2>
+          {threads.length > 0 && (
+            <button
+              onClick={addGroup}
+              title="Make a group to file threads under"
+              className="flex items-center gap-1.5 px-2 py-1 rounded-md text-2xs font-display uppercase tracking-wide
+                         text-paper-500 dark:text-paper-500 hover:text-paper-700 dark:hover:text-paper-300
+                         hover:bg-paper-200/60 dark:hover:bg-pitch-700 transition-colors"
+            >
+              <FolderPlus size={13} /> New group
+            </button>
           )}
         </div>
-        </div>
 
-        {/* Right rail: area facts + the dives filed here */}
-        <aside className="xl:sticky xl:top-6 flex flex-col gap-3">
-          <div className="rounded-xl bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400 p-3.5">
-            <div className="flex items-center gap-2 font-mono text-2xs uppercase tracking-[0.13em] text-paper-500 dark:text-pitch-200">
-              <Gauge size={14} className="text-mint" /> At a glance
-            </div>
-            <div className="mt-3 flex flex-col gap-2.5 text-sm">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-paper-500 dark:text-pitch-200">Status</span>
-                <StatusBadge status={area.status} type="area" size="xs" />
+        {threads.length === 0 ? (
+          <div className="text-center py-16 border-2 border-dashed border-paper-300 dark:border-pitch-500 rounded-xl">
+            <p className="text-sm text-paper-500 dark:text-paper-700 mb-4">No threads yet for this area.</p>
+            <button
+              onClick={() => openNewThread()}
+              className="flex items-center gap-2 px-4 py-2 rounded-md bg-mint-700 hover:bg-mint-800 text-white text-sm mx-auto transition-colors"
+            >
+              <Plus size={14} />
+              Create first thread
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {/* Custom groups - a calm editable heading + splitter per group */}
+            {groups.map((group) => {
+              const items = threads.filter((t) => t.group_id === group.id)
+              const collapsed = collapsedGroups.has(`grp-${group.id}`)
+              const isRenaming = renamingGroupId === group.id
+              const isDropOver = dropTarget?.type === 'group' && dropTarget.id === group.id
+              return (
+                <div
+                  key={group.id}
+                  onDragOver={(e) => { if (dragId != null) { e.preventDefault(); setDropTarget({ type: 'group', id: group.id }) } }}
+                  onDrop={(e) => dropOnGroup(e, group.id)}
+                  className={`rounded-xl transition-all ${isDropOver ? 'ring-2 ring-mint/50 bg-mint/5' : ''}`}
+                >
+                  {/* Group header: chevron, name (editable), count, splitter, remove */}
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <button onClick={() => toggleGroup(`grp-${group.id}`)} title={collapsed ? 'Expand' : 'Collapse'} className="flex-shrink-0 text-paper-400 dark:text-paper-700">
+                      <ChevronDown size={14} className={`transition-transform motion-reduce:transition-none ${collapsed ? '-rotate-90' : ''}`} />
+                    </button>
+                    <Folder size={13} className="flex-shrink-0 text-paper-400 dark:text-paper-600" />
+                    {isRenaming ? (
+                      <input
+                        autoFocus
+                        defaultValue={group.name}
+                        onBlur={(e) => renameGroup(group.id, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') e.target.blur()
+                          if (e.key === 'Escape') setRenamingGroupId(null)
+                        }}
+                        className="min-w-0 flex-shrink px-1.5 py-0.5 text-sm font-display font-semibold rounded
+                                   bg-paper-100 dark:bg-pitch-700 text-pitch-800 dark:text-white
+                                   border border-mint-500 focus:outline-none focus:ring-1 focus:ring-mint-500"
+                      />
+                    ) : (
+                      <button onClick={() => setRenamingGroupId(group.id)} title="Rename group" className="group/name flex items-center gap-1.5 min-w-0">
+                        <span className="font-display font-semibold text-sm text-paper-700 dark:text-paper-200 truncate">{group.name}</span>
+                        <Pencil size={11} className="flex-shrink-0 opacity-0 group-hover/name:opacity-100 text-paper-400 dark:text-paper-600 transition-opacity" />
+                      </button>
+                    )}
+                    <span className="font-mono text-2xs text-paper-400 dark:text-paper-700 flex-shrink-0">{items.length}</span>
+                    <div className="flex-1 h-px bg-paper-200 dark:bg-pitch-600" />
+                    <button
+                      onClick={() => openNewThread(group.id)}
+                      title="New thread in this group"
+                      className="flex-shrink-0 text-paper-400 dark:text-paper-700 hover:text-mint-600 dark:hover:text-mint-300 transition-colors"
+                    >
+                      <Plus size={14} />
+                    </button>
+                    {confirmDeleteId === group.id ? (
+                      <span className="flex items-center gap-1.5 text-2xs flex-shrink-0">
+                        <span className="text-paper-500 dark:text-paper-500">Remove group?</span>
+                        <button onClick={() => removeGroup(group.id)} className="font-medium text-terracotta">Yes</button>
+                        <button onClick={() => setConfirmDeleteId(null)} className="text-paper-400 dark:text-paper-600">No</button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(group.id)}
+                        title="Remove group (threads are kept)"
+                        className="flex-shrink-0 text-paper-400 dark:text-paper-700 hover:text-terracotta transition-colors"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                  {!collapsed && (
+                    items.length === 0 ? (
+                      <div className="flex flex-col items-center gap-2.5 py-5 border border-dashed border-paper-300 dark:border-pitch-500 rounded-lg">
+                        <p className="text-2xs text-paper-400 dark:text-paper-700">Empty. Drag a thread here, or use the folder menu on any thread.</p>
+                        <button
+                          onClick={() => openNewThread(group.id)}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-2xs font-display uppercase tracking-wide
+                                     text-mint-700 dark:text-mint-300 bg-mint/10 hover:bg-mint/20 transition-colors"
+                        >
+                          <Plus size={12} /> New thread
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {items.map((thread) => renderRow(thread))}
+                      </div>
+                    )
+                  )}
+                </div>
+              )
+            })}
+
+            {/* Make-a-new-group drop zone, shown only while dragging a thread */}
+            {dragId != null && (
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDropTarget({ type: 'newgroup' }) }}
+                onDrop={dropOnNewGroup}
+                className={`flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-xs transition-colors ${
+                  dropTarget?.type === 'newgroup'
+                    ? 'border-mint bg-mint/5 text-mint-600 dark:text-mint-300'
+                    : 'border-paper-300 dark:border-pitch-500 text-paper-400 dark:text-paper-700'
+                }`}
+              >
+                <FolderPlus size={14} /> Drop here to make a new group
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-paper-500 dark:text-pitch-200">Threads</span>
-                <span className="text-pitch-800 dark:text-pitch-50">
-                  {threads.length}
-                  {activeThreadCount > 0 && <span className="font-mono text-2xs text-paper-400 dark:text-pitch-300"> · {activeThreadCount} active</span>}
-                </span>
-              </div>
-              {lastActivity && (
-                <div className="flex items-center justify-between gap-2 border-t border-paper-200 dark:border-pitch-600 pt-2.5">
-                  <span className="text-paper-500 dark:text-pitch-200">Last activity</span>
-                  <span className="font-mono text-2xs text-paper-600 dark:text-pitch-100">{formatDistanceToNow(lastActivity, { addSuffix: true })}</span>
+            )}
+
+            {/* Ungrouped pile - grouped by status, exactly as before when no
+                custom groups exist. Droppable to lift a thread out of a group. */}
+            <div
+              onDragOver={(e) => { if (dragId != null && groups.length > 0) { e.preventDefault(); setDropTarget({ type: 'ungrouped' }) } }}
+              onDrop={(e) => {
+                if (groups.length === 0) return
+                e.preventDefault()
+                const id = dragId
+                setDragId(null); setDropTarget(null)
+                if (id != null) assignToGroup(id, null)
+              }}
+              className={`flex flex-col gap-5 rounded-xl transition-all ${dropTarget?.type === 'ungrouped' ? 'ring-2 ring-mint/40' : ''}`}
+            >
+              {groups.length > 0 && ungrouped.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-2xs uppercase tracking-widest text-paper-400 dark:text-paper-700">Ungrouped</span>
+                  <div className="flex-1 h-px bg-paper-200 dark:bg-pitch-600" />
                 </div>
               )}
+              {/* One flat, freely-reorderable list - drag any thread above or
+                  below any other, the same as inside a group. Status shows on
+                  each card, so no status splitting to get in the way. */}
+              <div className="flex flex-col gap-2">
+                {ungrouped.map((thread) => renderRow(thread))}
+              </div>
             </div>
           </div>
-          <AreaFolios areaId={areaId} />
-        </aside>
+        )}
       </div>
+      </div>
+
+      {/* Right rail: area facts + the dives filed here */}
+      <aside className="xl:sticky xl:top-6 flex flex-col gap-3">
+        <div className="rounded-xl bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400 p-3.5">
+          <div className="flex items-center gap-2 font-mono text-2xs uppercase tracking-[0.13em] text-paper-500 dark:text-pitch-200">
+            <Gauge size={14} className="text-mint" /> At a glance
+          </div>
+          <div className="mt-3 flex flex-col gap-2.5 text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-paper-500 dark:text-pitch-200">Status</span>
+              <StatusBadge status={area.status} type="area" size="xs" />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-paper-500 dark:text-pitch-200">Threads</span>
+              <span className="text-pitch-800 dark:text-pitch-50">
+                {threads.length}
+                {activeThreadCount > 0 && <span className="font-mono text-2xs text-paper-400 dark:text-pitch-300"> · {activeThreadCount} active</span>}
+              </span>
+            </div>
+            {lastActivity && (
+              <div className="flex items-center justify-between gap-2 border-t border-paper-200 dark:border-pitch-600 pt-2.5">
+                <span className="text-paper-500 dark:text-pitch-200">Last activity</span>
+                <span className="font-mono text-2xs text-paper-600 dark:text-pitch-100">{formatDistanceToNow(lastActivity, { addSuffix: true })}</span>
+              </div>
+            )}
+          </div>
+        </div>
+        <AreaFolios areaId={areaId} />
+      </aside>
       </div>
 
       {/* Audit panel */}
@@ -888,7 +882,7 @@ export default function AreaView() {
           </div>
         </div>
       </Modal>
-    </div>
+    </PageShell>
   )
 }
 
@@ -1148,7 +1142,7 @@ function AreaAuditPanel({ areaId }) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-8 pb-10">
+    <div className="pb-10">
       <button
         onClick={open ? () => setOpen(false) : expand}
         className="
@@ -1187,8 +1181,8 @@ function AreaAuditPanel({ areaId }) {
 
 function AreaSkeleton() {
   return (
-    <div className="flex-1 min-h-screen bg-white dark:bg-pitch-800 p-8">
-      <div className="max-w-5xl mx-auto space-y-4">
+    <PageShell grid={false} bodyClassName="py-8">
+      <div className="space-y-4">
         <div className="h-8 w-48 rounded bg-paper-200 dark:bg-pitch-700 animate-pulse" />
         <div className="h-24 rounded-xl bg-paper-200 dark:bg-pitch-700 animate-pulse" />
         <div className="space-y-3">
@@ -1197,7 +1191,7 @@ function AreaSkeleton() {
           ))}
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }
 

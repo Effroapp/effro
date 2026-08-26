@@ -303,6 +303,15 @@ in someone's head.
 - The frontend has no test runner. `package.json` carries only dev, build and
   preview, so the dashboard styling hook, the status-line composer and the zone
   collapse migration are covered by hand rather than by unit tests.
+- `frontend/src/pages/ThreadView.jsx` and `LogView.jsx` have no inner reading
+  measure. `PageShell` settled every page on one 1400px container, where those
+  two used to stop at 1024, so the thread timeline and the audit rows now run the
+  full width. `FolioView` keeps a `max-w-4xl` reading measure inside the wider
+  page, which is the pattern those two probably want.
+- The sticky rails offset by hand. `AreaView`'s aside and `FolioView`'s rail both
+  use `xl:sticky xl:top-6`, which is inside `PageShell`'s sticky header bar, so
+  they slide under it. It predates the shell, but the fix is a shared header-height
+  offset rather than another hand-written value.
 - There is no `npm run lint` script and no ESLint config. `npm run build` only
   catches what breaks the bundle, so an undefined identifier compiles happily
   and throws at runtime. `scripts/check-jsx-imports.mjs` covers the specific

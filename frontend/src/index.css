@@ -197,19 +197,26 @@
     font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
   }
 
-  /* Subtle grid texture - calmer than before, reduced opacity */
-  .bg-grid-light {
-    background-image:
-      linear-gradient(rgba(20, 19, 15, 0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(20, 19, 15, 0.025) 1px, transparent 1px);
-    background-size: 32px 32px;
-  }
+  /* The paper grid texture, as a layer PageShell drops behind the page.
 
-  .bg-grid-dark {
+     It is its own absolutely positioned element rather than a background on
+     the page root, because the mask has to fade the grid out without fading
+     the content sat on top of it. The fade runs from 40 percent down the page
+     to nothing at 78, which is the Dashboard's treatment promoted to every
+     page. The flat repeating version this replaced carried on to the bottom of
+     a long thread and read as graph paper rather than texture.
+
+     The ink is --page-grid, which flips with the theme in tokens.css. */
+  .page-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
     background-image:
-      linear-gradient(rgba(247, 244, 237, 0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(247, 244, 237, 0.025) 1px, transparent 1px);
+      linear-gradient(var(--page-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--page-grid) 1px, transparent 1px);
     background-size: 32px 32px;
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 40%, transparent 78%);
+            mask-image: linear-gradient(to bottom, #000 0, #000 40%, transparent 78%);
   }
 
   /* Soft glow for mint accents - sparingly used. Aliased as both names so

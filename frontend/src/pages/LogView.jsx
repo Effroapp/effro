@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { History, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
 import { areasApi } from '../api/client'
+import PageShell from '../components/PageShell'
 import IntroPanel, { Key } from '../components/IntroPanel'
 
 const ACTION_BADGE = {
@@ -116,14 +117,9 @@ export default function LogView() {
     : records
 
   return (
-    <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800 bg-grid-light dark:bg-grid-dark">
-      {/* Header */}
-      <header className="
-        sticky top-0 z-10 px-8 py-5
-        bg-paper-100/90 dark:bg-pitch-800/90 backdrop-blur-md
-        border-b border-paper-200 dark:border-pitch-700
-      ">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 pr-14">
+    <PageShell
+      header={
+        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <History size={20} strokeWidth={1.75} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
             <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 leading-tight">
@@ -156,47 +152,44 @@ export default function LogView() {
             </select>
           )}
         </div>
-      </header>
+      }
+    >
+      {/* First-run explainer - shown once, then dismissed for good. */}
+      <IntroPanel icon={History} title="The audit log" storageKey="effro.auditLogIntroSeen">
+        The audit log is a plain, time-ordered record of the changes to your
+        areas and threads, what was <Key>created</Key>, <Key>edited</Key>,{' '}
+        <Key>completed</Key> or <Key>removed</Key>, and exactly when. We keep it
+        because being able to retrace your own steps is quietly reassuring, and
+        because you deserve to see what the app has done with your work, with
+        nothing tucked away.
+      </IntroPanel>
 
-      {/* Body */}
-      <div className="max-w-5xl mx-auto px-8 py-6">
-        {/* First-run explainer - shown once, then dismissed for good. */}
-        <IntroPanel icon={History} title="The audit log" storageKey="effro.auditLogIntroSeen">
-          The audit log is a plain, time-ordered record of the changes to your
-          areas and threads, what was <Key>created</Key>, <Key>edited</Key>,{' '}
-          <Key>completed</Key> or <Key>removed</Key>, and exactly when. We keep it
-          because being able to retrace your own steps is quietly reassuring, and
-          because you deserve to see what the app has done with your work, with
-          nothing tucked away.
-        </IntroPanel>
-
-        {loading ? (
-          <LogSkeleton />
-        ) : error ? (
-          <div className="text-center py-16">
-            <p className="text-sm text-terracotta mb-3">{error}</p>
-            <button
-              onClick={load}
-              className="flex items-center gap-2 px-4 py-2 rounded-md bg-paper-200 dark:bg-pitch-700 text-sm mx-auto hover:bg-paper-300 dark:hover:bg-pitch-500 transition-colors"
-            >
-              <RefreshCw size={13} /> Retry
-            </button>
-          </div>
-        ) : displayed.length === 0 ? (
-          <div className="text-center py-16">
-            <History size={24} className="text-paper-300 dark:text-pitch-500 mx-auto mb-3" />
-            <p className="text-sm italic text-paper-500 dark:text-paper-700">
-              {filterAreaId ? 'No audit records for this area yet' : 'No audit records yet'}
-            </p>
-          </div>
-        ) : (
-          <div className="bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 rounded-xl overflow-hidden">
-            {displayed.map((record) => (
-              <LogRow key={record.id} record={record} />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+      {loading ? (
+        <LogSkeleton />
+      ) : error ? (
+        <div className="text-center py-16">
+          <p className="text-sm text-terracotta mb-3">{error}</p>
+          <button
+            onClick={load}
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-paper-200 dark:bg-pitch-700 text-sm mx-auto hover:bg-paper-300 dark:hover:bg-pitch-500 transition-colors"
+          >
+            <RefreshCw size={13} /> Retry
+          </button>
+        </div>
+      ) : displayed.length === 0 ? (
+        <div className="text-center py-16">
+          <History size={24} className="text-paper-300 dark:text-pitch-500 mx-auto mb-3" />
+          <p className="text-sm italic text-paper-500 dark:text-paper-700">
+            {filterAreaId ? 'No audit records for this area yet' : 'No audit records yet'}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 rounded-xl overflow-hidden">
+          {displayed.map((record) => (
+            <LogRow key={record.id} record={record} />
+          ))}
+        </div>
+      )}
+    </PageShell>
   )
 }
