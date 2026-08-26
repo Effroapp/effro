@@ -8,6 +8,8 @@ import { Tooltip } from './Tooltip'
 import { useAuth } from '../contexts/AuthContext'
 import { useOnboarding } from './OnboardingWizard'
 import SectionStyleGlyph from './SectionStyleGlyph'
+// .dz-tokens, which the tile picker uses to draw its glyphs in the theme.
+import '../styles/dashboard-zones.css'
 import { DASHBOARD_LAYOUTS, SECTION_STYLES, useDashboardStyling } from '../hooks/useDashboardStyling'
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024  // 2 MB
@@ -333,7 +335,14 @@ function SectionStylePicker({ value, onChange }) {
   }
 
   return (
-    <div role="radiogroup" aria-label="Section style" className="flex flex-wrap gap-1.5">
+    // Three columns, and a grid rather than a wrap, so the seventh tile is a
+    // tile rather than a stripe across the last line. .dz-tokens carries the
+    // dashboard's theme-aware set, which is what the glyphs are drawn in.
+    <div
+      role="radiogroup"
+      aria-label="Section style"
+      className="dz-tokens grid grid-cols-3 gap-1.5"
+    >
       {SECTION_STYLES.map((style, i) => {
         const selected = style.key === value
         return (
@@ -345,19 +354,18 @@ function SectionStylePicker({ value, onChange }) {
             tabIndex={selected ? 0 : -1}
             onKeyDown={(e) => move(e, i)}
             onClick={() => onChange(style.key)}
-            className={`relative min-w-[76px] flex-1 flex flex-col items-center gap-1 px-2 py-2 rounded-md border transition-colors
+            className={`flex flex-col items-center rounded-md border px-2 pb-1.5 pt-2 transition-colors
               focus:outline-none focus-visible:ring-2 focus-visible:ring-mint-500/50
               ${selected
                 ? 'border-mint ring-1 ring-mint bg-paper-100 dark:bg-pitch-800'
                 : 'border-paper-300 dark:border-pitch-500 hover:bg-paper-100 dark:hover:bg-pitch-800'}`}
           >
             <SectionStyleGlyph style={style.key} />
-            <span className="text-2xs text-paper-600 dark:text-paper-400">{style.label}</span>
-            {style.key === 'inset' && (
-              <span className="absolute top-1 right-1 font-mono text-2xs text-paper-500 dark:text-paper-600">
-                Default
-              </span>
-            )}
+            <span className="mt-1.5 text-2xs text-paper-600 dark:text-paper-400">{style.label}</span>
+            {/* Under the name rather than over the glyph, which it covered. */}
+            <span className="font-mono text-2xs text-paper-500 dark:text-paper-600">
+              {style.key === 'inset' ? 'Default' : ' '}
+            </span>
           </button>
         )
       })}

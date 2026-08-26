@@ -351,6 +351,13 @@ Structure:
 
 Each area may carry an "area_description" stating what that area is. Use it as background context to interpret the week's activity accurately. Do not restate it as if it were activity, and do not report on it for areas with nothing happening.
 
+Each area also carries the whole of its week. Use all of it:
+- "logged" counts what was written, keyed by the kind of entry. The user defines their own kinds, so a key you have not seen before is one of theirs and means exactly what it says.
+- "highlights" quotes the week's entries, each prefixed with its kind in square brackets. Blocked items and decisions matter most; report them.
+- "references_added" counts files, links and threads attached this week.
+- "in_hand" is what the user has pinned as live right now, which is the best guide to what next week is about.
+Report what the data says. Never infer activity that is not there, and never pad an area's line to match the others.
+
 Data for the 7 days ending {payload.generated_at}:
 {json.dumps(payload.areas, indent=2)}"""
 

@@ -1,199 +1,225 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Effro · Dashboard zones, layouts and section styles
-   Extracted from 01-reference.html (the frozen mock). Source of truth for the
-   dashboard's zone chrome: surfaces, headers, shadows, the three layouts and
-   the seven section styles.
+   Effro · Dashboard zones, layouts and section styles   (v2, fixes the dark
+   mode and breakpoint problems from the first build)
 
-   State lives on the dashboard root as two attributes, set by React from the
-   Dashboard styling settings:
+   Drop-in replacement for frontend/src/styles/dashboard-zones.css.
+   Nothing here needs adding to tokens.css. The file carries its own
+   theme-aware token set, scoped to .dashboard, because the app's --paper
+   and --ink variables are deliberately static (Tailwind's dark: classes do
+   the theme switching elsewhere) and must not be overridden.
+
+   State lives on the dashboard root, set by React from the settings:
      <div class="dashboard" data-layout="split" data-section-style="inset">
    Layout values:        stacked | split | rail
    Section style values: plain | lifted | sheet | inset | folder | margin | boxed
    Per-zone collapse:    <section class="zone" data-collapsed="true|false">
 
+   Wide layouts use a container query on the dashboard's own width, so the
+   sidebar and Windows display scaling are accounted for automatically.
    Type sizes are rem so the Text size setting scales them. Spacing is px on
    purpose so surfaces don't swell when text is enlarged.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Tokens this file needs. Add these to tokens.css, don't leave them here. ── */
-:root{
-  --sheet:#FBFAF6;                     /* lifted surface, one step lighter than the page */
-  --placeholder:#A8A49E;               /* empty-state italic text */
-  --rule-soft:rgba(20,19,15,.06);      /* hairline between rows */
-  --lift:0 1px 1px rgba(20,19,15,.03),0 2px 6px rgba(20,19,15,.05),0 10px 28px rgba(20,19,15,.06);
-  --font-sans:'Geist Sans',ui-sans-serif,system-ui,sans-serif;   /* map to the app's font stack, respecting the Lexend opt-in */
-  --font-mono:'Geist Mono','JetBrains Mono',ui-monospace,monospace;
+/* ── Theme-aware tokens, scoped to the dashboard. .dz-tokens lets the settings
+   tile picker, which lives outside .dashboard, use the same set. ─────────── */
+.dashboard,.dz-tokens{
+  --dz-page:        var(--paper);           /* #F7F4ED page */
+  --dz-sheet:       #FBFAF6;                /* lifted surface, one step lighter than the page */
+  --dz-card:        var(--paper-2);         /* #EFECE3 card */
+  --dz-hover:       var(--paper-3);         /* #E5E1D6 */
+  --dz-border:      var(--stone);           /* #D4CFC2 */
+  --dz-text:        var(--ink);             /* #14130F */
+  --dz-text-soft:   var(--ink-soft);        /* #4A4845 */
+  --dz-text-muted:  var(--ink-muted);       /* #8A877F */
+  --dz-placeholder: #A8A49E;                /* empty-state italic */
+  --dz-rule:        var(--rule);            /* flips in tokens.css already */
+  --dz-rule-soft:   rgba(20,19,15,.06);     /* hairline between rows */
+  --dz-grid:        rgba(20,19,15,.025);    /* same texture as .bg-grid-light */
+  --dz-topbar:      rgba(247,244,237,.9);
+  --dz-lift:        0 1px 1px rgba(20,19,15,.03),0 2px 6px rgba(20,19,15,.05),0 10px 28px rgba(20,19,15,.06);
+  --dz-folder-shadow: drop-shadow(0 1px 1px rgba(20,19,15,.04)) drop-shadow(0 5px 12px rgba(20,19,15,.07));
+  --dz-seg-shadow:  0 1px 2px rgba(20,19,15,.08);
 }
-html.dark{
-  --sheet:#1E1D19;                     /* one step lighter than pitch-2, read against pitch-800 */
-  --placeholder:#6B6862;
-  --rule-soft:rgba(247,244,237,.06);
-  /* Shadows don't read on pitch. A hairline ring carries the lift instead, with a faint darker drop. */
-  --lift:0 0 0 1px rgba(247,244,237,.06),0 6px 18px rgba(0,0,0,.35);
+html.dark .dashboard,html.dark .dz-tokens{
+  --dz-page:        var(--pitch);           /* #0F0E0C */
+  --dz-sheet:       #1E1D19;                /* one step lighter than pitch-2 */
+  --dz-card:        var(--pitch-2);         /* #181714 */
+  --dz-hover:       var(--pitch-3);         /* #232220 */
+  --dz-border:      var(--stone-dark);      /* #38352F */
+  --dz-text:        var(--paper-d);         /* #EDEAE3 */
+  --dz-text-soft:   var(--paper-soft-d);    /* #A8A49E */
+  --dz-text-muted:  var(--paper-muted-d);   /* #6B6862 */
+  --dz-placeholder: var(--paper-muted-d);
+  --dz-rule-soft:   rgba(247,244,237,.06);
+  --dz-grid:        rgba(247,244,237,.025); /* same texture as .bg-grid-dark */
+  --dz-topbar:      rgba(15,14,12,.9);
+  /* Shadows barely read on pitch. A hairline ring carries the lift, with a real drop beneath. */
+  --dz-lift:        0 0 0 1px rgba(247,244,237,.06),0 6px 18px rgba(0,0,0,.35);
+  --dz-folder-shadow: drop-shadow(0 1px 0 rgba(247,244,237,.05)) drop-shadow(0 6px 14px rgba(0,0,0,.45));
+  --dz-seg-shadow:  0 1px 2px rgba(0,0,0,.4);
 }
 
 /* ── App shell ─────────────────────────────────────────────────────────── */
-.dashboard{position:relative;height:100%;overflow-y:auto;display:flex;flex-direction:column}
+/* container-type gives the element size containment, so it takes no width from its
+   content. It must get width from its parent. Keep Tailwind's flex-1 on the root. */
+.dashboard{position:relative;width:100%;min-width:0;min-height:100%;display:flex;flex-direction:column;container-type:inline-size;container-name:dashboard}
 .dashboard::before{content:"";position:absolute;inset:0;pointer-events:none;
-  background-image:linear-gradient(var(--rule-soft) 1px,transparent 1px),linear-gradient(90deg,var(--rule-soft) 1px,transparent 1px);
-  background-size:24px 24px}
+  background-image:linear-gradient(var(--dz-grid) 1px,transparent 1px),linear-gradient(90deg,var(--dz-grid) 1px,transparent 1px);
+  background-size:32px 32px}
 .dashboard::before{-webkit-mask-image:linear-gradient(to bottom,#000 0,#000 40%,transparent 78%);mask-image:linear-gradient(to bottom,#000 0,#000 40%,transparent 78%)}
 .dashboard>*{position:relative}
-.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:20px 32px;border-bottom:1px solid var(--rule);background:rgba(247,244,237,.9)}
-.greet{margin:0;font-size:1.375rem;font-weight:600;letter-spacing:-.01em;color:var(--ink)}   /* one step up from today's 20px so the ladder is greeting, section, card title, item */
-.date{font-family:var(--font-mono);font-size:0.6875rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-muted)}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:20px 32px;border-bottom:1px solid var(--dz-rule);background:var(--dz-topbar)}
+.greet{margin:0;font-size:1.375rem;font-weight:600;letter-spacing:-.01em;color:var(--dz-text)}   /* one step up from today's 20px so the ladder is greeting, section, card title, item */
+.date{font-family:var(--font-mono);font-size:0.6875rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dz-text-muted)}
 .status{display:flex;align-items:baseline;gap:14px;margin:7px 0 0}
-.status .line{font-size:0.875rem;color:var(--ink-soft)}
+.status .line{font-size:0.875rem;color:var(--dz-text-soft)}
 .topbar-actions{display:flex;align-items:center;gap:10px}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;background:var(--paper-2);border:1px solid var(--rule);font-size:0.6875rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
-.help{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#F1D9C6;color:var(--ink-soft);font-size:0.8125rem;font-weight:500;margin-left:14px}
-.seg{display:inline-flex;gap:2px;padding:2px;border-radius:6px;background:var(--paper-2);border:1px solid var(--rule)}
-.seg button{position:relative;padding:4px 10px;border-radius:4px;font-size:0.6875rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-muted);cursor:pointer}
-.seg .is-on{background:var(--sheet);color:var(--mint-button);box-shadow:0 1px 2px rgba(20,19,15,.08)}
 /* ── Shared zone pattern ──────────────────────────────────── */
 .zones{display:flex;flex-direction:column;gap:28px;padding:24px 32px;max-width:1600px;width:100%;margin:0 auto}
 .band{display:contents}
 .zone-head{display:flex;align-items:center;gap:12px;margin:0 4px 8px;min-height:30px}
 .zone-title{display:flex;align-items:baseline;gap:12px}
-.label{font-family:var(--font-mono);font-size:0.6875rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-muted)}
-.count{font-size:0.8125rem;color:var(--ink-soft)}
+.label{font-family:var(--font-mono);font-size:0.6875rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dz-text-muted)}
+.count{font-size:0.8125rem;color:var(--dz-text-soft)}
 .zone-tools{margin-left:auto;display:flex;align-items:center;gap:8px}
-.zact{font-size:0.75rem;color:var(--ink-muted);padding:3px 8px;border-radius:6px;border:1px solid transparent;white-space:nowrap}
-.zact:hover{color:var(--ink-soft);border-color:var(--rule);background:var(--paper-2)}
-.chev{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;color:var(--ink-muted);font-size:0.875rem;cursor:pointer;position:relative}
+.zact{font:inherit;font-size:0.75rem;color:var(--dz-text-muted);background:transparent;padding:3px 8px;border-radius:6px;border:1px solid transparent;white-space:nowrap;cursor:pointer}
+.zact:hover{color:var(--dz-text-soft);border-color:var(--dz-rule);background:var(--dz-card)}
+.chev{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;color:var(--dz-text-muted);background:transparent;border:0;font-size:0.875rem;cursor:pointer;position:relative}
 .chev .ic{transition:transform .2s var(--ease-out)}
 .chev:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
-.chev:hover{background:var(--paper-2);color:var(--ink-soft)}
+.chev:hover{background:var(--dz-card);color:var(--dz-text-soft)}
 .zone[data-collapsed="true"] .chev .ic{transform:rotate(-90deg)}
 .zone[data-collapsed="true"] .zone-body{display:none}
-.card{background:var(--sheet);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+.card{background:var(--dz-sheet);border:1px solid var(--dz-rule);border-radius:12px;overflow:hidden}
 /* In hand */
-.ih-row{display:flex;align-items:flex-start;gap:14px;padding:14px 18px;border-top:1px solid var(--rule-soft)}
+.ih-row{display:flex;align-items:flex-start;gap:14px;padding:14px 18px;border-top:1px solid var(--dz-rule-soft)}
 .ih-row:first-child{border-top:0}
-.box{width:16px;height:16px;margin-top:3px;border:1.5px solid var(--stone);border-radius:4px;background:#fff;flex-shrink:0}
-.ih-text{flex:1;font-size:1rem;font-weight:500;line-height:1.4;color:var(--ink);letter-spacing:-.005em}
-.age{font-family:var(--font-mono);font-size:0.6875rem;color:var(--ink-muted);padding-top:5px}
+.box{width:16px;height:16px;margin-top:3px;border:1.5px solid var(--dz-border);border-radius:4px;background:var(--dz-sheet);flex-shrink:0}
+.ih-text{flex:1;min-width:0;font-size:1rem;font-weight:500;line-height:1.4;color:var(--dz-text);letter-spacing:-.005em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.age{font-family:var(--font-mono);font-size:0.6875rem;color:var(--dz-text-muted);padding-top:5px}
 /* Coming up */
-.cu-row{display:flex;align-items:center;gap:14px;padding:11px 18px;border-top:1px solid var(--rule-soft)}
+.cu-row{display:flex;align-items:center;gap:14px;padding:11px 18px;border-top:1px solid var(--dz-rule-soft)}
 .cu-row:first-child{border-top:0}
-.when{font-family:var(--font-mono);font-size:0.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-muted);width:44px;flex-shrink:0}
-.cu-text{flex:1;font-size:0.875rem;color:var(--ink);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.where{font-size:0.75rem;color:var(--ink-muted);white-space:nowrap}
-.past{display:flex;align-items:center;gap:10px;padding:10px 18px;border-top:1px solid var(--rule);background:var(--paper-2);font-size:0.8125rem;color:var(--ink-soft)}
+.when{font-family:var(--font-mono);font-size:0.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dz-text-muted);width:44px;flex-shrink:0}
+.cu-text{flex:1;font-size:0.875rem;color:var(--dz-text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.where{font-size:0.75rem;color:var(--dz-text-muted);white-space:nowrap}
+.past{display:flex;align-items:center;gap:10px;padding:10px 18px;border-top:1px solid var(--dz-rule);background:var(--dz-card);font-size:0.8125rem;color:var(--dz-text-soft)}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--mustard);flex-shrink:0}
 .past .zact{margin-left:auto}
 /* Areas */
 .area-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
-.acard{position:relative;display:flex;flex-direction:column;min-height:176px;padding:16px 20px 12px;border-radius:12px;background:var(--paper-2);border:1px solid var(--rule);border-top:3px solid rgba(122,149,121,.45);text-decoration:none;color:inherit;transition:background .15s}
-.acard:hover{background:var(--paper-3)}
+.acard{position:relative;display:flex;flex-direction:column;min-height:176px;padding:16px 20px 12px;border-radius:12px;background:var(--dz-card);border:1px solid var(--dz-rule);border-top:3px solid rgba(122,149,121,.45);text-decoration:none;color:inherit;transition:background .15s}
+.acard:hover{background:var(--dz-hover)}
 .ahead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.ahead>.ic{font-size:1rem;color:var(--ink-soft)}
-.atitle{flex:1;min-width:0;font-size:1rem;font-weight:600;letter-spacing:-.01em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ahead>.ic{font-size:1rem;color:var(--dz-text-soft)}
+.atitle{flex:1;min-width:0;font-size:1rem;font-weight:600;letter-spacing:-.01em;color:var(--dz-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:5px;font-size:0.625rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--sage);background:rgba(122,149,121,.10);border:1px solid rgba(122,149,121,.30);white-space:nowrap}
 .badge::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--sage)}
-.abody{margin:0 0 14px;font-size:0.875rem;line-height:1.5;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.abody.empty{font-style:italic;color:var(--placeholder)}
-.afoot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--rule);font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)}
+.abody{margin:0 0 14px;font-size:0.875rem;line-height:1.5;color:var(--dz-text-soft);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.abody.empty{font-style:italic;color:var(--dz-placeholder)}
+.afoot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;white-space:nowrap;padding-top:10px;border-top:1px solid var(--dz-rule);font-family:var(--font-mono);font-size:0.75rem;color:var(--dz-text-muted)}
 .afoot .l,.afoot .r{display:flex;align-items:center;gap:6px}
-.afoot .n{color:var(--ink-soft)}
+.afoot .l{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.afoot .r{flex-shrink:0}
+.afoot .n{color:var(--dz-text-soft)}
 .afoot .ic{font-size:0.8125rem}
-.newtile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:176px;border:2px dashed var(--stone);border-radius:12px;color:var(--ink-muted);font-family:var(--font-mono);font-size:0.6875rem;letter-spacing:.14em;text-transform:uppercase;transition:border-color .15s,color .15s}
+.newtile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:176px;background:transparent;cursor:pointer;border:2px dashed var(--dz-border);border-radius:12px;color:var(--dz-text-muted);font-family:var(--font-mono);font-size:0.6875rem;letter-spacing:.14em;text-transform:uppercase;transition:border-color .15s,color .15s}
 .newtile .ic{font-size:1.125rem}
 .newtile:hover{border-color:rgba(16,185,129,.5);color:var(--mint-button)}
 /* Nudge, now at the foot of the page */
-.nudge{margin:auto auto 0;display:flex;align-items:flex-start;gap:8px;padding:16px 32px 22px;max-width:1600px;width:100%;font-size:0.8125rem;line-height:1.45;color:var(--ink-muted);font-style:italic}
+.nudge{margin:auto auto 0;display:flex;align-items:flex-start;gap:8px;padding:16px 32px 22px;max-width:1600px;width:100%;font-size:0.8125rem;line-height:1.45;color:var(--dz-text-muted);font-style:italic}
 .nudge .ic{color:rgba(5,150,105,.6);margin-top:2px}
 .nudge .tools{margin-left:auto;display:flex;gap:2px;opacity:.4;font-style:normal;transition:opacity .15s}
 .nudge:hover .tools{opacity:1}
-.nudge .tools button{display:grid;place-items:center;width:20px;height:20px;border-radius:4px;color:var(--ink-muted)}
+.nudge .tools button{display:grid;place-items:center;width:20px;height:20px;border-radius:4px;color:var(--dz-text-muted)}
 /* ── Section styles ─────────────────────────── */
 /* Plain: a real heading in the display face, one step below the greeting
    and one above card titles. Count and actions stay in the quiet voice. */
 .dashboard[data-section-style="plain"] .zone-head{margin-bottom:10px}
-.dashboard[data-section-style="plain"] .zone-head .label{font-family:var(--font-sans);font-size:1.125rem;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--ink)}
-.dashboard[data-section-style="plain"] .zone-head .count{font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)}
+.dashboard[data-section-style="plain"] .zone-head .label{font-family:var(--font-sans);font-size:1.125rem;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--dz-text)}
+.dashboard[data-section-style="plain"] .zone-head .count{font-family:var(--font-mono);font-size:0.75rem;color:var(--dz-text-muted)}
 /* Sheet: between Plain and Boxed. The heading lives inside the zone's
    surface so it belongs to the content, but the surface is a lifted sheet of
    paper with a soft shadow rather than a bordered box with a tinted title bar.
    Shadow is three warm layers so it reads as paper on a desk, not a modal. */
-.dashboard[data-section-style="sheet"] .zone{background:var(--sheet);border-radius:12px;overflow:hidden;
-  box-shadow:var(--lift)}
-.dashboard[data-section-style="sheet"] .zone-head{margin:0;padding:14px 18px 10px;min-height:0;border-bottom:1px solid var(--rule-soft)}
+.dashboard[data-section-style="sheet"] .zone{background:var(--dz-sheet);border-radius:12px;overflow:hidden;
+  box-shadow:var(--dz-lift)}
+.dashboard[data-section-style="sheet"] .zone-head{margin:0;padding:14px 18px 10px;min-height:0;border-bottom:1px solid var(--dz-rule-soft)}
 .dashboard[data-section-style="sheet"] .zone[data-collapsed="true"] .zone-head{border-bottom:0}
-.dashboard[data-section-style="sheet"] .zone-head .label{font-family:var(--font-sans);font-size:1.062rem;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--ink)}
-.dashboard[data-section-style="sheet"] .zone-head .count{font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)}
+.dashboard[data-section-style="sheet"] .zone-head .label{font-family:var(--font-sans);font-size:1.062rem;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--dz-text)}
+.dashboard[data-section-style="sheet"] .zone-head .count{font-family:var(--font-mono);font-size:0.75rem;color:var(--dz-text-muted)}
 .dashboard[data-section-style="sheet"] .zone-body.card{border:0;border-radius:0;background:transparent}
 .dashboard[data-section-style="sheet"] .zone-areas .zone-body{padding:16px}
-.dashboard[data-section-style="sheet"] .acard{border-color:var(--rule);background:var(--paper-2)}
-.dashboard[data-section-style="sheet"] .seg{background:var(--paper-2)}
+.dashboard[data-section-style="sheet"] .acard{border-color:var(--dz-rule);background:var(--dz-card)}
+.dashboard[data-section-style="sheet"] .seg{background:var(--dz-card)}
 /* Lifted: the heading stays outside, in the display face. The body loses its
    border and sits on the shadow instead, and the gap closes to 6px so the
    shadow does the associating. Area cards lift the same way. */
 .dashboard[data-section-style="lifted"] .zone-head{margin:0 4px 6px}
-.dashboard[data-section-style="lifted"] .zone-head .label{font-family:var(--font-sans);font-size:1.062rem;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--ink)}
-.dashboard[data-section-style="lifted"] .zone-head .count{font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)}
-.dashboard[data-section-style="lifted"] .zone-body.card{border:0;box-shadow:var(--lift)}
-.dashboard[data-section-style="lifted"] .acard{border:0;border-top:3px solid rgba(122,149,121,.45);box-shadow:var(--lift)}
-@media (min-width:1400px){.dashboard[data-section-style="lifted"][data-layout="rail"] .acard{border-top:0;border-left:3px solid rgba(122,149,121,.45)}}
+.dashboard[data-section-style="lifted"] .zone-head .label{font-family:var(--font-sans);font-size:1.062rem;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--dz-text)}
+.dashboard[data-section-style="lifted"] .zone-head .count{font-family:var(--font-mono);font-size:0.75rem;color:var(--dz-text-muted)}
+.dashboard[data-section-style="lifted"] .zone-body.card{border:0;box-shadow:var(--dz-lift)}
+.dashboard[data-section-style="lifted"] .acard{border:0;border-top:3px solid rgba(122,149,121,.45);box-shadow:var(--dz-lift)}
+@container dashboard (min-width:1200px){.dashboard[data-section-style="lifted"][data-layout="rail"] .acard{border-top:0;border-left:3px solid rgba(122,149,121,.45)}}
 /* Inset: heading on a lifted sheet, rows set into an inner panel the colour
    of the page. The header area is the sheet's own margin. */
-.dashboard[data-section-style="inset"] .zone{background:var(--sheet);border-radius:14px;padding:6px;box-shadow:var(--lift)}
+.dashboard[data-section-style="inset"] .zone{background:var(--dz-sheet);border-radius:14px;padding:6px;box-shadow:var(--dz-lift)}
 .dashboard[data-section-style="inset"] .zone-head{margin:0;padding:8px 12px 10px;min-height:0}
-.dashboard[data-section-style="inset"] .zone-head .label{font-family:var(--font-sans);font-size:1.062rem;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--ink)}
-.dashboard[data-section-style="inset"] .zone-head .count{font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)}
-.dashboard[data-section-style="inset"] .zone-body.card{background:var(--paper);border:1px solid var(--rule-soft);border-radius:10px}
-.dashboard[data-section-style="inset"] .zone-areas .zone-body{background:var(--paper);border:1px solid var(--rule-soft);border-radius:10px;padding:12px}
-.dashboard[data-section-style="inset"] .past{background:var(--paper-2)}
-.dashboard[data-section-style="inset"] .seg{background:var(--paper-2)}
+.dashboard[data-section-style="inset"] .zone-head .label{font-family:var(--font-sans);font-size:1.062rem;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--dz-text)}
+.dashboard[data-section-style="inset"] .zone-head .count{font-family:var(--font-mono);font-size:0.75rem;color:var(--dz-text-muted)}
+.dashboard[data-section-style="inset"] .zone-body.card{background:var(--dz-page);border:1px solid var(--dz-rule-soft);border-radius:10px}
+.dashboard[data-section-style="inset"] .zone-areas .zone-body{background:var(--dz-page);border:1px solid var(--dz-rule-soft);border-radius:10px;padding:12px}
+.dashboard[data-section-style="inset"] .past{background:var(--dz-card)}
+.dashboard[data-section-style="inset"] .seg{background:var(--dz-card)}
 /* Folder: the heading is a folder tab on the sheet. Tab and body are one
    silhouette, so the shadow is a drop-shadow filter on the whole zone. */
-.dashboard[data-section-style="folder"] .zone{filter:drop-shadow(0 1px 1px rgba(20,19,15,.04)) drop-shadow(0 5px 12px rgba(20,19,15,.07))}
+.dashboard[data-section-style="folder"] .zone{filter:var(--dz-folder-shadow)}
 .dashboard[data-section-style="folder"] .zone-head{margin:0;min-height:0;align-items:flex-end}
-.dashboard[data-section-style="folder"] .zone-title{background:var(--sheet);border-radius:12px 12px 0 0;padding:10px 20px 11px 18px;margin-bottom:-1px}
+.dashboard[data-section-style="folder"] .zone-title{background:var(--dz-sheet);border-radius:12px 12px 0 0;padding:10px 20px 11px 18px;margin-bottom:-1px}
 .dashboard[data-section-style="folder"] .zone[data-collapsed="true"] .zone-title{border-radius:12px;margin-bottom:0}
 .dashboard[data-section-style="folder"] .zone-tools{align-self:center;padding-right:4px}
-.dashboard[data-section-style="folder"] .zone-head .label{font-family:var(--font-sans);font-size:1rem;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--ink)}
-.dashboard[data-section-style="folder"] .zone-head .count{font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)}
+.dashboard[data-section-style="folder"] .zone-head .label{font-family:var(--font-sans);font-size:1rem;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--dz-text)}
+.dashboard[data-section-style="folder"] .zone-head .count{font-family:var(--font-mono);font-size:0.75rem;color:var(--dz-text-muted)}
 .dashboard[data-section-style="folder"] .zone-body.card{border:0;border-radius:0 12px 12px 12px}
-.dashboard[data-section-style="folder"] .zone-areas .zone-body{background:var(--sheet);border-radius:0 12px 12px 12px;padding:16px}
-.dashboard[data-section-style="folder"] .seg{background:transparent;border-color:var(--rule)}
+.dashboard[data-section-style="folder"] .zone-areas .zone-body{background:var(--dz-sheet);border-radius:0 12px 12px 12px;padding:16px}
+.dashboard[data-section-style="folder"] .seg{background:transparent;border-color:var(--dz-rule)}
 /* Margin: a notebook margin line runs down the left of heading and body.
    Flat, no shadow. The shared line is the association. */
-.dashboard[data-section-style="margin"] .zone{border-left:2px solid rgba(20,19,15,.18);padding-left:16px}
+.dashboard[data-section-style="margin"] .zone{border-left:2px solid var(--rule-strong);padding-left:16px}
 .dashboard[data-section-style="margin"] .zone-head{margin:0 0 8px;min-height:0}
-.dashboard[data-section-style="margin"] .zone-head .label{font-family:var(--font-sans);font-size:1.062rem;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--ink)}
-.dashboard[data-section-style="margin"] .zone-head .count{font-family:var(--font-mono);font-size:0.75rem;color:var(--ink-muted)}
+.dashboard[data-section-style="margin"] .zone-head .label{font-family:var(--font-sans);font-size:1.062rem;font-weight:600;letter-spacing:-.012em;text-transform:none;color:var(--dz-text)}
+.dashboard[data-section-style="margin"] .zone-head .count{font-family:var(--font-mono);font-size:0.75rem;color:var(--dz-text-muted)}
 /* Boxed: the header becomes the card's own title bar, the way the current
    In Hand strip does it. The zone is one bordered surface. */
-.dashboard[data-section-style="boxed"] .zone{background:var(--sheet);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
-.dashboard[data-section-style="boxed"] .zone-head{margin:0;padding:11px 18px;background:var(--paper-2);border-bottom:1px solid var(--rule);min-height:0}
+.dashboard[data-section-style="boxed"] .zone{background:var(--dz-sheet);border:1px solid var(--dz-rule);border-radius:12px;overflow:hidden}
+.dashboard[data-section-style="boxed"] .zone-head{margin:0;padding:11px 18px;background:var(--dz-card);border-bottom:1px solid var(--dz-rule);min-height:0}
 .dashboard[data-section-style="boxed"] .zone[data-collapsed="true"] .zone-head{border-bottom:0}
-.dashboard[data-section-style="boxed"] .zone-head .label{font-size:0.75rem;font-weight:500;letter-spacing:.14em;color:var(--ink-soft)}
-.dashboard[data-section-style="boxed"] .zone-head .count{font-size:0.8125rem;color:var(--ink-muted)}
+.dashboard[data-section-style="boxed"] .zone-head .label{font-size:0.75rem;font-weight:500;letter-spacing:.14em;color:var(--dz-text-soft)}
+.dashboard[data-section-style="boxed"] .zone-head .count{font-size:0.8125rem;color:var(--dz-text-muted)}
 .dashboard[data-section-style="boxed"] .zone-body.card{border:0;border-radius:0}
 .dashboard[data-section-style="boxed"] .zone-areas .zone-body{padding:16px}
-.dashboard[data-section-style="boxed"] .seg{background:var(--sheet)}
+.dashboard[data-section-style="boxed"] .seg{background:var(--dz-sheet)}
 /* ── Split (wide only) ────────────────────────────────────────────────── */
-@media (min-width:1400px){.dashboard[data-layout="split"] .band{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:24px;align-items:start}}
-@media (min-width:1400px){.dashboard[data-layout="split"] .area-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (min-width:1400px){.dashboard[data-layout="split"] .atitle{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}}
-@media (min-width:1400px){.dashboard[data-layout="split"] .ahead{align-items:flex-start}}
-@media (min-width:1400px){.dashboard[data-layout="split"] .ahead>.ic{margin-top:2px}}
-@media (min-width:1400px){.dashboard[data-layout="split"] .newtile{grid-column:1/-1;flex-direction:row;min-height:0;padding:12px 16px;gap:10px}}
-@media (min-width:1400px){.dashboard[data-layout="split"] .newtile .ic{font-size:0.875rem}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="split"] .band{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:24px;align-items:start}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="split"] .area-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="split"] .atitle{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="split"] .ahead{align-items:flex-start}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="split"] .ahead>.ic{margin-top:2px}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="split"] .newtile{grid-column:1/-1;flex-direction:row;min-height:0;padding:12px 16px;gap:10px}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="split"] .newtile .ic{font-size:0.875rem}}
 /* ── Rail (wide only) ─────────────────────────────────────────────────── */
-@media (min-width:1400px){.dashboard[data-layout="rail"] .zones{display:grid;grid-template-columns:minmax(0,1fr) 420px;grid-template-rows:auto auto 1fr;grid-template-areas:"inhand rail" "coming rail" ". rail";column-gap:28px;row-gap:28px;align-items:start;align-content:start}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .zone-inhand{grid-area:inhand}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .zone-coming{grid-area:coming}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .zone-areas{grid-area:rail}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .area-grid{grid-template-columns:1fr;gap:8px}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .acard{display:grid;grid-template-columns:18px minmax(0,1fr) auto;grid-template-areas:"icon title meta" "icon body meta";column-gap:12px;row-gap:3px;align-items:center;min-height:0;padding:12px 14px;border-top:1px solid var(--rule);border-left:3px solid rgba(122,149,121,.45)}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .ahead{display:contents}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .ahead>.ic{grid-area:icon;font-size:1rem}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .atitle{grid-area:title;font-size:0.9375rem}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .badge{display:none}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .abody{grid-area:body;margin:0;font-size:0.8125rem;line-height:1.4;-webkit-line-clamp:1}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .afoot{grid-area:meta;flex-direction:column;align-items:flex-end;gap:2px;border:0;padding:0;font-size:0.6875rem}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .afoot .ic{display:none}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .newtile{flex-direction:row;min-height:0;padding:11px 14px;justify-content:flex-start;gap:10px}}
-@media (min-width:1400px){.dashboard[data-layout="rail"] .newtile .ic{font-size:0.875rem}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .zones{display:grid;grid-template-columns:minmax(0,1fr) 420px;grid-template-rows:auto auto 1fr;grid-template-areas:"inhand rail" "coming rail" ". rail";column-gap:28px;row-gap:28px;align-items:start;align-content:start}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .zone-inhand{grid-area:inhand}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .zone-coming{grid-area:coming}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .zone-areas{grid-area:rail}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .area-grid{grid-template-columns:1fr;gap:8px}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .acard{display:grid;grid-template-columns:18px minmax(0,1fr) auto;grid-template-areas:"icon title meta" "icon body meta";column-gap:12px;row-gap:3px;align-items:center;min-height:0;padding:12px 14px;border-top:1px solid var(--dz-rule);border-left:3px solid rgba(122,149,121,.45)}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .ahead{display:contents}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .ahead>.ic{grid-area:icon;font-size:1rem}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .atitle{grid-area:title;font-size:0.9375rem}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .badge{display:none}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .abody{grid-area:body;margin:0;font-size:0.8125rem;line-height:1.4;-webkit-line-clamp:1}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .afoot{grid-area:meta;flex-direction:column;align-items:flex-end;gap:2px;border:0;padding:0;font-size:0.6875rem}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .afoot .ic{display:none}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .newtile{flex-direction:row;min-height:0;padding:11px 14px;justify-content:flex-start;gap:10px}}
+@container dashboard (min-width:1200px){.dashboard[data-layout="rail"] .newtile .ic{font-size:0.875rem}}

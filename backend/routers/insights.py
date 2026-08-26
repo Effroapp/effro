@@ -434,9 +434,23 @@ def get_today(
     update_rows = _created_today("entry")
     todo_added_rows = _created_today("todo")
     blocker_flagged_rows = _created_today("blockage")
+    # A user's own type is real work too. Counted per type rather than
+    # lumped together, because Risk and Question are not the same day.
+    custom_rows = _created_today("custom")
     n_updates = len(update_rows)
     n_todos_added = len(todo_added_rows)
     n_blockers_flagged = len(blocker_flagged_rows)
+    custom_counts = {}
+    for e, t, a in custom_rows:
+        ctype = e.custom_type
+        # A custom entry whose type was deleted underneath it. Deleting a type
+        # converts its entries back to Updates first, so this is only reachable
+        # through a direct database edit.
+        if ctype is None or not ctype.name:
+            continue
+        seen = custom_counts.setdefault(
+            ctype.name, {"count": 0, "colour": ctype.colour, "icon": ctype.icon})
+        seen["count"] += 1
     n_threads_started = sum(cnt for _, cnt in created_rows)
 
     # ── Jira ──────────────────────────────────────────────────────────────────
@@ -500,6 +514,14 @@ def get_today(
         chips.append(schemas.TodayChip(type="blockage_logged", label=f"{_plural(n_blockers_flagged, 'blocker', 'blockers')} flagged", count=n_blockers_flagged))
     if n_threads_started:
         chips.append(schemas.TodayChip(type="thread_started", label=f"{_plural(n_threads_started, 'thread', 'threads')} started", count=n_threads_started))
+    # One chip per user-defined type, under its own name and colour.
+    for name, meta in sorted(custom_counts.items()):
+        chips.append(schemas.TodayChip(
+            type=f"custom:{name.lower()}",
+            label=f"{name.lower()} logged" if meta["count"] == 1
+                  else f"{name.lower()}s logged",
+            count=meta["count"], colour=meta["colour"], icon=meta["icon"],
+        ))
     if n_todos:
         chips.append(schemas.TodayChip(type="todo", label=f"{_plural(n_todos, 'todo', 'todos')} done", count=n_todos))
     if n_cleared:
@@ -522,6 +544,11 @@ def get_today(
         done_items.append(schemas.TodayDoneItem(id=e.id, type="meeting", content=e.content, area_name=a.name, thread_id=t.id, at=e.meeting_at))
     for e, t, a in blocker_flagged_rows:
         done_items.append(schemas.TodayDoneItem(id=e.id, type="blockage_logged", content=e.content, area_name=a.name, thread_id=t.id, at=e.created_at))
+    # One bucket rather than one per name. The chips above already break
+    # them out, and a group heading per user-defined type would turn the
+    # details list into a list of headings.
+    for e, t, a in custom_rows:
+        done_items.append(schemas.TodayDoneItem(id=e.id, type="custom", content=e.content, area_name=a.name, thread_id=t.id, at=e.created_at))
     for e, t, a in todo_rows:
         done_items.append(schemas.TodayDoneItem(id=e.id, type="todo", content=e.content, area_name=a.name, thread_id=t.id, at=e.completed_at))
     for log, t, a in cleared_rows:

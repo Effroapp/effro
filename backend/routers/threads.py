@@ -7,6 +7,7 @@ import models
 import schemas
 from database import get_db
 from entry_text import entry_prompt_line
+from ai_context import recent_entries_for_prompt, reference_line, reference_tally
 from dependencies import get_current_user
 from audit import log_audit, delete_reference_entry
 from references import (add_thread_link as create_thread_link,
@@ -198,16 +199,15 @@ def suggest_thread_summary(thread_id: int, db: Session = Depends(get_db)):
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    recent_entries = (
-        db.query(models.Entry)
-        .filter(models.Entry.thread_id == thread.id, models.Entry.parent_id.is_(None))
-        .order_by(models.Entry.created_at.desc())
-        .limit(15)
-        .all()
-    )
+    # Through ai_context, so a run of attached files cannot push the
+    # thread's actual work out of its own summary.
+    recent_entries = recent_entries_for_prompt(db, [thread.id], 15)
     entry_lines = "\n".join(
         entry_prompt_line(e, 200) for e in recent_entries
     ) or "(no entries yet)"
+    refs = reference_line(reference_tally(db, [thread.id]))
+    if refs:
+        entry_lines += f"\nAttached: {refs}"
 
     system = (
         "You write a concise status summary for a single thread of work.\n"

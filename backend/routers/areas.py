@@ -8,6 +8,10 @@ import models
 import schemas
 from database import get_db
 from entry_text import entry_prompt_line
+from ai_context import (
+    entries_logged, in_hand, recent_entries_for_prompt, reference_line,
+    reference_tally, week_highlights,
+)
 from audit import log_audit
 from dependencies import get_current_user
 
@@ -239,16 +243,16 @@ def suggest_area_summary(area_id: int, db: Session = Depends(get_db)):
 
     thread_blocks = []
     for t in threads:
-        recent_entries = (
-            db.query(models.Entry)
-            .filter(models.Entry.thread_id == t.id)
-            .order_by(models.Entry.created_at.desc())
-            .limit(3)
-            .all()
-        )
+        # Through ai_context, so references are tallied rather than
+        # quoted. Three attached files used to be the three most recent
+        # entries, and the overview then described a thread as filenames.
+        recent_entries = recent_entries_for_prompt(db, [t.id], 3)
         entry_lines = "\n".join(
             "  - " + entry_prompt_line(e, 180) for e in recent_entries
         ) or "  (no entries)"
+        refs = reference_line(reference_tally(db, [t.id]))
+        if refs:
+            entry_lines += f"\n  - Attached: {refs}"
         thread_blocks.append(
             f"Thread: {t.title} [{t.status}]\n{entry_lines}"
         )
@@ -604,7 +608,7 @@ def get_roundup_data(db: Session = Depends(get_db)):
             ) or 0
 
             decision_rows = (
-                db.query(models.Entry.content)
+                db.query(models.Entry)
                 .filter(
                     models.Entry.thread_id.in_(area_thread_ids),
                     models.Entry.type == 'decision',
@@ -612,7 +616,9 @@ def get_roundup_data(db: Session = Depends(get_db)):
                 )
                 .all()
             )
-            decisions = [row.content[:200] for row in decision_rows]
+            # Through entry_prompt_line, so a decision reads the same here
+            # as everywhere else and is cut on a word rather than mid-word.
+            decisions = [entry_prompt_line(e, 200) for e in decision_rows]
 
         recent_event_rows = (
             db.query(models.ActivityEvent)
@@ -631,6 +637,15 @@ def get_roundup_data(db: Session = Depends(get_db)):
             for e in recent_event_rows
         ]
 
+        # The rest of the week. Before this the roundup saw to-dos and
+        # decisions and nothing else, so a Blocked item, a meeting, an
+        # update and every type the user had made for themselves were all
+        # invisible in the one place meant to say how the week went.
+        logged = entries_logged(db, area_thread_ids, cutoff)
+        highlights = week_highlights(db, area_thread_ids, cutoff)
+        references_added = reference_tally(db, area_thread_ids, since=cutoff)
+        pinned = in_hand(db, area_thread_ids)
+
         area_data.append(schemas.AreaRoundupData(
             area_id=area.id,
             area_name=area.name,
@@ -641,7 +656,17 @@ def get_roundup_data(db: Session = Depends(get_db)):
             todos_completed=todos_completed,
             decisions=decisions,
             recent_events=recent_events,
-            has_activity=len(recent_event_rows) > 0,
+            logged=logged,
+            highlights=highlights,
+            references_added=references_added,
+            in_hand=pinned,
+            # Activity events alone used to decide this, so a week where
+            # someone logged a decision but tripped no event read as "no
+            # activity this week".
+            has_activity=bool(
+                recent_event_rows or logged or references_added
+                or todos_created or todos_completed
+            ),
         ))
 
     # Stale areas: non-stable areas with no activity for 14+ days

@@ -10,3 +10,19 @@ export function parseUTC(s) {
   if (!s) return null
   return new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z')
 }
+
+// Age as a tag, never an alarm. It never changes colour or wording as it
+// grows, and under an hour reads as "now" rather than counting minutes down.
+//
+// Shared by the In Hand strip and the area cards, so a thing pinned three
+// hours ago and an area touched three hours ago say the same "3h". The long
+// form ("about 3 hours ago") does not fit either and was never meant to.
+export function compactAge(stamp) {
+  const then = parseUTC(stamp)
+  if (!then) return ''
+  const mins = Math.max(0, Math.floor((Date.now() - then.getTime()) / 60000))
+  if (mins < 60) return 'now'
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h`
+  return `${Math.floor(hours / 24)}d`
+}

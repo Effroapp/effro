@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime, date
 
 
@@ -546,6 +546,23 @@ class AreaRoundupData(BaseModel):
     recent_events: List[str]
     has_activity: bool
 
+    # Everything else that happened, gathered through ai_context so the
+    # roundup is not limited to the handful of types someone remembered to
+    # query. See the AI grounding section in CLAUDE.md.
+    #
+    # logged is keyed by the entry's human label, so a user's own type
+    # appears under its own name and a type added to the app appears here
+    # without anything being changed.
+    logged: Dict[str, int] = {}
+    # The week's meaningful entries, already labelled. To-dos are excluded:
+    # they are counted above and would otherwise be the whole list.
+    highlights: List[str] = []
+    # Files, links, threads and folios attached this week, as counts.
+    references_added: Dict[str, int] = {}
+    # What is pinned right now. Nothing else in the data says which of a
+    # hundred open items the person actually considers live.
+    in_hand: List[str] = []
+
 
 class StaleArea(BaseModel):
     id: int
@@ -710,6 +727,11 @@ class TodayChip(BaseModel):
     type: str          # todo | decision | blockage | resolved | jira
     label: str         # human label, already singular/plural-correct
     count: int
+    # Set only for a user-defined type, whose look the client cannot know
+    # in advance. Without them a Risk would wear the to-do fallback and
+    # read as a to-do.
+    colour: Optional[str] = None   # a CUSTOM_COLOURS key
+    icon: Optional[str] = None     # a Lucide name in kebab case
 
 
 class TodayDoneItem(BaseModel):

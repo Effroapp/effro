@@ -231,11 +231,7 @@ export function entityForEntry(entry) {
  */
 export function iconByName(name) {
   if (!name) return null
-  const pascal = String(name)
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('')
-  return LucideIcons[pascal] || null
+  return LucideIcons[kebabToPascal(name)] || null
 }
 
 // Structural concepts (sections, lists, page headers) - not entry types.
@@ -263,7 +259,15 @@ export const BUILT_IN_ICONS = new Set([
   'square-check-big', 'scale', 'pen-line', 'circle-slash', 'calendar',
 ])
 
-let iconNames = null
+// The ten offered to an area without searching. Areas are bodies of work, so
+// these are places and disciplines rather than the entry set's verbs, and they
+// deliberately share nothing with QUICK_PICK_ICONS above.
+export const AREA_QUICK_PICK_ICONS = [
+  'code', 'file-text', 'users', 'factory', 'shield',
+  'beaker', 'briefcase', 'server', 'megaphone', 'folder',
+]
+
+const iconNameCache = { withoutBuiltIns: null, withBuiltIns: null }
 
 /**
  * Every Lucide icon name, in kebab case.
@@ -272,33 +276,85 @@ let iconNames = null
  * what is actually renderable. Lucide ships each icon under several aliases
  * (Flag, FlagIcon, LucideFlag); only the bare name is kept, or the list is
  * three times longer and full of duplicates.
+ *
+ * `includeBuiltIns` exists for areas. The five reserved names are reserved
+ * against *entry types*, where two meanings behind one shape is exactly what
+ * the timeline rail avoids. An area is not on that rail and has every right to
+ * a calendar, so it searches the whole set.
  */
-export function allIconNames() {
-  if (iconNames) return iconNames
+export function allIconNames({ includeBuiltIns = false } = {}) {
+  const slot = includeBuiltIns ? 'withBuiltIns' : 'withoutBuiltIns'
+  if (iconNameCache[slot]) return iconNameCache[slot]
   const seen = new Set()
   for (const key of Object.keys(LucideIcons)) {
     if (!/^[A-Z][A-Za-z0-9]*$/.test(key)) continue
     if (key.startsWith('Lucide') || key.endsWith('Icon')) continue
-    const kebab = key
-      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-      .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
-      .toLowerCase()
-    if (!BUILT_IN_ICONS.has(kebab)) seen.add(kebab)
+    const kebab = pascalToKebab(key)
+    if (includeBuiltIns || !BUILT_IN_ICONS.has(kebab)) seen.add(kebab)
   }
-  iconNames = [...seen].sort()
-  return iconNames
+  iconNameCache[slot] = [...seen].sort()
+  return iconNameCache[slot]
 }
 
 /** Names matching a query, best matches first, capped for rendering. */
-export function searchIconNames(query, limit = 40) {
+export function searchIconNames(query, limit = 40, options = {}) {
   const q = (query || '').trim().toLowerCase().replace(/\s+/g, '-')
   if (!q) return []
   const starts = []
   const contains = []
-  for (const name of allIconNames()) {
+  for (const name of allIconNames(options)) {
     if (name.startsWith(q)) starts.push(name)
     else if (name.includes(q)) contains.push(name)
     if (starts.length >= limit) break
   }
   return [...starts, ...contains].slice(0, limit)
+}
+
+// ── Name shapes ──────────────────────────────────────────────────────────────
+//
+// Entry types store kebab ('circle-dot'). Areas store Lucide's own PascalCase
+// export name ('CircleDot'), which is what areas.icon has always held and what
+// every existing row contains. The picker works in kebab either way, so these
+// two are the seam. Neither is a lossy conversion: Lucide's names are plain
+// words, so round-tripping is exact.
+
+export function pascalToKebab(name) {
+  return String(name || '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+    .toLowerCase()
+}
+
+/**
+ * The kebab name back to Lucide's export name.
+ *
+ * Title-casing each part is right for all but a handful of Lucide's names.
+ * ArrowDownAZ kebabs to arrow-down-az and title-cases back to ArrowDownAz,
+ * which is not an export, so those four icons resolved to null and quietly
+ * vanished from both pickers. Lucide's own export list is therefore the
+ * lookup, built once, with the title-case rule left as the fallback for a
+ * name the installed version does not carry.
+ */
+let exportByKebab = null
+
+function kebabIndex() {
+  if (exportByKebab) return exportByKebab
+  exportByKebab = new Map()
+  for (const key of Object.keys(LucideIcons)) {
+    if (!/^[A-Z][A-Za-z0-9]*$/.test(key)) continue
+    if (key.startsWith('Lucide') || key.endsWith('Icon')) continue
+    const kebab = pascalToKebab(key)
+    // Aliases can collide on one kebab. First wins, and the list is sorted by
+    // Object.keys order, so the choice is at least stable between renders.
+    if (!exportByKebab.has(kebab)) exportByKebab.set(kebab, key)
+  }
+  return exportByKebab
+}
+
+export function kebabToPascal(name) {
+  const key = String(name || '')
+  return kebabIndex().get(key) || key
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('')
 }
