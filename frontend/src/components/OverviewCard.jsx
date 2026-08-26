@@ -145,7 +145,7 @@ export default function OverviewCard({
       <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-paper-300/70 dark:border-pitch-600/70">
         <div className="flex items-center gap-2 min-w-0">
           <OverviewIcon size={13} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
-          <span className="text-xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-pitch-100">
+          <span className="eyebrow text-paper-500 dark:text-pitch-100">
             Current Overview
           </span>
         </div>

@@ -137,7 +137,7 @@ export default function QuickSwitcher({ isOpen, onClose }) {
           ) : (
             grouped.map((group) => (
               <div key={group.kind} className="mb-2 last:mb-0">
-                <div className="px-3 pt-2 pb-1 text-xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-700">
+                <div className="eyebrow px-3 pt-2 pb-1 text-paper-500 dark:text-paper-700">
                   {SECTION_LABELS[group.kind]}
                 </div>
                 {group.items.map((item) => {

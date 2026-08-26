@@ -111,7 +111,7 @@ export default function SubtaskList({
           size={13}
           className={`text-paper-400 dark:text-paper-600 flex-shrink-0 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`}
         />
-        <span className="font-sans font-medium uppercase tracking-widest text-2xs text-paper-500 dark:text-paper-600 flex-shrink-0">
+        <span className="eyebrow text-paper-500 dark:text-paper-600 flex-shrink-0">
           Subtasks
         </span>
         {/* Progress bar - fills the middle so it's a glanceable status whether

@@ -69,7 +69,7 @@ export default function IntegrationsPanel() {
 
       {/* All options - icon row */}
       <div>
-        <div className="font-mono uppercase tracking-widest text-2xs text-paper-500 dark:text-paper-600 mb-2">All integrations</div>
+        <div className="eyebrow text-paper-500 dark:text-paper-600 mb-2">All integrations</div>
         <div className="flex flex-wrap gap-2">
           {available.map((i) => {
             const on = conn[i.key]?.connected
@@ -96,7 +96,7 @@ export default function IntegrationsPanel() {
       {/* Connected list */}
       <div className="rounded-xl border border-paper-300 dark:border-pitch-500 bg-white dark:bg-pitch-700 p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="font-mono uppercase tracking-widest text-2xs text-paper-500 dark:text-paper-600">Connected</div>
+          <div className="eyebrow text-paper-500 dark:text-paper-600">Connected</div>
           <button
             onClick={() => setModalKey(null)}
             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-mint-700 hover:bg-mint-800 text-white transition-colors"

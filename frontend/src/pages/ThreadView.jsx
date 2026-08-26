@@ -841,7 +841,7 @@ export default function ThreadView() {
         {/* ── Left: Entry log ─────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="flex items-center gap-2 text-sm font-sans font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
+            <h2 className="eyebrow flex items-center gap-2 text-paper-600 dark:text-pitch-100">
               <MessageSquare size={15} className="text-paper-500 dark:text-pitch-100" />
               Add an entry
             </h2>
@@ -965,7 +965,7 @@ export default function ThreadView() {
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <ListTodo size={15} className="text-paper-500 dark:text-pitch-100" />
-                <h3 className="text-sm font-sans font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
+                <h3 className="eyebrow text-paper-600 dark:text-pitch-100">
                   Open Tasks
                 </h3>
                 <span className="font-mono text-xs text-paper-400 dark:text-pitch-200">
@@ -1007,7 +1007,7 @@ export default function ThreadView() {
           <div className="border-t border-paper-200 dark:border-pitch-600 mt-2 mb-5" />
           <div className="flex items-center gap-2 mb-4">
             <Activity size={15} className="text-paper-500 dark:text-pitch-100" />
-            <h2 className="text-sm font-sans font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
+            <h2 className="eyebrow text-paper-600 dark:text-pitch-100">
               Timeline
             </h2>
             <span className="font-mono text-xs text-paper-400 dark:text-pitch-200">{thread.entries.length}</span>
@@ -1087,7 +1087,7 @@ export default function ThreadView() {
               `}
             >
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600 flex items-center gap-1.5">
+                <h3 className="eyebrow text-paper-500 dark:text-paper-600 flex items-center gap-1.5">
                   <Paperclip size={11} />
                   Files <span className="font-mono text-paper-400 dark:text-paper-700">({files.length})</span>
                 </h3>
@@ -1137,7 +1137,7 @@ export default function ThreadView() {
                   border-2 border-dashed border-mint-500
                 ">
                   <Upload size={20} className="text-mint-700" />
-                  <p className="font-sans font-medium uppercase tracking-widest text-2xs text-paper-700 dark:text-paper-200">
+                  <p className="eyebrow text-paper-700 dark:text-paper-200">
                     Drop to upload
                   </p>
                 </div>
@@ -1147,7 +1147,7 @@ export default function ThreadView() {
             {/* Links - paste a URL inline, label after, or click +Add */}
             <div className="p-4 rounded-xl bg-paper-100 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600 flex items-center gap-1.5">
+                <h3 className="eyebrow text-paper-500 dark:text-paper-600 flex items-center gap-1.5">
                   <Link2 size={11} />
                   Links <span className="font-mono text-paper-400 dark:text-paper-700">({links.length})</span>
                 </h3>
@@ -1222,7 +1222,7 @@ export default function ThreadView() {
             {/* Linked threads */}
             <div className="p-4 rounded-xl bg-paper-100 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600 flex items-center gap-1.5">
+                <h3 className="eyebrow text-paper-500 dark:text-paper-600 flex items-center gap-1.5">
                   <GitBranch size={11} />
                   Linked threads
                 </h3>
@@ -1456,7 +1456,7 @@ function ThreadLinksList({ outgoing, incoming, onRemove }) {
           <div key={`${row.direction}-${row.link_id}`} className="group flex items-start gap-2 text-xs">
             <ArrowIcon size={11} className="text-paper-500 dark:text-paper-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="font-sans font-medium uppercase tracking-wide text-paper-500 dark:text-paper-600 mb-0.5">
+              <div className="eyebrow text-paper-500 dark:text-paper-600 mb-0.5">
                 {label}
               </div>
               <Link

@@ -122,15 +122,14 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
             )}
             {showsHeading && entry.title_source === 'ai' && (
               <Tooltip content="Written from the entry. Click the title to change it.">
-                <span className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-400 dark:text-paper-700">
+                <span className="eyebrow text-paper-400 dark:text-paper-700">
                   suggested
                 </span>
               </Tooltip>
             )}
           </div>
           {isCustom && (
-            <span className="ml-auto mr-2 flex-shrink-0 text-2xs font-mono uppercase
-                             tracking-widest text-paper-400 dark:text-paper-700">
+            <span className="eyebrow ml-auto mr-2 flex-shrink-0 text-paper-400 dark:text-paper-700">
               Custom
             </span>
           )}
@@ -178,7 +177,7 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
               and shape; this says it for anyone reading rather than scanning. */}
           {!isReference && !editing && (
             <p
-              className="font-mono text-2xs font-medium uppercase tracking-[0.14em] mb-[7px]"
+              className="eyebrow mb-[7px]"
               style={{ color: meta.css }}
             >
               {meta.label}

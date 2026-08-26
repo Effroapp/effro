@@ -312,6 +312,15 @@ in someone's head.
   use `xl:sticky xl:top-6`, which is inside `PageShell`'s sticky header bar, so
   they slide under it. It predates the shell, but the fix is a shared header-height
   offset rather than another hand-written value.
+- `frontend/src/pages/ThreadView.jsx` still hand-rolls its page header. The
+  other three were routed through `PageHeader` in phase 2d and `PageHeader`
+  already grew the `above` and `below` slots ThreadView needs, for its
+  breadcrumb and its full-width editable description, so this is a swap that
+  was scoped and then not taken rather than an open question.
+- The button and form-field labels still carry their own class strings. The
+  eyebrow sweep deliberately left every `<button>` and `<label>` alone, because
+  a control label is not a section kicker, and phase 3 folds them into the
+  `Button` and `Field` components.
 - There is no `npm run lint` script and no ESLint config. `npm run build` only
   catches what breaks the bundle, so an undefined identifier compiles happily
   and throws at runtime. `scripts/check-jsx-imports.mjs` covers the specific

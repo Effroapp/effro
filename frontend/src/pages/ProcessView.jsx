@@ -74,7 +74,7 @@ function SourceChip({ source, onRemove }) {
       <span className="text-xs font-mono text-pitch-500 dark:text-paper-300 truncate flex-1 min-w-0">
         {source.name}
       </span>
-      <span className="font-sans font-medium uppercase tracking-wider text-xs text-paper-500 dark:text-paper-600 flex-shrink-0">
+      <span className="eyebrow text-paper-500 dark:text-paper-600 flex-shrink-0">
         {meta.label}
       </span>
       <span className="font-mono text-xs text-paper-400 dark:text-paper-700 flex-shrink-0">
@@ -450,13 +450,13 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
       {/* Destination editor - pick an existing thread, or name a new one */}
       {editing && (
         <div className="px-4 py-3 border-b border-paper-200 dark:border-pitch-500 bg-paper-100/30 dark:bg-pitch-800/20 space-y-3">
-          <p className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-400">
+          <p className="eyebrow text-paper-500 dark:text-paper-400">
             File these {n} item{n === 1 ? '' : 's'} into
           </p>
 
           {/* Create / rename a new thread */}
           <div className="flex items-center gap-2">
-            <span className="flex-shrink-0 inline-flex items-center gap-1 text-mint-700 dark:text-mint-300 text-2xs font-sans font-medium uppercase tracking-wide">
+            <span className="eyebrow flex-shrink-0 inline-flex items-center gap-1 text-mint-700 dark:text-mint-300">
               <Plus size={12} strokeWidth={3} /> New
             </span>
             <input
@@ -478,7 +478,7 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
           {/* Or file into an existing thread */}
           {areaThreads.length > 0 && (
             <div>
-              <p className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-400 dark:text-paper-600 mb-1.5">
+              <p className="eyebrow text-paper-400 dark:text-paper-600 mb-1.5">
                 Or an existing thread
               </p>
               <div className="max-h-44 overflow-y-auto space-y-1 pr-1">
@@ -920,7 +920,7 @@ export default function ProcessView() {
           `}
         >
           <div className="flex items-center justify-between mb-4">
-            <p className="font-sans font-medium uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
+            <p className="eyebrow text-paper-500 dark:text-paper-600">
               Generate from notes
             </p>
             <button
@@ -1027,7 +1027,7 @@ export default function ProcessView() {
               bg-white/70 dark:bg-pitch-700/80 backdrop-blur-sm pointer-events-none
             ">
               <Spinner size={24} className="text-mint-700" />
-              <p className="font-sans font-medium uppercase tracking-widest text-xs text-paper-600 dark:text-paper-500">
+              <p className="eyebrow text-paper-600 dark:text-paper-500">
                 Parsing…
               </p>
             </div>
@@ -1113,7 +1113,7 @@ export default function ProcessView() {
           <div>
             <div className="flex items-start justify-between mb-1">
               <div>
-                <span className="font-sans font-medium uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
+                <span className="eyebrow text-paper-500 dark:text-paper-600">
                   Extracted Items
                 </span>
                 <p className="text-xs text-paper-600 dark:text-paper-500 italic mt-1">

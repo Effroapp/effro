@@ -289,7 +289,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
       <SetupGuide guide={AZURE_GUIDE} open={showGuide} onClose={() => setShowGuide(false)} />
       {/* What is this */}
       <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
-        <div className="text-2xs font-sans font-medium uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
+        <div className="eyebrow text-mint-700 dark:text-mint-300 mb-1">
           One-time Azure setup
         </div>
         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">

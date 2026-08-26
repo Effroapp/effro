@@ -218,7 +218,7 @@ export default function Sidebar({
           built, as distinct from the fixed nav above. */}
       {!collapsed && (
         <div className="flex items-center gap-2 pl-4 pr-4 pt-[18px] pb-2">
-          <span className="font-mono text-2xs font-medium uppercase tracking-[0.18em] text-clay-text">
+          <span className="eyebrow text-clay-text">
             Areas
           </span>
           <span
@@ -492,7 +492,7 @@ function FooterIconLink({ to, icon: Icon, label, active, badge = false }) {
 function ShortcutHint({ label, keys }) {
   return (
     <div className="flex items-center justify-between gap-4 text-xs text-paper-500 dark:text-paper-700">
-      <span className="font-sans font-medium uppercase tracking-wide">{label}</span>
+      <span className="eyebrow">{label}</span>
       <span className="flex items-center gap-0.5">
         {keys.map((k) => (
           <kbd
@@ -538,7 +538,7 @@ function FooterShortcuts() {
         group-hover/keys:opacity-100 group-hover/keys:translate-y-0
         transition-all duration-150
       ">
-        <p className="font-sans font-medium uppercase tracking-widest text-2xs text-paper-400 dark:text-paper-600 mb-1.5">
+        <p className="eyebrow text-paper-400 dark:text-paper-600 mb-1.5">
           Shortcuts
         </p>
         <ShortcutHint label="Capture" keys={['N']} />

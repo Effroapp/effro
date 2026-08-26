@@ -210,7 +210,7 @@ function StepCard({ step, index, total, onNext, onBack, onSkip, style, asModal, 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14, gap: 10 }}>
           <span style={{
             fontFamily: "'Geist Mono', monospace",
-            fontSize: '0.6875rem', letterSpacing: '.18em', textTransform: 'uppercase',
+            fontSize: '0.6875rem', letterSpacing: '.18em', textTransform: 'eyebrow',
             color: 'var(--mint, var(--mint))',
           }}>
             {index + 1} of {total}

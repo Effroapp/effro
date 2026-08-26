@@ -94,7 +94,7 @@ export default function Modal({ isOpen, onClose, title, children, width = 'max-w
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-paper-200 dark:border-pitch-500">
-          <h2 className="font-sans font-semibold text-sm uppercase tracking-wider text-pitch-700 dark:text-paper-200">
+          <h2 className="eyebrow text-pitch-700 dark:text-paper-200">
             {title}
           </h2>
           <button

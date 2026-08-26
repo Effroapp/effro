@@ -77,7 +77,7 @@ export default function WeeklyRoundupModal({ isOpen, onClose }) {
               />
             ))}
           </div>
-          <p className="font-sans font-medium uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
+          <p className="eyebrow text-paper-500 dark:text-paper-600">
             Generating weekly roundup…
           </p>
         </div>
@@ -85,7 +85,7 @@ export default function WeeklyRoundupModal({ isOpen, onClose }) {
 
       {phase === 'review' && (
         <div>
-          <p className="font-sans font-medium uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600 mb-3">
+          <p className="eyebrow text-paper-500 dark:text-paper-600 mb-3">
             Weekly Roundup - W/E {formattedDate}
           </p>
 
@@ -93,7 +93,7 @@ export default function WeeklyRoundupModal({ isOpen, onClose }) {
             <div className="mb-4 px-3 py-2.5 rounded-lg bg-mustard/5 dark:bg-mustard/10 border border-mustard/30">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Clock size={12} className="text-mustard" />
-                <span className="font-sans font-medium uppercase tracking-widest text-xs text-mustard">
+                <span className="eyebrow text-mustard">
                   Quiet · 14+ days
                 </span>
               </div>

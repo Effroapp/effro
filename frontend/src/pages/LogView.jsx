@@ -4,6 +4,7 @@ import { History, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
 import { areasApi } from '../api/client'
 import PageShell from '../components/PageShell'
+import PageHeader from '../components/PageHeader'
 import IntroPanel, { Key } from '../components/IntroPanel'
 
 const ACTION_BADGE = {
@@ -119,20 +120,15 @@ export default function LogView() {
   return (
     <PageShell
       header={
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <History size={20} strokeWidth={1.75} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
-            <h1 className="font-sans font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 leading-tight">
-              Audit Log
-            </h1>
-            {!loading && (
-              <span className="font-mono text-xs text-paper-400 dark:text-paper-700">
-                {displayed.length}
-              </span>
-            )}
-          </div>
-
-          {areas.length > 0 && (
+        <PageHeader
+          icon={History}
+          title="Audit Log"
+          titleAdornment={!loading && (
+            <span className="font-mono text-xs text-paper-400 dark:text-paper-700">
+              {displayed.length}
+            </span>
+          )}
+          right={areas.length > 0 && (
             <select
               value={filterAreaId}
               onChange={(e) => setFilterAreaId(e.target.value)}
@@ -151,7 +147,7 @@ export default function LogView() {
               ))}
             </select>
           )}
-        </div>
+        />
       }
     >
       {/* First-run explainer - shown once, then dismissed for good. */}

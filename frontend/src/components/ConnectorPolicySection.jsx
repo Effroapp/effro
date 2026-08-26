@@ -51,7 +51,7 @@ export default function ConnectorPolicySection({ onChanged }) {
     <div className="rounded-xl border border-paper-300 dark:border-pitch-500 bg-white dark:bg-pitch-700 p-4">
       <div className="flex items-center gap-2 mb-1">
         <ShieldCheck size={14} className="text-mint flex-shrink-0" />
-        <div className="font-mono uppercase tracking-widest text-2xs text-paper-500 dark:text-paper-600">
+        <div className="eyebrow text-paper-500 dark:text-paper-600">
           Workspace connections
         </div>
       </div>

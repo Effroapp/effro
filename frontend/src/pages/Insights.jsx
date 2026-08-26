@@ -508,7 +508,7 @@ function ClosedDetails({ items, onOpenItem }) {
         const m = ENTRY_META[t] || ENTRY_META.todo
         return (
           <div key={t}>
-            <p className="font-mono uppercase tracking-widest text-2xs mb-1.5" style={{ color: m.color }}>{CLOSED_GROUP_LABEL[t]}</p>
+            <p className="eyebrow mb-1.5" style={{ color: m.color }}>{CLOSED_GROUP_LABEL[t]}</p>
             <ul className="-my-0.5">
               {groups[t].map((c, i) => (
                 <li key={`${c.id}-${i}`} className={`flex items-center gap-3 py-1.5 ${i > 0 ? 'border-t border-paper-200 dark:border-pitch-600' : ''}`}>
@@ -663,7 +663,7 @@ function AheadLens({ data }) {
             {[['Today', todayItems], ['Tomorrow', tmrwItems], ['This week', restItems]].map(([label, items], bi) =>
               items.length === 0 ? null : (
                 <div key={label} className={bi > 0 ? 'mt-4 pt-4 border-t border-paper-200 dark:border-pitch-600' : ''}>
-                  <p className="font-mono uppercase tracking-widest text-2xs text-paper-500 dark:text-paper-600 mb-2">{label}</p>
+                  <p className="eyebrow text-paper-500 dark:text-paper-600 mb-2">{label}</p>
                   <ul className="space-y-1">
                     {items.map((u, i) => {
                       const m = ENTRY_META[u.kind] || ENTRY_META.todo
@@ -891,7 +891,7 @@ function Section({ label, children, hideable = true, info }) {
     <section>
       <div className="group/sec flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-1.5 min-w-0">
-          <h2 className="font-mono uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">{label}</h2>
+          <h2 className="eyebrow text-paper-500 dark:text-paper-600">{label}</h2>
           {tip && <InfoTip content={tip} />}
         </div>
         {hideable && (

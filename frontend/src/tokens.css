@@ -148,6 +148,12 @@
      --paper and --ink here are deliberately static and must stay that way. */
   --font-sans: var(--font-body, 'Geist Sans'), 'Lexend', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+  /* The heading face, pinned to Geist. --font-sans above deliberately follows
+     the reading-font setting, so a heading that used it left Geist the moment a
+     user picked Lexend or OpenDyslexic, and the page ended up in two families
+     at once. The reading font is for reading. Headings are the voice of the
+     product and stay put. Phase 6 changes this one line if the face changes. */
+  --font-heading: 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
 
   /* ── Radius scale ──────────────────────────────────────────────────────── */
   --radius-sm: 6px;

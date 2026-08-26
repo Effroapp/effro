@@ -168,7 +168,7 @@ export default function FolioIndex() {
               {rest.length > 0 && (
                 <>
                   {featured && (
-                    <p className="font-mono text-2xs uppercase tracking-widest text-paper-500 dark:text-pitch-200 mt-7 mb-3 ml-0.5">
+                    <p className="eyebrow text-paper-500 dark:text-pitch-200 mt-7 mb-3 ml-0.5">
                       More deep dives
                     </p>
                   )}
@@ -370,10 +370,10 @@ function Hero({ folio, onOpen }) {
                  transition-all motion-reduce:transform-none motion-reduce:transition-none"
     >
       <div className="flex-1 min-w-0">
-        <span className="inline-flex items-center gap-1.5 font-mono text-2xs uppercase tracking-widest text-mint-700 dark:text-mint-300">
+        <span className="eyebrow inline-flex items-center gap-1.5 text-mint-700 dark:text-mint-300">
           <ArrowRight size={12} className="text-mint" /> Pick up where you left off
         </span>
-        <h2 className="font-sans font-semibold text-xl tracking-[-0.01em] text-pitch-800 dark:text-pitch-50 mt-2 mb-2">
+        <h2 className="title-section text-pitch-800 dark:text-pitch-50 mt-2 mb-2">
           <BionicText>{folio.title || 'Untitled deep dive'}</BionicText>
         </h2>
         <div className="flex flex-wrap items-center gap-2 mb-3">

@@ -69,7 +69,7 @@ function ActivityRow({ item }) {
       <span className={`p-1.5 rounded-md flex-shrink-0 ${cfg.className}`}>
         <Icon size={13} />
       </span>
-      <span className="font-sans font-semibold uppercase tracking-wide text-xs text-pitch-700 dark:text-paper-200 flex-shrink-0">
+      <span className="eyebrow text-pitch-700 dark:text-paper-200 flex-shrink-0">
         {item.area_name}
       </span>
       <span className="text-paper-400 dark:text-paper-700 text-xs flex-shrink-0">/</span>

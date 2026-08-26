@@ -44,7 +44,7 @@ export default function IntroPanel({ icon: Icon, title, storageKey, children }) 
           {Icon && <Icon size={17} className="text-mint-600 dark:text-mint-400" />}
         </span>
         <div>
-          <p className="text-base font-semibold text-pitch-800 dark:text-white">{title}</p>
+          <p className="title-card text-pitch-800 dark:text-white">{title}</p>
           <p className="text-sm text-paper-600 dark:text-paper-300 leading-relaxed mt-1">
             {children}
           </p>

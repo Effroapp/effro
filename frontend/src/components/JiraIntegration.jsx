@@ -225,7 +225,7 @@ export default function JiraIntegration() {
       {/* Which issues land in Signals — personal preference */}
       <div className="pt-1">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600">
+          <span className="eyebrow text-paper-500 dark:text-paper-600">
             Bring into Signals
           </span>
           {savingScope && <Loader2 size={11} className="animate-spin text-paper-400 dark:text-paper-600" />}
@@ -289,7 +289,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <SetupGuide guide={JIRA_GUIDE} open={showGuide} onClose={() => setShowGuide(false)} />
       <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
-        <div className="text-2xs font-sans font-medium uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
+        <div className="eyebrow text-mint-700 dark:text-mint-300 mb-1">
           One-time Atlassian setup
         </div>
         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">

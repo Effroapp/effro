@@ -376,7 +376,7 @@ function SectionStylePicker({ value, onChange }) {
 function Section({ label, children }) {
   return (
     <div>
-      <div className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1.5">
+      <div className="eyebrow text-paper-500 dark:text-paper-600 mb-1.5">
         {label}
       </div>
       {children}

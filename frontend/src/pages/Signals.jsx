@@ -563,7 +563,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
     <div className="mt-3 pt-3 border-t border-paper-200 dark:border-pitch-600">
       {/* Add-as type choice - what the accepted signal becomes on the thread. */}
       <div className="flex items-center gap-1.5 mb-2.5">
-        <span className="text-2xs font-mono uppercase tracking-wider text-paper-500 dark:text-paper-600">Add as</span>
+        <span className="eyebrow text-paper-500 dark:text-paper-600">Add as</span>
         <div className="inline-flex rounded-md border border-paper-300 dark:border-pitch-500 overflow-hidden">
           {typeOpts.map((o) => (
             <button

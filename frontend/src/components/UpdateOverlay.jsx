@@ -59,7 +59,7 @@ export default function UpdateOverlay({ updater }) {
           </>
         ) : (
           <>
-            <p className="font-mono text-2xs uppercase tracking-[0.18em] text-mint-700 dark:text-mint-300">Updating Effro</p>
+            <p className="eyebrow text-mint-700 dark:text-mint-300">Updating Effro</p>
             <h2 className="font-sans font-semibold text-xl text-pitch-800 dark:text-pitch-50 mt-1.5">
               {status === 'ready' ? 'Almost there' : 'Downloading the update'}
             </h2>

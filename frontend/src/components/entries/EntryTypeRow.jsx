@@ -158,7 +158,7 @@ function TypeManager({ types, onClose, onCreate, onRename, onRemove, selectedId,
                    bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500
                    shadow-lg animate-fade-in"
       >
-        <p className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
+        <p className="eyebrow text-paper-500 dark:text-paper-600 mb-2">
           Your entry types
         </p>
 

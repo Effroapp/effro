@@ -207,8 +207,7 @@ const FIELD = `w-full px-3 py-2.5 text-sm rounded-md
 
 function Label({ children }) {
   return (
-    <p className="font-mono text-2xs uppercase tracking-[0.12em]
-                  text-paper-500 dark:text-paper-600 mb-1.5">
+    <p className="eyebrow text-paper-500 dark:text-paper-600 mb-1.5">
       {children}
     </p>
   )

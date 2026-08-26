@@ -25,6 +25,7 @@ import IntroPanel, { Key } from '../components/IntroPanel'
 import IntegrationsPanel from '../components/IntegrationsPanel'
 import PostConnectFlow from '../components/PostConnectFlow'
 import PageShell from '../components/PageShell'
+import PageHeader from '../components/PageHeader'
 import ProviderLogo from '../components/ProviderLogos'
 import { syncNow as msSyncNow } from '../api/microsoft'
 import { syncNow as googleSyncNow } from '../api/google'
@@ -164,25 +165,23 @@ export default function SystemSettings({ updater }) {
       <PageShell
         bodyClassName="py-8"
         header={
-          <>
-            <Link
-              to="/"
-              className="
-                inline-flex items-center gap-1 text-xs font-mono uppercase tracking-widest
-                text-paper-500 dark:text-paper-600
-                hover:text-pitch-700 dark:hover:text-paper-200
-                transition-colors mb-3
-              "
-            >
-              <ArrowLeft size={11} /> Back
-            </Link>
-            <div className="flex items-center gap-3">
-              <SettingsIcon size={20} strokeWidth={1.75} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
-              <h1 className="font-sans font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 leading-tight">
-                Settings
-              </h1>
-            </div>
-          </>
+          <PageHeader
+            icon={SettingsIcon}
+            title="Settings"
+            above={
+              <Link
+                to="/"
+                className="
+                  eyebrow inline-flex items-center gap-1
+                  text-paper-500 dark:text-paper-600
+                  hover:text-pitch-700 dark:hover:text-paper-200
+                  transition-colors
+                "
+              >
+                <ArrowLeft size={11} /> Back
+              </Link>
+            }
+          />
         }
       >
         <SettingsTabs tabs={tabs} tab={tab} onChange={setTab} />
@@ -609,7 +608,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
 
       {/* What is this */}
       <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
-        <div className="text-2xs font-sans font-medium uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
+        <div className="eyebrow text-mint-700 dark:text-mint-300 mb-1">
           {guide.icon} {selected === 'gemini' ? 'Google Gemini' : selected === 'custom' ? 'Custom / Enterprise' : selected.charAt(0).toUpperCase() + selected.slice(1)} · {guide.time}
         </div>
         <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">{guide.what}</div>
@@ -618,7 +617,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
       {/* Steps */}
       {guide.steps && (
         <div>
-          <div className="text-2xs font-sans font-medium uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
+          <div className="eyebrow text-paper-500 dark:text-paper-600 mb-2">
             {guide.keyLabel ? 'To get your key' : 'To get started'}
           </div>
           <div className="space-y-2">
@@ -841,7 +840,7 @@ function UpdateSection({ updater }) {
           <div className="flex items-start gap-2 mb-2">
             <Zap size={14} className="flex-shrink-0 mt-0.5 text-mint" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-sans font-medium uppercase tracking-wide text-mint-700 dark:text-mint-300">
+              <p className="eyebrow text-mint-700 dark:text-mint-300">
                 Update available
               </p>
               <p className="text-sm text-pitch-700 dark:text-paper-300 mt-0.5">
@@ -1048,7 +1047,7 @@ function StorageSection({ id }) {
     <>
       {/* All options - icon row */}
       <div className="mb-4">
-        <div className="font-mono uppercase tracking-widest text-2xs text-paper-500 dark:text-paper-600 mb-2">All storage</div>
+        <div className="eyebrow text-paper-500 dark:text-paper-600 mb-2">All storage</div>
         <div className="flex flex-wrap gap-2">
           {STORAGE_OPTIONS.map((o) => {
             const active = storageConfig?.provider === o.key

@@ -413,7 +413,7 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
                     {String(i + 1).padStart(2, '0')}
                   </span>
                 </div>
-                <h2 className="font-sans font-semibold text-xl tracking-[-0.015em] text-pitch-800 dark:text-pitch-50 mb-3">
+                <h2 className="title-section text-pitch-800 dark:text-pitch-50 mb-3">
                   {sec.heading}
                 </h2>
               </>
@@ -596,7 +596,7 @@ function DigestEditor({ folio, onDone, onCancel }) {
   return (
     <div className="mt-5 rounded-2xl bg-paper-50 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400 shadow-sm px-7 sm:px-9 py-7">
       <div className="flex items-center justify-between mb-4">
-        <span className="font-mono text-2xs uppercase tracking-[0.18em] text-mint-700 dark:text-mint-300">Editing your digest</span>
+        <span className="eyebrow text-mint-700 dark:text-mint-300">Editing your digest</span>
         <div className="flex items-center gap-2">
           <button onClick={onCancel} disabled={saving}
             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm text-paper-700 dark:text-pitch-100
@@ -699,7 +699,7 @@ function DigestEditor({ folio, onDone, onCancel }) {
 }
 
 function FieldLabel({ children }) {
-  return <p className="font-mono text-2xs uppercase tracking-wider text-paper-500 dark:text-pitch-200 mb-1.5">{children}</p>
+  return <p className="eyebrow text-paper-500 dark:text-pitch-200 mb-1.5">{children}</p>
 }
 
 function ListEditor({ label, items, setItems }) {
@@ -791,7 +791,7 @@ function CapturesView({ folio, onReload, onPull, pulling, noteRef }) {
   return (
     <div className="mt-5">
       <div className="flex items-center justify-between gap-3 mb-4">
-        <span className="font-mono text-2xs uppercase tracking-widest text-paper-500 dark:text-pitch-200">
+        <span className="eyebrow text-paper-500 dark:text-pitch-200">
           {folio.captures.length} capture{folio.captures.length === 1 ? '' : 's'} in this dive
         </span>
         <button onClick={onPull} disabled={pulling || folio.captures.length === 0}
