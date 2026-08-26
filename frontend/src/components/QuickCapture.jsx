@@ -244,7 +244,7 @@ export default function QuickCapture() {
           <button
             onClick={submit}
             disabled={!content.trim() || !selectedThreadId || submitting}
-            className="px-4 py-2 text-sm rounded-md font-medium bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
+            className="btn btn-md btn-primary"
           >
             {submitting ? 'Capturing…' : 'Capture'}
           </button>

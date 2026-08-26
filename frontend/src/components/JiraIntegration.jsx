@@ -6,6 +6,7 @@ import {
   getJiraScope, setJiraScope,
 } from '../api/jira'
 import SetupGuide, { JIRA_GUIDE } from './SetupGuide'
+import Field from './Field'
 
 // Which Jira issues land in Signals. Personal preference — defaults to "mine".
 const SCOPE_OPTIONS = [
@@ -307,6 +308,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
       </div>
 
       <Field
+        mono
         label="Client ID"
         hint='The "Client ID" from your Atlassian developer app.'
         value={clientId}
@@ -316,6 +318,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
       />
 
       <Field
+        mono
         label="Client secret"
         hint="The secret VALUE (not its ID) from the app settings."
         value={clientSecret}
@@ -331,13 +334,7 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
         <button
           type="submit"
           disabled={saving || !clientId.trim() || !clientSecret.trim()}
-          className="
-            flex-1 flex items-center justify-center gap-2
-            px-4 py-2 rounded-md text-sm font-semibold
-            bg-mint-700 hover:bg-mint-800 text-white
-            disabled:opacity-40 disabled:cursor-not-allowed
-            transition-colors
-          "
+          className="btn btn-md btn-primary flex-1"
         >
           {saving ? <><Loader2 size={12} className="animate-spin" /> Saving…</> : 'Save config'}
         </button>
@@ -360,31 +357,6 @@ function ConfigForm({ existing, onCancel, onSave, error }) {
   )
 }
 
-function Field({ label, hint, value, onChange, placeholder, type = 'text', autoComplete }) {
-  return (
-    <div>
-      <label className="text-xs font-medium text-pitch-700 dark:text-paper-300 block mb-1.5">
-        {label}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        className="
-          w-full px-3 py-2 rounded-lg text-sm font-mono
-          bg-paper-100 dark:bg-pitch-800
-          border border-paper-300 dark:border-pitch-500
-          text-pitch-800 dark:text-white
-          placeholder:text-paper-400 dark:placeholder:text-paper-700
-          focus:outline-none focus:ring-2 focus:ring-mint-500
-        "
-      />
-      {hint && <p className="mt-1 text-2xs text-paper-500 dark:text-paper-600">{hint}</p>}
-    </div>
-  )
-}
 
 function ErrorBanner({ message }) {
   return (

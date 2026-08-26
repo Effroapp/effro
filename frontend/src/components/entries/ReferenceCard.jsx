@@ -96,7 +96,7 @@ export default function ReferenceCard({ entry, onDelete, onSaveNotes }) {
         aria-label={copy.title}
         className="absolute top-2.5 right-3 p-1 rounded opacity-0 group-hover:opacity-100
                    text-paper-400 dark:text-paper-700
-                   hover:text-terracotta hover:bg-terracotta/10 transition-all"
+                   hover:text-terracotta hover:bg-terracotta/10 transition focus-visible:opacity-100"
       >
         <Trash2 size={12} />
       </button>

@@ -90,7 +90,7 @@ export default function TitleTidyUp() {
           {running && (
             <div className="mt-2 h-1 rounded-full bg-paper-300 dark:bg-pitch-500 overflow-hidden">
               <div
-                className="h-full bg-mint-700 transition-all duration-300"
+                className="h-full bg-mint-700 transition-[width] duration-300"
                 style={{ width: `${total ? Math.round((done / total) * 100) : 0}%` }}
               />
             </div>

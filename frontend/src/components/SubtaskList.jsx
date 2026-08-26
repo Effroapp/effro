@@ -118,7 +118,7 @@ export default function SubtaskList({
             the list is open or collapsed. */}
         <div className="flex-1 h-1 rounded-full bg-paper-200 dark:bg-pitch-700 overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${allDone ? 'bg-mint' : 'bg-sky-muted'}`}
+            className={`h-full rounded-full transition-[width,background-color] duration-500 ${allDone ? 'bg-mint' : 'bg-sky-muted'}`}
             style={{ width: `${progressPct}%` }}
           />
         </div>
@@ -165,7 +165,7 @@ export default function SubtaskList({
 
                 <button
                   onClick={() => handleDelete(subtask.id)}
-                  className="opacity-0 group-hover/row:opacity-100 transition-opacity p-0.5 flex-shrink-0 text-paper-400 dark:text-paper-600 hover:text-terracotta"
+                  className="opacity-0 group-hover/row:opacity-100 transition-opacity p-0.5 flex-shrink-0 text-paper-400 dark:text-paper-600 hover:text-terracotta focus-visible:opacity-100"
                   aria-label="Delete subtask"
                 >
                   <X size={12} />

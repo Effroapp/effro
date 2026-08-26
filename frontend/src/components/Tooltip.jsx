@@ -114,15 +114,18 @@ export function Tooltip({ content, children, side = 'top', className = '' }) {
 export function InfoTip({ content, side = 'top', size = 13, className = '' }) {
   return (
     <Tooltip content={content} side={side}>
-      <span
-        tabIndex={0}
+      {/* A button, not a tabbable span. It was a <span tabIndex={0}> with an
+          aria-label and no role, so it sat in the tab order while a screen
+          reader announced it as plain text. SC 4.1.2 Name, Role, Value. */}
+      <button
+        type="button"
         aria-label="More information"
         className={`inline-flex items-center justify-center rounded-full cursor-help
           text-paper-400 dark:text-paper-600 hover:text-paper-600 dark:hover:text-paper-300
-          focus:outline-none focus-visible:ring-2 focus-visible:ring-mint-500/40 transition-colors ${className}`}
+          focus-visible:ring-2 focus-visible:ring-mint-500/40 transition-colors ${className}`}
       >
         <Info size={size} />
-      </span>
+      </button>
     </Tooltip>
   )
 }

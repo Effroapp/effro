@@ -38,6 +38,7 @@ import { adminApi } from '../api/client'
 import UsersSection from '../components/UsersSection'
 import AccountSection from '../components/AccountSection'
 import TitleTidyUp from '../components/TitleTidyUp'
+import Field from '../components/Field'
 
 /**
  * System Settings - a dedicated page (was a popover; promoted because
@@ -218,7 +219,7 @@ function SettingsTabs({ tabs, tab, onChange }) {
           <button
             key={key}
             onClick={() => onChange(key)}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition ${
               active
                 ? 'bg-white dark:bg-pitch-800 shadow-sm text-pitch-800 dark:text-white'
                 : 'text-paper-600 dark:text-paper-400 hover:text-pitch-700 dark:hover:text-paper-200 hover:bg-paper-100/60 dark:hover:bg-pitch-800/40'
@@ -305,11 +306,7 @@ function AISummaryCard({ config, onEdit }) {
         </div>
         <button
           onClick={onEdit}
-          className="
-            flex-shrink-0 px-4 py-2 rounded-md text-xs
-            bg-mint-700 hover:bg-mint-800 text-white
-            font-sans font-medium uppercase tracking-wide transition-colors
-          "
+          className="btn btn-sm btn-primary flex-shrink-0"
         >
           Set up
         </button>
@@ -555,7 +552,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
                 key={key}
                 onClick={() => { setSelected(key); setStage('setup') }}
                 className="
-                  w-full text-left rounded-lg border-2 p-3 transition-all
+                  w-full text-left rounded-lg border-2 p-3 transition-colors
                   border-paper-200 dark:border-pitch-500
                   hover:border-mint dark:hover:border-mint
                   hover:bg-paper-100 dark:hover:bg-pitch-600/40
@@ -655,6 +652,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
 
       {guide.urlNeeded && (
         <Field
+          mono
           label={guide.urlLabel || 'Base URL'}
           hint={guide.urlHint}
           value={baseUrl}
@@ -666,6 +664,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
 
       {guide.keyLabel && (
         <Field
+          mono
           label={guide.keyLabel}
           hint={guide.keyHint}
           value={apiKey}
@@ -678,6 +677,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
 
       {guide.modelLabel && (
         <Field
+          mono
           label={guide.modelLabel}
           hint={guide.modelHint}
           value={model}
@@ -732,14 +732,7 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
         <button
           onClick={handleSave}
           disabled={saving || !canSave}
-          className="
-            flex-1 flex items-center justify-center gap-2
-            px-4 py-2.5 rounded-lg text-sm font-semibold
-            bg-mint-700 hover:bg-mint-800
-            text-white
-            disabled:opacity-40 disabled:cursor-not-allowed
-            transition-colors
-          "
+          className="btn btn-md btn-primary flex-1"
         >
           {saving
             ? (<><Loader2 size={14} className="animate-spin" /> Saving…</>)
@@ -768,33 +761,6 @@ function AIWizard({ currentConfig, onCancel, onSaved }) {
   )
 }
 
-function Field({ label, hint, value, onChange, placeholder, type = 'text', autoComplete }) {
-  return (
-    <div>
-      <label className="text-xs font-medium text-pitch-700 dark:text-paper-300 block mb-1.5">
-        {label}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        className="
-          w-full px-3 py-2 rounded-lg text-sm font-mono
-          bg-paper-100 dark:bg-pitch-800
-          border border-paper-300 dark:border-pitch-500
-          text-pitch-800 dark:text-white
-          placeholder:text-paper-400 dark:placeholder:text-paper-700
-          focus:outline-none focus:ring-2 focus:ring-mint-500
-        "
-      />
-      {hint && (
-        <p className="mt-1 text-2xs text-paper-500 dark:text-paper-600">{hint}</p>
-      )}
-    </div>
-  )
-}
 
 // ─── Updates ──────────────────────────────────────────────────────────────────
 
@@ -850,12 +816,7 @@ function UpdateSection({ updater }) {
           </div>
           <button
             onClick={updater.install}
-            className="
-              w-full flex items-center justify-center gap-1.5
-              px-3 py-2 rounded-md text-xs
-              bg-mint-700 hover:bg-mint-800 text-white
-              font-sans font-medium uppercase tracking-wide transition-colors
-            "
+            className="btn btn-sm btn-primary w-full"
           >
             <Download size={11} />
             Install &amp; restart
@@ -959,7 +920,7 @@ function UpdateSection({ updater }) {
               key={c}
               onClick={() => switchChannel(c)}
               disabled={channel === null}
-              className={`px-3 py-1 text-xs capitalize transition-colors ${
+              className={`px-3 py-1 text-xs capitalize disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
                 channel === c
                   ? 'bg-mint-700 text-white'
                   : 'text-paper-600 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-600'
@@ -1057,7 +1018,7 @@ function StorageSection({ id }) {
                 onClick={() => !o.soon && openStorage(o.key)}
                 disabled={o.soon}
                 title={o.soon ? `${o.name} (coming with Microsoft 365)` : o.name}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition ${
                   o.soon
                     ? 'border-dashed border-paper-200 dark:border-pitch-600 opacity-50 cursor-not-allowed'
                     : active
@@ -1315,12 +1276,7 @@ function LicenceSection() {
       <button
         onClick={apply}
         disabled={saving || !key.trim()}
-        className="
-          mt-3 flex items-center justify-center gap-2
-          px-4 py-2.5 rounded-lg text-sm font-semibold
-          bg-mint-700 hover:bg-mint-800 text-white
-          disabled:opacity-40 disabled:cursor-not-allowed transition-colors
-        "
+        className="btn btn-md btn-primary mt-3"
       >
         {saving ? (<><Loader2 size={14} className="animate-spin" /> Applying…</>) : 'Apply key'}
       </button>
@@ -1367,11 +1323,7 @@ function DemoDataSection() {
       {!confirming ? (
         <button
           onClick={() => setConfirming(true)}
-          className="
-            flex items-center justify-center gap-2
-            px-4 py-2.5 rounded-lg text-sm font-semibold
-            bg-mint-700 hover:bg-mint-800 text-white transition-colors
-          "
+          className="btn btn-md btn-primary"
         >
           <Sparkles size={14} />
           Load demo data
@@ -1385,12 +1337,7 @@ function DemoDataSection() {
             <button
               onClick={load}
               disabled={busy}
-              className="
-                flex items-center justify-center gap-2
-                px-4 py-2.5 rounded-lg text-sm font-semibold
-                bg-mint-700 hover:bg-mint-800 text-white
-                disabled:opacity-40 disabled:cursor-not-allowed transition-colors
-              "
+              className="btn btn-md btn-primary"
             >
               {busy
                 ? (<><Loader2 size={14} className="animate-spin" /> Loading…</>)

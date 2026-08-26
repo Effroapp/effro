@@ -210,7 +210,7 @@ function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApprov
 
   return (
     <div
-      className={`relative ${grouped ? 'pl-10' : ''} overflow-hidden transition-all duration-400 ${
+      className={`relative ${grouped ? 'pl-10' : ''} overflow-hidden transition-[max-height] duration-400 ${
         collapsed ? 'max-h-0 opacity-0' : 'max-h-[500px] opacity-100'
       }`}
     >
@@ -469,7 +469,7 @@ function ThreadGroup({ group, dest, areaThreads, onChange, collapsed, onToggle, 
             <button
               onClick={applyNew}
               disabled={!newTitle.trim()}
-              className="flex-shrink-0 px-3 py-1.5 text-xs font-sans font-medium uppercase tracking-wide rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
+              className="btn btn-sm btn-primary flex-shrink-0"
             >
               Use
             </button>
@@ -1052,12 +1052,7 @@ export default function ProcessView() {
                   parsing              ? 'Parsing file…' :
                   'Send to AI'
                 }
-                className="
-                  w-full flex items-center justify-center gap-2 py-2.5 rounded-lg
-                  bg-mint-700 hover:bg-mint-800 text-white text-sm
-                  font-sans font-medium uppercase tracking-wide
-                  disabled:opacity-50 disabled:cursor-not-allowed transition-colors
-                "
+                className="btn btn-md btn-primary w-full"
               >
                 <BrainCircuit size={14} />
                 Extract Items

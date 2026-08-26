@@ -12,7 +12,7 @@ const FIELD =
   'focus:outline-none focus:ring-2 focus:ring-mint-500'
 const CARD = 'rounded-xl border border-paper-300 dark:border-pitch-600 p-5'
 const H3 = 'font-sans text-sm font-semibold text-pitch-800 dark:text-pitch-50 mb-3 flex items-center gap-2'
-const BTN = 'px-4 py-2 text-sm font-medium rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors'
+const BTN = 'btn btn-md btn-primary'
 
 /** Self-service account settings for any signed-in user (auth-enabled only). */
 export default function AccountSection() {

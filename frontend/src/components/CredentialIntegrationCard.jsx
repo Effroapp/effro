@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Check, BookOpen, Loader2, AlertCircle, RefreshCw, LogOut, CheckCircle2, XCircle } from 'lucide-react'
 import PostConnectFlow from './PostConnectFlow'
 import SetupGuide from './SetupGuide'
+import Field from './Field'
 
 /**
  * The one credential-based integration card (GitHub, iCloud, Telegram, Mail).
@@ -193,18 +194,17 @@ function ConfigForm({ api, fields, guide, infoBox, existing, onCancel, onSaved }
       </div>
 
       {fields.map((f) => (
-        <div key={f.name}>
-          <label className="text-xs font-medium text-pitch-700 dark:text-paper-300 block mb-1.5">{f.label}</label>
-          <input
-            type={f.type || 'text'}
-            value={values[f.name]}
-            onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-            placeholder={typeof f.placeholder === 'function' ? f.placeholder(existing) : f.placeholder}
-            autoComplete="off"
-            className="w-full px-3 py-2 rounded-lg text-sm font-mono bg-paper-100 dark:bg-pitch-800 border border-paper-300 dark:border-pitch-500 text-pitch-800 dark:text-white placeholder:text-paper-400 dark:placeholder:text-paper-700 focus:outline-none focus:ring-2 focus:ring-mint-500"
-          />
-          {f.hint && <p className="mt-1 text-2xs text-paper-500 dark:text-paper-600">{f.hint}</p>}
-        </div>
+        <Field
+          key={f.name}
+          mono
+          label={f.label}
+          hint={f.hint}
+          type={f.type || 'text'}
+          value={values[f.name]}
+          onChange={(next) => setValues((v) => ({ ...v, [f.name]: next }))}
+          placeholder={typeof f.placeholder === 'function' ? f.placeholder(existing) : f.placeholder}
+          autoComplete="off"
+        />
       ))}
 
       {error && (
@@ -215,7 +215,7 @@ function ConfigForm({ api, fields, guide, infoBox, existing, onCancel, onSaved }
 
       <div className="flex items-center gap-2 pt-1">
         <button type="submit" disabled={saving || !ready}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-semibold bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+          className="btn btn-md btn-primary flex-1">
           {saving ? (<><Loader2 size={12} className="animate-spin" /> Connecting…</>) : 'Connect'}
         </button>
         {onCancel && (

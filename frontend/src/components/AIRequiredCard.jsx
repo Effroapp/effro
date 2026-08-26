@@ -36,13 +36,7 @@ export default function AIRequiredCard({ feature = 'This feature' }) {
       </p>
       <Link
         to="/settings"
-        className="
-          inline-flex items-center gap-1.5
-          px-4 py-2.5 rounded-md
-          bg-mint-700 hover:bg-mint-800 text-white
-          font-sans font-medium uppercase tracking-wide text-xs
-          transition-colors
-        "
+        className="btn btn-sm btn-primary"
       >
         Set up AI engine
         <ArrowRight size={12} />

@@ -223,6 +223,43 @@
     text-transform: uppercase;
   }
 
+  /* The button.
+
+     352 button elements across 66 files, and the primary mint action alone was
+     written nine ways. Three radii, three vertical paddings, three weight
+     treatments. Rounding was already nearly settled at rounded-md (155 sites
+     against 52 bare rounded and 34 rounded-lg), so that is what this uses.
+
+     Classes AND a component, not one or the other, because four call sites are
+     not buttons: three <Link>, one <a>, plus IconPicker's render-prop trigger
+     and a <label> wearing button styling around a hidden file input. A class
+     works on all of them. The component is still the default, because only a
+     component can default type="button" and own the disabled and loading
+     states, and those are where the real bugs were.
+
+     @layer components, not utilities, for the reason recorded above .eyebrow.
+     Button call sites layer utilities constantly, w-full and flex-1 and their
+     own margins, and a utilities-layer rule would kill all of them. */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md;
+    @apply font-medium whitespace-nowrap transition-colors;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-sm { @apply px-3 py-1.5 text-xs; }
+  .btn-md { @apply px-4 py-2 text-sm; }
+
+  .btn-primary { @apply bg-mint-700 text-white hover:bg-mint-800; }
+  .btn-secondary {
+    @apply border border-paper-300 dark:border-pitch-500;
+    @apply bg-white dark:bg-pitch-700 text-pitch-800 dark:text-paper-100;
+    @apply hover:bg-paper-200 dark:hover:bg-pitch-600;
+  }
+  .btn-ghost {
+    @apply text-paper-700 dark:text-paper-200;
+    @apply hover:bg-paper-200 dark:hover:bg-pitch-700;
+  }
+  .btn-danger { @apply bg-terracotta text-white hover:bg-terracotta/90; }
+
   /* The heading ladder. Three steps, one home.
 
      There were four treatments for one job and, because of the font-display
