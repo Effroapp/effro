@@ -597,10 +597,9 @@ function DigestEditor({ folio, onDone, onCancel }) {
         <span className="eyebrow text-mint-700 dark:text-mint-300">Editing your digest</span>
         <div className="flex items-center gap-2">
           <button onClick={onCancel} disabled={saving}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm text-paper-700 dark:text-pitch-100
-                       hover:bg-paper-200 dark:hover:bg-pitch-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><X size={14} /> Cancel</button>
+            className="btn btn-md btn-ghost"><X size={14} /> Cancel</button>
           <button onClick={save} disabled={saving}
-            className="btn btn-sm btn-primary">
+            className="btn btn-md btn-primary">
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Save
           </button>
         </div>

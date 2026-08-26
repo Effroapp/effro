@@ -210,7 +210,7 @@ function ItemCard({ item: initialItem, selectedAreaName, resolveThread, onApprov
 
   return (
     <div
-      className={`relative ${grouped ? 'pl-10' : ''} overflow-hidden transition-[max-height] duration-400 ${
+      className={`relative ${grouped ? 'pl-10' : ''} overflow-hidden transition-[max-height,opacity] duration-400 ${
         collapsed ? 'max-h-0 opacity-0' : 'max-h-[500px] opacity-100'
       }`}
     >
