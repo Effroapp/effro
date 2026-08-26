@@ -95,11 +95,7 @@ export default function AddMeetingModal({ isOpen, onClose, onSubmit, submitting 
           <button
             type="submit"
             disabled={!canSubmit || submitting}
-            className="
-              flex items-center gap-1.5 px-4 py-2 text-sm rounded-md font-medium
-              bg-mint-700 hover:bg-mint-800 text-white
-              disabled:opacity-50 transition-colors
-            "
+            className="btn btn-md btn-primary"
           >
             <Calendar size={13} />
             {submitting ? 'Adding…' : 'Add meeting'}

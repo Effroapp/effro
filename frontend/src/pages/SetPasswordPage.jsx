@@ -72,7 +72,7 @@ export default function SetPasswordPage() {
               </p>
               <Link
                 to="/login"
-                className="inline-block px-4 py-2 text-sm font-medium rounded-md bg-mint-700 hover:bg-mint-800 text-white transition-colors"
+                className="btn btn-md btn-primary"
               >
                 Go to sign in
               </Link>
@@ -100,7 +100,7 @@ export default function SetPasswordPage() {
                 </div>
                 {error && <p className="text-sm text-terracotta" role="alert">{error}</p>}
                 <button type="submit" disabled={submitting || !pw || !pw2}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors">
+                        className="btn btn-md btn-primary w-full">
                   {submitting ? <Spinner size={16} className="text-white" /> : 'Set password and sign in'}
                 </button>
               </div>

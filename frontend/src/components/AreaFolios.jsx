@@ -84,7 +84,7 @@ export default function AreaFolios({ areaId }) {
                   <Layers size={9} /> {f.capture_count}
                 </span>
               </span>
-              <ArrowRight size={13} className="flex-shrink-0 text-paper-400 dark:text-pitch-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <ArrowRight size={13} className="flex-shrink-0 text-paper-400 dark:text-pitch-300 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:opacity-100" />
             </button>
           ))}
         </div>

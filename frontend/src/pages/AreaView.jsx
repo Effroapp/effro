@@ -237,7 +237,7 @@ export default function AreaView() {
         }
       }}
       onDrop={(e) => dropOnThread(e, thread.id)}
-      className={`group/row flex items-stretch gap-1 rounded-lg transition-all ${
+      className={`group/row flex items-stretch gap-1 rounded-lg transition ${
         dragId === thread.id ? 'opacity-40' : ''
       } ${
         dropTarget?.type === 'thread' && dropTarget.id === thread.id && dragId !== thread.id ? 'ring-2 ring-mint/50' : ''
@@ -250,7 +250,7 @@ export default function AreaView() {
         onDragEnd={handleDragEnd}
         title="Drag to reorder, or onto a group to file it"
         className="flex-shrink-0 flex items-center justify-center w-5 cursor-grab active:cursor-grabbing
-                   text-paper-400 dark:text-paper-600 opacity-0 group-hover/row:opacity-100 transition-opacity"
+                   text-paper-400 dark:text-paper-600 opacity-0 group-hover/row:opacity-100 transition-opacity focus-visible:opacity-100"
       >
         <GripVertical size={16} />
       </div>
@@ -494,12 +494,7 @@ export default function AreaView() {
           right={
             <button
               onClick={() => openNewThread()}
-              className="
-                whitespace-nowrap
-                flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-medium uppercase tracking-wide
-                bg-mint-700 hover:bg-mint-800 text-white
-                transition-colors duration-150
-              "
+              className="btn btn-sm btn-primary whitespace-nowrap"
             >
               <Plus size={13} />
               New Thread
@@ -566,7 +561,7 @@ export default function AreaView() {
             <p className="text-sm text-paper-500 dark:text-paper-700 mb-4">No threads yet for this area.</p>
             <button
               onClick={() => openNewThread()}
-              className="flex items-center gap-2 px-4 py-2 rounded-md bg-mint-700 hover:bg-mint-800 text-white text-sm mx-auto transition-colors"
+              className="btn btn-md btn-primary mx-auto"
             >
               <Plus size={14} />
               Create first thread
@@ -585,7 +580,7 @@ export default function AreaView() {
                   key={group.id}
                   onDragOver={(e) => { if (dragId != null) { e.preventDefault(); setDropTarget({ type: 'group', id: group.id }) } }}
                   onDrop={(e) => dropOnGroup(e, group.id)}
-                  className={`rounded-xl transition-all ${isDropOver ? 'ring-2 ring-mint/50 bg-mint/5' : ''}`}
+                  className={`rounded-xl transition ${isDropOver ? 'ring-2 ring-mint/50 bg-mint/5' : ''}`}
                 >
                   {/* Group header: chevron, name (editable), count, splitter, remove */}
                   <div className="flex items-center gap-2 mb-2.5">
@@ -685,7 +680,7 @@ export default function AreaView() {
                 setDragId(null); setDropTarget(null)
                 if (id != null) assignToGroup(id, null)
               }}
-              className={`flex flex-col gap-5 rounded-xl transition-all ${dropTarget?.type === 'ungrouped' ? 'ring-2 ring-mint/40' : ''}`}
+              className={`flex flex-col gap-5 rounded-xl transition ${dropTarget?.type === 'ungrouped' ? 'ring-2 ring-mint/40' : ''}`}
             >
               {groups.length > 0 && ungrouped.length > 0 && (
                 <div className="flex items-center gap-2">
@@ -872,7 +867,7 @@ export default function AreaView() {
             <button
               onClick={createThread}
               disabled={!threadForm.title.trim() || creatingThread}
-              className="px-4 py-2 text-sm rounded-md font-medium bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
+              className="btn btn-md btn-primary"
             >
               {creatingThread ? 'Creating…' : 'Create Thread'}
             </button>
@@ -957,7 +952,7 @@ function AreaDescription({ area, onSave, onError }) {
               <button
                 onClick={save}
                 disabled={saving}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-60 transition-colors"
+                className="btn btn-sm btn-primary"
               >
                 <Check size={12} />
                 {saving ? 'Saving…' : 'Save'}
@@ -996,10 +991,10 @@ function MoveToGroupMenu({ groups, currentGroupId, onAssign, onCreateAndAssign }
       <button
         onClick={() => setOpen((v) => !v)}
         title="Move to group"
-        className={`flex items-center justify-center w-6 h-6 rounded-md transition-all
+        className={`flex items-center justify-center w-6 h-6 rounded-md transition
                     text-paper-400 dark:text-paper-600 hover:text-paper-600 dark:hover:text-paper-300
                     hover:bg-paper-100 dark:hover:bg-pitch-600
-                    ${open ? 'opacity-100' : 'opacity-0 group-hover/row:opacity-100'}`}
+                    ${open ? 'opacity-100' : 'opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100'}`}
       >
         <Folder size={14} />
       </button>

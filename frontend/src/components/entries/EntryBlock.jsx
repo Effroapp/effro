@@ -70,7 +70,7 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
   return (
     <div
       id={`entry-${entry.id}`}
-      className={`relative pl-12 group animate-fade-in rounded-lg transition-all duration-700 ${
+      className={`relative pl-12 group animate-fade-in rounded-lg transition duration-700 ${
         highlighted
           ? 'ring-2 ring-mint/60 bg-mint-50/40 dark:bg-mint-900/15 -mx-2 px-2'
           : 'ring-0'
@@ -98,7 +98,7 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
           border-paper-200 dark:border-pitch-500
           group-hover:border-paper-300 dark:group-hover:border-paper-700
           group-hover:shadow-lg dark:group-hover:shadow-pitch-900/50
-          transition-all duration-200
+          transition duration-200
           ${isTodo && entry.completed ? 'opacity-60' : ''}
         `}
         style={{ borderLeft: `3px solid ${meta.css}` }}
@@ -145,7 +145,7 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
                 pinned={!!entry.pinned_at}
                 onChange={onTogglePin}
               />
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:opacity-100">
                 {isTitled && !editing && !editingTitle && (isTodo || !showsHeading) && (
                   <button
                     onClick={openTitleEditor}
@@ -205,7 +205,7 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
                 </button>
                 <button
                   onClick={commitTitle}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs rounded bg-mint-700 hover:bg-mint-800 text-white transition-colors"
+                  className="btn btn-sm btn-primary"
                 >
                   <Check size={12} /> Save
                 </button>
@@ -247,7 +247,7 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
                 <button onClick={onCancel} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded text-paper-600 hover:bg-paper-200 dark:hover:bg-pitch-500 transition-colors">
                   <X size={12} /> Cancel
                 </button>
-                <button onClick={onSave} className="flex items-center gap-1 px-3 py-1.5 text-xs rounded bg-mint-700 hover:bg-mint-800 text-white transition-colors">
+                <button onClick={onSave} className="btn btn-sm btn-primary">
                   <Check size={12} /> Save
                 </button>
               </div>

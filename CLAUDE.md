@@ -321,6 +321,31 @@ in someone's head.
   eyebrow sweep deliberately left every `<button>` and `<label>` alone, because
   a control label is not a section kicker, and phase 3 folds them into the
   `Button` and `Field` components.
+- Focus rings are clipped to nothing inside `overflow-hidden`, at 9 sites. The
+  global `:focus-visible` ring is drawn 2 to 4px OUTSIDE the border box, so any
+  full-bleed focusable inside a clipping ancestor loses it entirely. The worst is
+  the Dashboard: `.card{overflow:hidden}` in `dashboard-zones.css` wraps In Hand
+  and Coming Up, and `InHandStrip` adds a second one per row, so every row on the
+  app's main screen is keyboard-focusable with no visible indicator, in all seven
+  section styles. The fix is `focus-visible:ring-inset` on those focusables, which
+  needs checking against each section style.
+- Four controls cannot be reached by keyboard at all: the ThreadView description
+  editor, the TaskDecompositionDrawer subtask rename, the EntryBlock title when a
+  title already exists and the entry is not a to-do, and thread reordering in
+  AreaView, which is drag-only with no keyboard equivalent for sequence. SC 2.1.1.
+- `SettingsMenu`'s section-style picker has a broken roving tabindex: arrow keys
+  move `aria-checked` and `tabIndex` but never call `.focus()`, so the selection
+  moves while DOM focus stays on a tile that is now `tabIndex={-1}`.
+  `CreateEntryType`'s colour swatches have the opposite problem, a radiogroup with
+  no roving tabindex at all, so all six are individually tabbable.
+- Only the primary and danger button families went through `.btn`. The ghost,
+  plain and bordered families, roughly 200 buttons, still carry their own class
+  strings, and `Button.jsx` has no call sites yet: the sweep converted class
+  strings, not elements, because converting an element means moving its children
+  and icon into props.
+- 300 of the 352 buttons carry no `type` attribute and the app has 12 `<form>`
+  elements, so each of those is a latent accidental submit. `Button.jsx` defaults
+  `type="button"`, which is the fix, but it only helps where it is adopted.
 - There is no `npm run lint` script and no ESLint config. `npm run build` only
   catches what breaks the bundle, so an undefined identifier compiles happily
   and throws at runtime. `scripts/check-jsx-imports.mjs` covers the specific

@@ -106,14 +106,14 @@ export default function SetupGuide({ guide, open, onClose }) {
           {last ? (
             <button
               onClick={onClose}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold bg-mint-700 hover:bg-mint-800 text-white transition-colors"
+              className="btn btn-sm btn-primary"
             >
               <Check size={15} /> Done, let me paste
             </button>
           ) : (
             <button
               onClick={() => setI((n) => Math.min(steps.length - 1, n + 1))}
-              className="inline-flex items-center gap-1 px-4 py-1.5 rounded-md text-sm font-semibold bg-mint-700 hover:bg-mint-800 text-white transition-colors"
+              className="btn btn-sm btn-primary"
             >
               Next <ChevronRight size={15} />
             </button>

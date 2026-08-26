@@ -108,9 +108,9 @@ export default function SettingsMenu({
         className={`
           w-10 h-10 rounded-full overflow-hidden flex items-center justify-center
           font-sans font-semibold text-sm
-          shadow-md ring-2 transition-all
+          shadow-md ring-2 transition
           ${shownAvatar
-            ? 'ring-paper-300/80 dark:ring-pitch-500/80'
+            ? 'ring-paper-300/80 dark:ring-pitch-500/80 focus-visible:ring-mint-500'
             : 'bg-[var(--clay-tint)] text-clay-glyph ring-[var(--clay-edge)]'
           }
           ${open ? 'ring-mint-500/60 dark:ring-mint-500/60' : ''}
@@ -428,13 +428,19 @@ function FontSelect({ value, options, onChange }) {
                   <span className="font-mono text-2xs text-paper-500 dark:text-paper-600 flex-shrink-0">{opt.hint}</span>
                 </button>
                 <Tooltip content={opt.desc} side="left">
-                  <span
-                    tabIndex={0}
+                  {/* A button, not a tabbable span. It was a <span tabIndex={0}>
+                      with an aria-label and no role, so it sat in the tab order
+                      while a screen reader announced it as plain text.
+                      SC 4.1.2 Name, Role, Value. The bare focus:outline-none it
+                      also carried was harmless: outline-none sets outline only,
+                      and the global :focus-visible ring is a box-shadow. */}
+                  <button
+                    type="button"
                     aria-label={opt.desc}
-                    className="px-2 py-2 flex-shrink-0 text-paper-400 dark:text-paper-600 hover:text-pitch-600 dark:hover:text-paper-300 cursor-help focus:outline-none"
+                    className="px-2 py-2 flex-shrink-0 rounded text-paper-400 dark:text-paper-600 hover:text-pitch-600 dark:hover:text-paper-300 cursor-help"
                   >
                     <Info size={13} />
-                  </span>
+                  </button>
                 </Tooltip>
               </div>
             )

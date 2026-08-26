@@ -203,7 +203,7 @@ const FIELD = `w-full px-3 py-2.5 text-sm rounded-md
   border border-paper-300 dark:border-pitch-500
   text-pitch-800 dark:text-white
   placeholder:text-paper-500 dark:placeholder:text-paper-600
-  focus:outline-none focus:border-mint focus:ring-[3px] focus:ring-mint-50 dark:focus:ring-mint-900/30`
+  focus-visible:border-mint focus-visible:ring-2 focus-visible:ring-mint-500`
 
 function Label({ children }) {
   return (

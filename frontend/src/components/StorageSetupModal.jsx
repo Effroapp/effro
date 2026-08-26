@@ -386,7 +386,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
                     className="
                       w-full text-left rounded-lg border-2
                       border-paper-200 dark:border-pitch-500
-                      p-3 transition-all
+                      p-3 transition-colors
                       hover:border-mint dark:hover:border-mint
                       hover:bg-paper-100 dark:hover:bg-pitch-600/50
                     "
@@ -625,13 +625,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
             <button
               onClick={handleSave}
               disabled={saving || !canSave}
-              className="
-                w-full flex items-center justify-center gap-2
-                px-4 py-2.5 rounded-lg text-sm font-semibold
-                bg-mint-700 hover:bg-mint-800 text-white
-                disabled:opacity-40 disabled:cursor-not-allowed
-                transition-colors
-              "
+              className="btn btn-md btn-primary w-full"
             >
               {saving
                 ? <><Loader2 size={14} className="animate-spin" /> Saving…</>
@@ -830,7 +824,7 @@ function DropboxConnect({ config, onSavedConfig, onConnect }) {
         </div>
         <button
           onClick={onConnect}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-mint-700 hover:bg-mint-800 text-white transition-colors"
+          className="btn btn-md btn-primary w-full"
         >
           Connect Dropbox
         </button>
@@ -894,7 +888,7 @@ function DropboxConnect({ config, onSavedConfig, onConnect }) {
       <button
         type="submit"
         disabled={saving || !appKey.trim() || !appSecret.trim()}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="btn btn-md btn-primary w-full"
       >
         {saving ? (<><Loader2 size={14} className="animate-spin" /> Saving…</>) : 'Save'}
       </button>

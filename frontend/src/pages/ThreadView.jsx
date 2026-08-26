@@ -713,7 +713,7 @@ export default function ThreadView() {
                   <button
                     onClick={() => setEditingTitle(true)}
                     title="Edit title"
-                    className="p-1 opacity-40 hover:opacity-100 text-paper-500 dark:text-paper-600 hover:text-paper-700 dark:hover:text-paper-200 transition-all"
+                    className="p-1 opacity-40 hover:opacity-100 text-paper-500 dark:text-paper-600 hover:text-paper-700 dark:hover:text-paper-200 transition"
                   >
                     <Edit3 size={14} />
                   </button>
@@ -952,7 +952,7 @@ export default function ThreadView() {
               <button
                 onClick={addEntry}
                 disabled={!newEntryContent.trim() || addingEntry}
-                className="flex items-center gap-2 px-4 py-2 text-sm rounded-md font-medium bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
+                className="btn btn-md btn-primary"
               >
                 <Plus size={14} />
                 {addingEntry ? 'Adding…' : 'Add Entry'}
@@ -1279,7 +1279,7 @@ export default function ThreadView() {
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={() => setLinkModalOpen(false)} className="px-4 py-2 text-sm rounded-md text-paper-700 dark:text-paper-400 hover:bg-paper-200 dark:hover:bg-pitch-500 transition-colors">Cancel</button>
-            <button onClick={addLink} disabled={!linkForm.name.trim() || !linkForm.url.trim() || addingLink} className="px-4 py-2 text-sm rounded-md font-medium bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors">
+            <button onClick={addLink} disabled={!linkForm.name.trim() || !linkForm.url.trim() || addingLink} className="btn btn-md btn-primary">
               {addingLink ? 'Adding…' : 'Add Link'}
             </button>
           </div>
@@ -1415,7 +1415,7 @@ export default function ThreadView() {
             <button
               onClick={addThreadLink}
               disabled={!linkThreadForm.to_thread_id || addingThreadLink}
-              className="px-4 py-2 text-sm rounded-md font-medium bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
+              className="btn btn-md btn-primary"
             >
               {addingThreadLink ? 'Linking…' : 'Add link'}
             </button>
@@ -1473,7 +1473,7 @@ function ThreadLinksList({ outgoing, incoming, onRemove }) {
               <button
                 onClick={() => onRemove(row.link_id)}
                 title="Remove link"
-                className="p-1 rounded opacity-0 group-hover:opacity-100 text-paper-400 dark:text-paper-700 hover:text-terracotta transition-all"
+                className="p-1 rounded opacity-0 group-hover:opacity-100 text-paper-400 dark:text-paper-700 hover:text-terracotta transition focus-visible:opacity-100"
               >
                 <X size={11} />
               </button>
@@ -1535,7 +1535,7 @@ function FileItem({ file, onDelete }) {
       </a>
       <button
         onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 p-0.5 text-paper-400 hover:text-terracotta transition-all"
+        className="opacity-0 group-hover:opacity-100 p-0.5 text-paper-400 hover:text-terracotta transition focus-visible:opacity-100"
       >
         <X size={11} />
       </button>
@@ -1559,7 +1559,7 @@ function LinkItem({ link, onDelete }) {
       </a>
       <button
         onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 p-0.5 text-paper-400 hover:text-terracotta transition-all"
+        className="opacity-0 group-hover:opacity-100 p-0.5 text-paper-400 hover:text-terracotta transition focus-visible:opacity-100"
       >
         <X size={11} />
       </button>

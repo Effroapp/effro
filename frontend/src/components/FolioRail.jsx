@@ -181,7 +181,7 @@ function SourcesCard({ sources }) {
                 <span className="block text-xs text-pitch-800 dark:text-pitch-50 truncate">{domain}</span>
                 {m.title && <span className="block text-2xs text-paper-500 dark:text-pitch-300 truncate">{m.title}</span>}
               </span>
-              <ExternalLink size={13} className="flex-shrink-0 text-paper-400 dark:text-pitch-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <ExternalLink size={13} className="flex-shrink-0 text-paper-400 dark:text-pitch-300 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:opacity-100" />
             </button>
           )
         })}
@@ -216,7 +216,7 @@ function RelatedThreadsCard({ threads, onOpen }) {
                 {t.area ? `in ${t.area}` : 'thread'}{t.updated_at ? ` · ${formatDistanceToNow(parseUTC(t.updated_at), { addSuffix: true })}` : ''}
               </span>
             </span>
-            <ArrowRight size={13} className="flex-shrink-0 text-paper-400 dark:text-pitch-300 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <ArrowRight size={13} className="flex-shrink-0 text-paper-400 dark:text-pitch-300 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:opacity-100" />
           </button>
         ))}
         <p className="font-mono text-2xs text-paper-400 dark:text-pitch-300 px-1.5 py-1.5 tracking-wide">from your workspace</p>

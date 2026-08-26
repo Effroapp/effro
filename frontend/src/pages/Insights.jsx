@@ -210,7 +210,7 @@ function Tabs({ tab, onChange }) {
           <button
             key={key}
             onClick={() => onChange(key)}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition ${
               active
                 ? 'bg-white dark:bg-pitch-800 shadow-sm text-pitch-800 dark:text-white'
                 : 'text-paper-600 dark:text-paper-400 hover:text-pitch-700 dark:hover:text-paper-200 hover:bg-paper-100/60 dark:hover:bg-pitch-800/40'
@@ -274,8 +274,8 @@ function FocusPrompt({ focus, onSave }) {
       <div className="group flex items-center gap-2 mb-5 text-sm">
         <Target size={13} className="text-mint/70 flex-shrink-0" />
         <span className="text-paper-600 dark:text-paper-400">Focused on <span className="font-medium text-pitch-700 dark:text-paper-200">{focus}</span></span>
-        <button onClick={() => setEditing(true)} aria-label="Edit focus" className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-paper-400 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300"><Pencil size={12} /></button>
-        <button onClick={() => onSave('')} aria-label="Clear focus" className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-paper-400 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300"><X size={12} /></button>
+        <button onClick={() => setEditing(true)} aria-label="Edit focus" className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-paper-400 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300 focus-visible:opacity-100"><Pencil size={12} /></button>
+        <button onClick={() => onSave('')} aria-label="Clear focus" className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-paper-400 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-300 focus-visible:opacity-100"><X size={12} /></button>
       </div>
     )
   }
@@ -899,7 +899,7 @@ function Section({ label, children, hideable = true, info }) {
             onClick={toggle}
             aria-label={`Hide ${label}`}
             title="Tuck this away"
-            className="p-1 -mr-1 rounded text-paper-300 dark:text-paper-700 opacity-60 group-hover/sec:opacity-100 hover:text-paper-600 dark:hover:text-paper-400 transition-all"
+            className="p-1 -mr-1 rounded text-paper-300 dark:text-paper-700 opacity-60 group-hover/sec:opacity-100 hover:text-paper-600 dark:hover:text-paper-400 transition"
           >
             <Eye size={14} />
           </button>

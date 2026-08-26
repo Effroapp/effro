@@ -331,7 +331,7 @@ function NothingConnected({ onConnect }) {
       </p>
       <button
         onClick={onConnect}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-mint-700 hover:bg-mint-800 text-white text-sm font-medium transition-colors"
+        className="btn btn-md btn-primary"
       >
         <Plug size={14} /> Connect your tools
       </button>
@@ -606,11 +606,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
                 new_thread_title: signal.suggested_thread_id ? undefined : signal.title,
                 create_as: createAs,
               })}
-              className="
-                flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium
-                bg-mint-700 hover:bg-mint-800 text-white
-                transition-colors
-              "
+              className="btn btn-sm btn-primary"
             >
               <Check size={11} /> Accept
             </button>
@@ -734,12 +730,7 @@ function SuggestionRow({ signal, areas, isPickerOpen, onTogglePicker, onAccept, 
             <button
               onClick={accept}
               disabled={!chosenAreaId}
-              className="
-                flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium
-                bg-mint-700 hover:bg-mint-800 text-white
-                disabled:opacity-40 disabled:cursor-not-allowed
-                transition-colors
-              "
+              className="btn btn-sm btn-primary"
             >
               <Check size={11} /> Accept & file
             </button>

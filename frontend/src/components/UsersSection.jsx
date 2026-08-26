@@ -8,7 +8,7 @@ const FIELD =
   'border border-paper-300 dark:border-paper-700 text-pitch-800 dark:text-white ' +
   'placeholder:text-paper-400 dark:placeholder:text-paper-700 ' +
   'focus:outline-none focus:ring-2 focus:ring-mint-500'
-const BTN = 'px-4 py-2 text-sm font-medium rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors'
+const BTN = 'btn btn-md btn-primary'
 const EMPTY = { display_name: '', email: '', role: 'member' }
 
 /**

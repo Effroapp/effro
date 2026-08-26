@@ -281,14 +281,12 @@ function ReadView({ folio, onReload, onPull, pulling, onGoCaptures }) {
         </p>
         {folio.captures.length > 0 ? (
           <button onClick={onPull} disabled={pulling}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium
-                       bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors">
+            className="btn btn-md btn-primary">
             {pulling ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />} Pull it together
           </button>
         ) : (
           <button onClick={onGoCaptures}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium
-                       bg-mint-700 hover:bg-mint-800 text-white transition-colors">
+            className="btn btn-md btn-primary">
             <Plus size={15} /> Add your first capture
           </button>
         )}
@@ -600,10 +598,9 @@ function DigestEditor({ folio, onDone, onCancel }) {
         <div className="flex items-center gap-2">
           <button onClick={onCancel} disabled={saving}
             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm text-paper-700 dark:text-pitch-100
-                       hover:bg-paper-200 dark:hover:bg-pitch-600 transition-colors"><X size={14} /> Cancel</button>
+                       hover:bg-paper-200 dark:hover:bg-pitch-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><X size={14} /> Cancel</button>
           <button onClick={save} disabled={saving}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-medium
-                       bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors">
+            className="btn btn-sm btn-primary">
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Save
           </button>
         </div>
@@ -795,8 +792,7 @@ function CapturesView({ folio, onReload, onPull, pulling, noteRef }) {
           {folio.captures.length} capture{folio.captures.length === 1 ? '' : 's'} in this dive
         </span>
         <button onClick={onPull} disabled={pulling || folio.captures.length === 0}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium
-                     bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-40 transition-colors">
+          className="btn btn-md btn-primary">
           {pulling ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
           {folio.digest ? 'Pull it together again' : 'Pull it together'}
         </button>
@@ -891,7 +887,7 @@ function CaptureRow({ c, onRemove }) {
       </div>
       <button onClick={onRemove} aria-label="Remove capture"
         className="flex-shrink-0 p-1.5 rounded-md text-paper-400 dark:text-pitch-300 opacity-0 group-hover:opacity-100
-                   hover:text-terracotta hover:bg-terracotta/10 transition-all">
+                   hover:text-terracotta hover:bg-terracotta/10 transition focus-visible:opacity-100">
         <Trash2 size={14} />
       </button>
     </div>

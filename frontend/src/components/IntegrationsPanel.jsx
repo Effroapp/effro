@@ -78,7 +78,7 @@ export default function IntegrationsPanel() {
                 key={i.key}
                 onClick={() => setModalKey(i.key)}
                 title={i.name}
-                className={`relative flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
+                className={`relative flex items-center gap-2 px-3 py-2 rounded-lg border transition ${
                   on
                     ? 'border-mint/50 bg-mint/5'
                     : 'border-paper-300 dark:border-pitch-500 bg-paper-100 dark:bg-pitch-800 hover:border-mint dark:hover:border-mint hover:-translate-y-0.5'
@@ -99,7 +99,7 @@ export default function IntegrationsPanel() {
           <div className="eyebrow text-paper-500 dark:text-paper-600">Connected</div>
           <button
             onClick={() => setModalKey(null)}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-mint-700 hover:bg-mint-800 text-white transition-colors"
+            className="btn btn-sm btn-primary"
           >
             <Plus size={13} /> Add
           </button>
@@ -183,7 +183,7 @@ function IntegrationModal({ items, initialKey, onClose }) {
                 <button
                   key={i.key}
                   onClick={() => setKey(i.key)}
-                  className="w-full text-left rounded-lg border-2 border-paper-200 dark:border-pitch-500 p-3 transition-all hover:border-mint dark:hover:border-mint hover:bg-paper-100 dark:hover:bg-pitch-600/50"
+                  className="w-full text-left rounded-lg border-2 border-paper-200 dark:border-pitch-500 p-3 transition-colors hover:border-mint dark:hover:border-mint hover:bg-paper-100 dark:hover:bg-pitch-600/50"
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-9 h-9 rounded-lg bg-paper-100 dark:bg-pitch-800 flex items-center justify-center flex-shrink-0">

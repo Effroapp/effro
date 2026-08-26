@@ -92,7 +92,7 @@ export default function NewAreaModal({ isOpen, onClose, onCreated }) {
           <button
             onClick={submit}
             disabled={!name.trim() || submitting}
-            className="px-4 py-2 text-sm rounded-md font-medium bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
+            className="btn btn-md btn-primary"
           >
             {submitting ? 'Creating…' : 'Create area'}
           </button>

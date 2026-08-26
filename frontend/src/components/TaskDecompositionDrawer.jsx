@@ -174,11 +174,7 @@ export default function TaskDecompositionDrawer({
           <button
             onClick={handleApprove}
             disabled={isSubmitting || items.length === 0}
-            className="
-              w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg
-              text-sm font-semibold bg-mint-700 hover:bg-mint-800 text-white
-              disabled:opacity-40 disabled:cursor-not-allowed transition-colors
-            "
+            className="btn btn-md btn-primary w-full"
           >
             {isSubmitting ? (
               <><Loader2 size={15} className="animate-spin" /> Creating…</>
@@ -253,7 +249,7 @@ function SubtaskEditRow({ item, index, onUpdateTitle, onRemove, isLast }) {
       {!isLast && (
         <button
           onClick={() => onRemove(item._id)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 mt-0.5 flex-shrink-0 text-paper-400 dark:text-paper-600 hover:text-terracotta"
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 mt-0.5 flex-shrink-0 text-paper-400 dark:text-paper-600 hover:text-terracotta focus-visible:opacity-100"
           aria-label="Remove subtask"
         >
           <Trash2 size={13} />

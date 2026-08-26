@@ -44,7 +44,7 @@ export default function UpdateOverlay({ updater }) {
             {error && <p className="font-mono text-2xs text-paper-500 dark:text-pitch-300 mt-2 break-words">{error}</p>}
             <div className="flex items-center justify-center gap-2 mt-5">
               <button onClick={install}
-                className="px-4 py-2 rounded-md text-sm font-medium bg-mint-700 hover:bg-mint-800 text-white transition-colors">
+                className="btn btn-md btn-primary">
                 Try again
               </button>
               <button onClick={() => openExternal('https://github.com/Effroapp/effro/releases')}

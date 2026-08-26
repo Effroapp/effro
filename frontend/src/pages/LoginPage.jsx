@@ -153,7 +153,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting || !email.trim() || !password}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
+              className="btn btn-md btn-primary w-full"
             >
               {submitting ? <Spinner size={16} className="text-white" /> : 'Sign in'}
             </button>

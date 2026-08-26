@@ -355,7 +355,7 @@ function EmptyState({ onCreate }) {
       </p>
       <button
         onClick={onCreate}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-mint-700 hover:bg-mint-800 text-white transition-colors"
+        className="btn btn-md btn-primary"
       >
         <Plus size={15} />
         Create your first area

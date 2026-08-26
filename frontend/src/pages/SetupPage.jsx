@@ -91,7 +91,7 @@ export default function SetupPage() {
             </p>
             <Link
               to="/login"
-              className="inline-block px-4 py-2 text-sm font-medium rounded-md bg-mint-700 hover:bg-mint-800 text-white transition-colors"
+              className="btn btn-md btn-primary"
             >
               Go to sign in
             </Link>
@@ -168,7 +168,7 @@ export default function SetupPage() {
               <button
                 type="submit"
                 disabled={submitting || !email.trim() || !password || (tokenRequired && !setupToken.trim())}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
+                className="btn btn-md btn-primary w-full"
               >
                 {submitting ? <Spinner size={16} className="text-white" /> : 'Create admin account'}
               </button>

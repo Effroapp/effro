@@ -132,7 +132,7 @@ export default function CreateEntryType({ onCreate, onCancel, busy = false, erro
               onClick={() => setColour(key)}
               className={`w-5 h-5 rounded-full transition-transform ${CUSTOM_PALETTE[key].dot}
                 ${colour === key
-                  ? 'ring-2 ring-offset-2 ring-paper-700 dark:ring-paper-300 ring-offset-white dark:ring-offset-pitch-700'
+                  ? 'ring-2 ring-offset-2 ring-paper-700 dark:ring-paper-300 ring-offset-white dark:ring-offset-pitch-700 focus-visible:ring-mint-500'
                   : 'hover:scale-110'}`}
             />
           ))}
@@ -181,9 +181,7 @@ export default function CreateEntryType({ onCreate, onCancel, busy = false, erro
         <button
           onClick={submit}
           disabled={!canCreate}
-          className="px-3 py-1.5 text-xs font-sans font-medium uppercase tracking-wide rounded
-                     bg-mint-700 hover:bg-mint-800 text-white
-                     disabled:opacity-50 transition-colors"
+          className="btn btn-sm btn-primary"
         >
           Create type
         </button>
@@ -203,7 +201,7 @@ const FIELD = `w-full px-3 py-2.5 text-sm rounded-md
   border border-paper-300 dark:border-pitch-500
   text-pitch-800 dark:text-white
   placeholder:text-paper-500 dark:placeholder:text-paper-600
-  focus:outline-none focus:border-mint focus:ring-[3px] focus:ring-mint-50 dark:focus:ring-mint-900/30`
+  focus-visible:border-mint focus-visible:ring-2 focus-visible:ring-mint-500`
 
 function Label({ children, className = 'mb-1.5' }) {
   return (

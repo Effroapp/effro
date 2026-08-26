@@ -101,8 +101,7 @@ export default function FolioIndex() {
             <button
               onClick={newDive}
               disabled={creating}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md
-                         bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
+              className="btn btn-md btn-primary"
             >
               {creating ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
               New deep dive
@@ -273,7 +272,7 @@ function TileCard({ folio, onOpen }) {
       className="group text-left flex flex-col rounded-2xl overflow-hidden
                  bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
                  shadow-sm hover:-translate-y-0.5 hover:shadow-md hover:border-paper-400 dark:hover:border-pitch-500
-                 transition-all motion-reduce:transform-none motion-reduce:transition-none"
+                 transition motion-reduce:transform-none motion-reduce:transition-none"
     >
       <div className="h-32 bg-paper-100 dark:bg-pitch-800 border-b border-paper-300 dark:border-pitch-400">
         {folio.thumb_url
@@ -367,7 +366,7 @@ function Hero({ folio, onOpen }) {
       className="w-full text-left flex flex-col sm:flex-row gap-5 rounded-2xl p-5
                  bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
                  shadow-sm hover:-translate-y-0.5 hover:shadow-md hover:border-paper-400 dark:hover:border-pitch-500
-                 transition-all motion-reduce:transform-none motion-reduce:transition-none"
+                 transition motion-reduce:transform-none motion-reduce:transition-none"
     >
       <div className="flex-1 min-w-0">
         <span className="eyebrow inline-flex items-center gap-1.5 text-mint-700 dark:text-mint-300">
@@ -422,7 +421,7 @@ function DiveCard({ folio, onOpen }) {
       className="text-left flex flex-col gap-2.5 rounded-2xl p-4
                  bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
                  shadow-sm hover:-translate-y-0.5 hover:shadow-md hover:border-paper-400 dark:hover:border-pitch-500
-                 transition-all motion-reduce:transform-none motion-reduce:transition-none"
+                 transition motion-reduce:transform-none motion-reduce:transition-none"
     >
       <div className="flex items-start justify-between gap-2.5">
         <span className="font-sans font-semibold text-sm leading-snug text-pitch-800 dark:text-pitch-50">
@@ -457,8 +456,7 @@ function EmptyState({ onStart, creating }) {
       <button
         onClick={onStart}
         disabled={creating}
-        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md
-                   bg-mint-700 hover:bg-mint-800 text-white disabled:opacity-50 transition-colors"
+        className="btn btn-md btn-primary"
       >
         {creating ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
         New deep dive

@@ -88,7 +88,7 @@ export default function PostConnectFlow({
           <p className="mt-3 text-sm text-pitch-700 dark:text-paper-200">Pull in what is already there?</p>
           <div className="mt-3 flex items-center justify-center gap-2">
             <button onClick={runSync}
-              className="px-4 py-2 rounded-md text-sm font-semibold bg-mint-700 hover:bg-mint-800 text-white transition-colors">
+              className="btn btn-md btn-primary">
               Sync now
             </button>
             <button onClick={onClose}
@@ -154,7 +154,7 @@ export default function PostConnectFlow({
 
           <div className="mt-4 flex items-center justify-center gap-2">
             <button onClick={goToSignals}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold bg-mint-700 hover:bg-mint-800 text-white transition-colors">
+              className="btn btn-md btn-primary">
               Go to Signals <ArrowRight size={14} />
             </button>
             <button onClick={onClose}

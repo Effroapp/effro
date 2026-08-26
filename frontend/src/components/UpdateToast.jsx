@@ -65,12 +65,7 @@ export default function UpdateToast({ updater }) {
         <div className="flex items-center gap-2">
           <button
             onClick={install}
-            className="
-              flex-1 flex items-center justify-center gap-1.5
-              px-3 py-1.5 rounded-md text-xs
-              bg-mint-700 hover:bg-mint-800 text-white
-              font-sans font-medium uppercase tracking-wide transition-colors
-            "
+            className="btn btn-sm btn-primary flex-1"
           >
             <Download size={11} />
             Update now

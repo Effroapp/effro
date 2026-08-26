@@ -70,7 +70,7 @@ export default function ConnectorPolicySection({ onChanged }) {
                 onClick={() => setOverride(c.key, null)}
                 disabled={busyKey === c.key}
                 title="Return to the edition default"
-                className="inline-flex items-center gap-1 px-2 py-1 rounded text-2xs font-mono uppercase tracking-wide text-paper-500 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-200 transition-colors"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-2xs font-mono uppercase tracking-wide text-paper-500 dark:text-paper-600 hover:text-pitch-700 dark:hover:text-paper-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <RotateCcw size={10} /> Default
               </button>

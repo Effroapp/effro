@@ -23,7 +23,7 @@ export default function TaskCheckbox({ completed, onToggle, size = 24, label = '
       }}
       className={`
         border flex items-center justify-center flex-shrink-0
-        transition-all duration-150
+        transition-colors duration-150
         ${completed
           ? 'bg-mint-700 border-mint-700'
           : 'border-paper-400 dark:border-paper-700 bg-transparent hover:border-mint-500'
