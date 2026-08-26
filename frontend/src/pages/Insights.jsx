@@ -16,12 +16,14 @@ import {
   CheckSquare, Calendar, Ban, ArrowUpRight, Clock, Trophy,
   Unlock, Undo2, Hourglass, Sun, Sunset, CircleCheck, Ticket, X, ChevronDown, Coffee,
   Eye, EyeOff, RefreshCw, Target, Pencil, ListPlus, AlertTriangle, FolderPlus, Info,
+  CircleDot,
 } from 'lucide-react'
 import { format, addDays, parseISO } from 'date-fns'
 import IntroPanel, { Key } from '../components/IntroPanel'
 import PageHeader from '../components/PageHeader'
 import { AreaIcon } from '../components/IconPicker'
 import { getAreaStatus } from '../utils/status'
+import { iconByName } from '../utils/entityIcons'
 import { insightsApi } from '../api/client'
 import { BionicText } from '../utils/bionic.jsx'
 import { InfoTip } from '../components/Tooltip'
@@ -36,6 +38,9 @@ const ENTRY_META = {
   meeting:         { Icon: Calendar,      color: 'var(--lavender)' },
   blockage_logged: { Icon: AlertTriangle, color: 'var(--amber-muted)' },
   thread_started:  { Icon: FolderPlus,    color: 'var(--sage)' },
+  // A user's own type. The fallback look only, since the real colour and
+  // icon come down on the chip itself.
+  custom:          { Icon: CircleDot,     color: 'var(--sage)' },
   // Completions (things closed)
   todo:     { Icon: CheckSquare, color: 'var(--sky-muted)' },
   blockage: { Icon: Ban,         color: 'var(--terracotta)' },
@@ -371,7 +376,15 @@ function Hero({ count, unit = 'done today', caption, chips = [], items = [], onO
         {chips.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             {chips.map((b) => {
-              const m = ENTRY_META[b.type] || ENTRY_META.todo
+              // A user's own type sends its own colour and icon, because the
+              // client cannot know them in advance. Without that a Risk would
+              // wear the to-do fallback and read as a to-do.
+              const base = ENTRY_META[b.type] || ENTRY_META.todo
+              const CustomIcon = b.icon ? iconByName(b.icon) : null
+              const m = {
+                Icon: CustomIcon || base.Icon,
+                color: b.colour ? `var(--${b.colour})` : base.color,
+              }
               return (
                 <span key={b.type} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm" style={{ backgroundColor: `color-mix(in srgb, ${m.color} 10%, transparent)`, color: m.color }}>
                   <m.Icon size={13} />
@@ -472,12 +485,13 @@ function Celebrations({ items }) {
 // Expanded detail behind the "loops closed" hero: the actual items, grouped by
 // type (todos, decisions, blockers cleared, threads resolved, Jira filed).
 const CLOSED_ORDER = [
-  'update', 'todo_added', 'decision', 'meeting', 'blockage_logged',
+  'update', 'todo_added', 'decision', 'meeting', 'blockage_logged', 'custom',
   'todo', 'blockage', 'resolved', 'jira',
 ]
 const CLOSED_GROUP_LABEL = {
   update: 'Updates logged', todo_added: 'Todos added', decision: 'Decisions made',
   meeting: 'Meetings', blockage_logged: 'Blockers flagged',
+  custom: 'Your own types',
   todo: 'Todos done', blockage: 'Blockers cleared',
   resolved: 'Threads resolved', jira: 'Jira items filed',
 }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { PinOff } from 'lucide-react'
 
 import { entriesApi, pinsApi } from '../api/client'
+import { compactAge } from '../utils/time.js'
 import { notifyEntriesChanged, useEntriesChanged } from '../utils/entryEvents'
 import { displayTitle } from '../utils/entries'
 import { entityForEntry } from '../utils/entityIcons'
@@ -28,17 +29,6 @@ import { useToast } from './Toast'
  * dashboard begins at the area grid, which is why there is no empty state.
  */
 
-// Age is information, never alarm, so this never changes colour or wording as
-// it grows. Under an hour reads as "now" rather than counting minutes down.
-function relativeAge(pinnedAt) {
-  const then = new Date(pinnedAt.endsWith('Z') ? pinnedAt : `${pinnedAt}Z`)
-  const mins = Math.max(0, Math.floor((Date.now() - then.getTime()) / 60000))
-  if (mins < 60) return 'now'
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h`
-  return `${Math.floor(hours / 24)}d`
-}
-
 // The 850ms hold and the 330ms collapse live in the .ih-settle keyframe; this
 // is when the row can finally be dropped from the list.
 const SETTLE_TOTAL_MS = 1180
@@ -48,7 +38,6 @@ export default function InHandStrip({ onCount }) {
 
   const [items, setItems] = useState([])
   const [loaded, setLoaded] = useState(false)
-  const [stripHovered, setStripHovered] = useState(false)
   const [hoveredId, setHoveredId] = useState(null)
   const [editing, setEditing] = useState(false)
   // Rows mid-exit after a tick. They hold their space until the collapse ends.
@@ -153,20 +142,20 @@ export default function InHandStrip({ onCount }) {
   if (!loaded || count === 0) return null
 
   return (
-    <div
-      onMouseEnter={() => setStripHovered(true)}
-      onMouseLeave={() => { setStripHovered(false); setHoveredId(null) }}
-    >
+    <div onMouseLeave={() => setHoveredId(null)}>
       <Zone
         id="inhand"
         title="In hand"
         count={String(count)}
         bodyClass="card"
-        actions={(editing || stripHovered) ? (
+        actions={
+          /* Tidy turns Unpin on for every row at once, so clearing several is
+             one decision rather than a hunt with the pointer. It used to wait
+             for hover, which meant it was not there when you looked for it. */
           <button type="button" className="zact" onClick={() => setEditing((v) => !v)}>
-            {editing ? 'Done' : 'Edit'}
+            {editing ? 'Done' : 'Tidy'}
           </button>
-        ) : null}
+        }
       >
         {items.map((item) => (
           <Row
@@ -219,8 +208,9 @@ function Row({ item, editing, hovered, settling, onEnter, onLeave, onTick, onUnp
           />
         )}
 
-        {/* Control */}
-        <span className="box relative flex items-center">
+        {/* Control. Deliberately not .box: that class draws the reference
+            mock's own 16px checkbox, and the real control goes here. */}
+        <span className="relative mt-0.5 flex flex-shrink-0 items-center">
           {isTodo ? (
             <TaskCheckbox
               completed={settling}
@@ -233,22 +223,17 @@ function Row({ item, editing, hovered, settling, onEnter, onLeave, onTick, onUnp
           )}
         </span>
 
-        {/* Title. One line, no due date, no thread name, no column heads. */}
-        <span className="relative min-w-0 flex items-center">
-          <span
-            className={`ih-text truncate transition-colors duration-200
-              ${settling ? 'line-through is-settling' : ''}`}
-          >
-            {displayTitle(item)}
-          </span>
+        {/* Title. Up to two lines, no due date, no thread name, no column
+            heads. This is the row's flexible child, so the age sits right. */}
+        <span
+          className={`ih-text transition-colors duration-200
+            ${settling ? 'line-through is-settling' : ''}`}
+        >
+          {displayTitle(item)}
         </span>
 
-        {/* Age, hard right in a fixed column so every row lines up. */}
-        <span className="flex items-center justify-end">
-          {!settling && (
-            <span className="age">{relativeAge(item.pinned_at)}</span>
-          )}
-        </span>
+        {/* Age, hard right so every row lines up. */}
+        {!settling && <span className="age flex-shrink-0">{compactAge(item.pinned_at)}</span>}
 
         {/* The settle. It replaces the age rather than adding to the row. */}
         {settling && (

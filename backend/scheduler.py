@@ -20,6 +20,7 @@ from apscheduler.triggers.date import DateTrigger
 import models
 from database import SessionLocal
 from entry_text import entry_prompt_line
+from ai_context import recent_entries_for_prompt, reference_line, reference_tally
 from audit import log_audit
 
 log = logging.getLogger("effro.scheduler")
@@ -38,16 +39,13 @@ def _gather_area_context(db, area: models.Area) -> str:
     )
     blocks = []
     for t in threads:
-        recent_entries = (
-            db.query(models.Entry)
-            .filter(models.Entry.thread_id == t.id)
-            .order_by(models.Entry.created_at.desc())
-            .limit(3)
-            .all()
-        )
+        recent_entries = recent_entries_for_prompt(db, [t.id], 3)
         entry_lines = "\n".join(
             "  - " + entry_prompt_line(e, 180) for e in recent_entries
         ) or "  (no entries)"
+        refs = reference_line(reference_tally(db, [t.id]))
+        if refs:
+            entry_lines += f"\n  - Attached: {refs}"
         blocks.append(f"Thread: {t.title} [{t.status}]\n{entry_lines}")
     return "\n\n".join(blocks) if blocks else "(no threads yet)"
 
@@ -106,14 +104,11 @@ def _refresh_area(db, area: models.Area, provider) -> bool:
 
 def _refresh_thread(db, thread: models.Thread, provider) -> bool:
     """Regenerate thread.summary via the AI provider. Returns True on success."""
-    recent = (
-        db.query(models.Entry)
-        .filter(models.Entry.thread_id == thread.id, models.Entry.parent_id.is_(None))
-        .order_by(models.Entry.created_at.desc())
-        .limit(15)
-        .all()
-    )
+    recent = recent_entries_for_prompt(db, [thread.id], 15)
     entry_lines = "\n".join(entry_prompt_line(e, 200) for e in recent) or "(no entries yet)"
+    refs = reference_line(reference_tally(db, [thread.id]))
+    if refs:
+        entry_lines += f"\nAttached: {refs}"
     system = (
         "You write a concise status summary for a single thread of work.\n"
         "Output exactly 2 sentences. No preamble, no formatting, no bullet points.\n"

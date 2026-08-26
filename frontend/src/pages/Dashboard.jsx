@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MessageSquare, ArrowRight, RefreshCw, Clock, Sparkles, RotateCcw, Leaf, ChevronDown, X, Plus, LayoutGrid } from 'lucide-react'
-import { formatDistanceToNow, format, differenceInDays, differenceInCalendarDays, parseISO } from 'date-fns'
-import { parseUTC } from '../utils/time.js'
+import { format, differenceInDays, differenceInCalendarDays, parseISO } from 'date-fns'
+import { parseUTC, compactAge } from '../utils/time.js'
 import { areasApi, entriesApi } from '../api/client'
 import { getTodayNudge, getRandomNudge } from '../api/nudges'
 import InHandStrip from '../components/InHandStrip'
 import { useEntriesChanged } from '../utils/entryEvents'
 import { displayTitle } from '../utils/entries'
-import StatusBadge from '../components/StatusBadge'
 import WeeklyRoundupModal from '../components/WeeklyRoundupModal'
 import NewAreaModal from '../components/NewAreaModal'
 import { AreaIcon } from '../components/IconPicker'
@@ -177,28 +176,26 @@ export default function Dashboard() {
 
   return (
     <div
-      className="dashboard flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800"
+      className="dashboard flex-1 min-h-screen"
       data-layout={layout}
       data-section-style={sectionStyle}
     >
-      {/* ── Sub-toolbar (page-level, no brand) ── */}
-      <header className="
-        sticky top-0 z-10 px-8 py-5
-        bg-paper-100/90 dark:bg-pitch-800/90 backdrop-blur-md
-        border-b border-paper-300 dark:border-pitch-700
-      ">
-        <div className="max-w-[1600px] mx-auto flex items-start justify-between gap-6 pr-14">
+      {/* Sub-toolbar (page-level, no brand). The chrome is .topbar in
+          dashboard-zones.css, on the same --dz-* set as the zones, rather than
+          a second set of Tailwind classes saying the same thing twice. */}
+      <header className="topbar sticky top-0 z-10 backdrop-blur-md">
+        <div className="max-w-[1600px] mx-auto w-full flex items-start justify-between gap-6 pr-14">
           <div className="min-w-0">
             {/* Greeting + date. Personal anchor - orients the eye and the
                 hour. First-name only so the line stays short and warm. */}
-            <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 leading-tight">
+            <h1 className="greet">
               {getTimeGreeting()}
               {firstName(displayName) && (
                 <>, <span className="text-clay-text">{firstName(displayName)}</span></>
               )}
             </h1>
             <div className="status">
-              <p className="date text-xs font-mono uppercase tracking-[0.25em] text-paper-500 dark:text-paper-600">
+              <p className="date">
                 {format(new Date(), 'EEEE, d MMMM')}
               </p>
               {/* Deterministic, from what is already on the page. Nothing here
@@ -220,7 +217,7 @@ export default function Dashboard() {
           {/* View + roundup controls only make sense once at least one area
               exists; on a fresh install the empty state below carries the page. */}
           {areas.length > 0 && (
-          <div className="flex items-center gap-2 flex-shrink-0 pt-1">
+          <div className="topbar-actions flex-shrink-0 pt-1">
             <button
               onClick={() => setRoundupOpen(true)}
               disabled={aiConfigured === false}
@@ -394,93 +391,51 @@ function ViewSegmentedControl({ viewMode, onChange }) {
 // ─── Area card ────────────────────────────────────────────────────────────────
 
 function AreaCard({ area }) {
-  const config         = getAreaStatus(area.status)
-  const relativeTime   = formatDistanceToNow(parseUTC(area.updated_at), { addSuffix: true })
+  const config = getAreaStatus(area.status)
   const daysSinceUpdate = differenceInDays(new Date(), parseUTC(area.updated_at))
   // Stable areas recede so the urgent ones carry the eye. Present but quiet;
   // full weight returns on hover.
   const isStable = area.status === 'stable'
+  const overview = area.summary || area.description
 
   return (
     <Link
       to={`/area/${area.id}`}
-      className={`
-        acard group relative flex flex-col rounded-xl border overflow-hidden
-        bg-white dark:bg-pitch-700
-        border-paper-300 dark:border-pitch-500
-        hover:border-paper-400 dark:hover:border-paper-700
-        hover:shadow-lg dark:hover:shadow-pitch-900/60
-        hover:-translate-y-0.5
-        transition-all duration-200
-        animate-fade-in
-        ${isStable ? 'opacity-60 hover:opacity-100' : ''}
-      `}
+      // The accent and the badge follow the area's status. Blocked reads as
+      // mustard here rather than its usual terracotta, because the dashboard
+      // is where the day starts and nothing on it is allowed to alarm.
+      style={{ '--acc': area.status === 'blocked' ? 'var(--mustard)' : config.dot }}
+      className={`acard animate-fade-in ${isStable ? 'opacity-60 hover:opacity-100' : ''}`}
     >
-      {/* Status accent stripe */}
-      <div
-        className="h-1"
-        style={{
-          backgroundColor: config.dot,
-          boxShadow: `0 1px 8px color-mix(in srgb, ${config.dot} 38%, transparent)`,
-        }}
-      />
-
-      <div className="p-5 flex flex-col flex-1">
-        {/* Header */}
-        <div className="ahead flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            {area.icon && (
-              <span className="text-paper-700 dark:text-paper-200 flex-shrink-0">
-                <AreaIcon name={area.icon} size={18} />
-              </span>
-            )}
-            <h2 className="atitle font-display font-bold text-base text-pitch-800 dark:text-white truncate">
-              {area.name}
-            </h2>
-          </div>
-          <span className="badge">
-            <StatusBadge status={area.status} type="area" size="xs" />
+      <div className="ahead">
+        <AreaIcon name={area.icon || 'Folder'} size={16} className="ic" />
+        <h3 className="atitle">{area.name}</h3>
+        <span className="badge">{config.label}</span>
+        {daysSinceUpdate >= INACTIVITY_THRESHOLD_DAYS && !isStable && (
+          <span className="quiet flex flex-shrink-0 items-center gap-1 font-mono text-xs text-mustard">
+            <Clock size={11} />
+            {daysSinceUpdate}d quiet
           </span>
-        </div>
+        )}
+      </div>
 
-        {/* Card text: the current overview when there is one, else the stable
-            description - a freshly created area shows its description here
-            until an overview is written or generated. */}
-        <p className="abody text-sm leading-relaxed flex-1 line-clamp-3 mb-4">
-          {(area.summary || area.description) ? (
-            <BionicText>{stripMarkdown(area.summary || area.description)}</BionicText>
-          ) : (
-            <span className="italic" style={{ color: 'var(--placeholder)' }}>
-              No overview yet - click to add one.
-            </span>
-          )}
-        </p>
+      {/* The current overview when there is one, else the stable description,
+          so a freshly created area says something until an overview exists. */}
+      {overview ? (
+        <p className="abody"><BionicText>{stripMarkdown(overview)}</BionicText></p>
+      ) : (
+        <p className="abody empty">No overview yet - click to add one.</p>
+      )}
 
-        {/* Footer */}
-        <div className="afoot flex items-center justify-between pt-3 border-t border-paper-200 dark:border-pitch-500">
-          <span className="flex items-center gap-1.5 text-xs text-paper-500 dark:text-paper-600">
-            <MessageSquare size={12} />
-            <span className="font-mono">
-              {area.open_thread_count}
-              <span className="text-paper-400 dark:text-pitch-500">/{area.thread_count}</span>
-            </span>
-            <span className="text-paper-400 dark:text-pitch-500">active</span>
-          </span>
-
-          <div className="flex items-center gap-2">
-              {daysSinceUpdate >= INACTIVITY_THRESHOLD_DAYS && area.status !== 'stable' && (
-                <span className="flex items-center gap-1 font-mono text-xs text-mustard">
-                  <Clock size={11} />
-                  {daysSinceUpdate}d quiet
-                </span>
-              )}
-            <span className="text-xs font-mono text-paper-400 dark:text-paper-700">{relativeTime}</span>
-            <ArrowRight
-              size={13}
-              className="text-paper-400 dark:text-paper-700 group-hover:text-paper-700 group-hover:translate-x-0.5 transition-all"
-            />
-          </div>
-        </div>
+      <div className="afoot">
+        <span className="l">
+          <MessageSquare size={13} className="ic" />
+          <span className="n">{area.open_thread_count}</span>/{area.thread_count} active
+        </span>
+        <span className="r">
+          {compactAge(area.updated_at)}
+          <ArrowRight size={13} className="ic" />
+        </span>
       </div>
     </Link>
   )
@@ -488,7 +443,7 @@ function AreaCard({ area }) {
 
 function DashboardSkeleton() {
   return (
-    <div className="dashboard flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800">
+    <div className="dashboard flex-1 min-h-screen">
       <div
         className="max-w-[1600px] mx-auto px-8 py-8 grid gap-4"
         style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}

@@ -122,9 +122,63 @@ already use and pull the important bits into one place. Core ideas:
   catch-up, nightly backup, integration syncs every 30 min).
 - `ai_provider.py` - pluggable BYOK AI: `get_provider(db).complete(system=,
   messages=, max_tokens=)` and `.test() -> (ok, msg)`.
+- `ai_context.py` - what a grounded prompt is allowed to know. Every AI
+  feature reads its material through it. See **AI grounding** below, which
+  is a rule and not a description.
+- `entry_text.py` - the shared entries vocabulary: type labels, titles, and
+  `entry_prompt_line()`, which is how an entry is written into a prompt.
 - Secrets are **Fernet-encrypted** at rest (key in `app_settings`). All
   third-party config (OAuth client id/secret, PATs, app passwords) is
   **bring-your-own** - never a shared Effro app.
+
+## AI grounding (a rule, not a description)
+Effro's AI features are grounded: the weekly roundup, the area overview, the
+thread summary, the nightly refresh and the Insights wind-down all describe the
+user's real work back to them. Their whole value is being right. A summary that quietly stops seeing
+part of the app is worse than no summary, because the user has no way to tell.
+
+**The rule: an AI prompt never queries entries directly. It calls
+`backend/ai_context.py`.** That module is the single place that decides what a
+prompt sees, so anything added to the app reaches every prompt at once instead
+of reaching whichever one someone remembered to update.
+
+It exists because that failed twice.
+- Reference cards landed, and the area overview immediately started describing
+  threads as filenames. Three attached files are three of the most recent
+  entries, and the summariser had no idea it should skip them.
+- The weekly roundup only ever counted to-dos and listed decisions. Blocked
+  items, meetings, updates and every type a user had made for themselves were
+  invisible in the one place meant to tell them how their week went.
+
+What that means in practice.
+- Gather through `recent_entries_for_prompt()`, `entries_logged()`,
+  `week_highlights()`, `reference_tally()` and `in_hand()`. If you need
+  something they do not give you, add it there rather than querying around it.
+- Render an entry with `entry_prompt_line()` from `entry_text.py`, never raw
+  `content`. It prefixes the entry's human label, so the model can tell a
+  Decision from a Blocked item from a user's own Risk without being taught the
+  taxonomy, and a new type is understood the moment it exists.
+- Count by label, not by a hardcoded `type ==` list. `entries_logged()` is
+  keyed by label for exactly this reason.
+- References are tallied, never quoted. A summary should know three files were
+  attached and should not spend its budget on three filenames.
+- `backend/tests/test_ai_context.py` is the guard. It seeds one entry of every
+  type, plus a user-defined type, a reference and a pin, and asserts each one
+  reaches a prompt. Extend it whenever you add a kind of content.
+
+Insights is the exception that proves the rule. Its narrative is a **rewording
+of a deterministic template**, so the model never sees an entry and cannot sum
+or relabel anything, and a numeric guard rejects any output that introduces a
+number the draft did not have. That design stays. What still applies is the
+counting underneath it: the Today panel had five hardcoded types, so a day
+spent logging a user's own type read as a blank day. Count by type there too,
+and give a user-defined type its own chip under its own name and colour.
+
+**When you add anything that carries meaning** - an entry type, a field a user
+writes into, a new object like Folio, a new way to attach something - decide
+what the roundup and the summaries should say about it, and wire it through
+`ai_context.py` in the same change. Leaving it for later means shipping an app
+whose AI describes a version of itself that no longer exists.
 
 ## Frontend (`frontend/src/`)
 - `pages/` - Dashboard, Insights, AreaView, ThreadView, Signals, ProcessView,
@@ -183,7 +237,11 @@ as the authority where the two disagree.
   - Backend: `ast.parse` for syntax, then FastAPI `TestClient` against a temp DB
     (set `DB_PATH` to a temp file, the lifespan runs migrations). For services,
     seed a throwaway DB and call functions directly.
-  - Frontend: `npm run build` must pass.
+  - Frontend: `npm run build` must pass, then
+    `node scripts/check-jsx-imports.mjs` from the repo root (a component
+    used but never imported compiles happily and throws at runtime) and
+    `node scripts/check-icon-names.mjs` from `frontend/` (every icon the
+    pickers list has to resolve to a real Lucide component).
 - **Backend tests** live in `backend/tests` and run under pytest. Install the
   dev deps once with
   `backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt`,
