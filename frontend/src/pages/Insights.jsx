@@ -21,6 +21,7 @@ import {
 import { format, addDays, parseISO } from 'date-fns'
 import IntroPanel, { Key } from '../components/IntroPanel'
 import PageHeader from '../components/PageHeader'
+import PageShell from '../components/PageShell'
 import { AreaIcon } from '../components/IconPicker'
 import { getAreaStatus } from '../utils/status'
 import { iconByName } from '../utils/entityIcons'
@@ -127,8 +128,9 @@ export default function Insights() {
   useEffect(() => { if (tab === 'balance' && !balance) insightsApi.balance().then(setBalance).catch(() => {}) }, [tab, balance])
 
   return (
-    <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
-      <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
+    <PageShell
+      bodyClassName="py-8"
+      header={
         <PageHeader
           icon={Telescope}
           title="Insights"
@@ -139,61 +141,61 @@ export default function Insights() {
             </span>
           }
         />
+      }
+    >
+      {/* First-run explainer - shown once, then dismissed for good. */}
+      <IntroPanel icon={Telescope} title="Welcome to Insights" storageKey="effro.insightsIntroSeen">
+        A calm place to see how things are really going.{' '}
+        <Key>Reflect</Key> on what you've done,
+        look <Key>Ahead</Key> at what's coming,
+        and check the <Key>Balance</Key> across your areas.
+        It's all real, and none of it is here to nag you.
+      </IntroPanel>
 
-        {/* First-run explainer - shown once, then dismissed for good. */}
-        <IntroPanel icon={Telescope} title="Welcome to Insights" storageKey="effro.insightsIntroSeen">
-          A calm place to see how things are really going.{' '}
-          <Key>Reflect</Key> on what you've done,
-          look <Key>Ahead</Key> at what's coming,
-          and check the <Key>Balance</Key> across your areas.
-          It's all real, and none of it is here to nag you.
-        </IntroPanel>
+      {/* Narrative line - the calm "what to notice", deterministic + accurate. */}
+      {week?.narrative && (
+        <p className="font-lexend text-sm leading-relaxed text-paper-600 dark:text-pitch-100 italic mb-6 -mt-1 flex items-start gap-1.5">
+          <Sparkles size={13} className="mt-1 flex-shrink-0 text-mint/70" />
+          <span><BionicText>{week.narrative}</BionicText></span>
+        </p>
+      )}
 
-        {/* Narrative line - the calm "what to notice", deterministic + accurate. */}
-        {week?.narrative && (
-          <p className="font-lexend text-sm leading-relaxed text-paper-600 dark:text-pitch-100 italic mb-6 -mt-1 flex items-start gap-1.5">
-            <Sparkles size={13} className="mt-1 flex-shrink-0 text-mint/70" />
-            <span><BionicText>{week.narrative}</BionicText></span>
-          </p>
-        )}
+      {focus !== null && <FocusPrompt focus={focus} onSave={saveFocus} />}
 
-        {focus !== null && <FocusPrompt focus={focus} onSave={saveFocus} />}
+      <Tabs tab={tab} onChange={setTab} />
 
-        <Tabs tab={tab} onChange={setTab} />
+      {/* Per-lens explainer - the same mint box as the Insights welcome, one
+          per lens, swapping as the tab changes. key forces a remount so each
+          lens re-reads its own dismissed state. */}
+      <IntroPanel
+        key={`lens-intro-${tab}`}
+        icon={TABS.find((t) => t.key === tab).Icon}
+        title={TABS.find((t) => t.key === tab).label}
+        storageKey={`effro.lensIntro.${tab}`}
+      >
+        {LENS_INTRO[tab]}
+      </IntroPanel>
 
-        {/* Per-lens explainer - the same mint box as the Insights welcome, one
-            per lens, swapping as the tab changes. key forces a remount so each
-            lens re-reads its own dismissed state. */}
-        <IntroPanel
-          key={`lens-intro-${tab}`}
-          icon={TABS.find((t) => t.key === tab).Icon}
-          title={TABS.find((t) => t.key === tab).label}
-          storageKey={`effro.lensIntro.${tab}`}
-        >
-          {LENS_INTRO[tab]}
-        </IntroPanel>
-
-        {/* Reflect scope toggle - its own row, under the box. */}
-        {tab === 'reflect' && (
-          <div className="flex justify-end mb-5 -mt-2">
-            <ScopeToggle scope={scope} onChange={setScope} />
-          </div>
-        )}
-
-        <div key={tab} className="animate-rise motion-reduce:animate-none">
-          {tab === 'reflect' && (
-            <ReflectLens
-              scope={scope}
-              week={week}
-              today={today}
-              onRefreshToday={() => fetchToday(Math.floor(Math.random() * 99999) + 1)}
-            />
-          )}
-          {tab === 'ahead'   && <AheadLens data={ahead} />}
-          {tab === 'balance' && <BalanceLens data={balance} />}
+      {/* Reflect scope toggle - its own row, under the box. */}
+      {tab === 'reflect' && (
+        <div className="flex justify-end mb-5 -mt-2">
+          <ScopeToggle scope={scope} onChange={setScope} />
         </div>
+      )}
+
+      <div key={tab} className="animate-rise motion-reduce:animate-none">
+        {tab === 'reflect' && (
+          <ReflectLens
+            scope={scope}
+            week={week}
+            today={today}
+            onRefreshToday={() => fetchToday(Math.floor(Math.random() * 99999) + 1)}
+          />
+        )}
+        {tab === 'ahead'   && <AheadLens data={ahead} />}
+        {tab === 'balance' && <BalanceLens data={balance} />}
       </div>
-    </div>
+    </PageShell>
   )
 }
 

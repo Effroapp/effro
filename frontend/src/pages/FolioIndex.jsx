@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import PageHeader from '../components/PageHeader'
+import PageShell from '../components/PageShell'
 import IntroPanel, { Key } from '../components/IntroPanel'
 import { useToast } from '../components/Toast'
 import { folioApi } from '../api/client'
@@ -89,8 +90,9 @@ export default function FolioIndex() {
   }
 
   return (
-    <div className="min-h-screen bg-paper-100 dark:bg-pitch-800">
-      <div className="max-w-5xl mx-auto px-6 md:px-10 py-8">
+    <PageShell
+      bodyClassName="py-8"
+      header={
         <PageHeader
           icon={Library}
           title="Folios"
@@ -107,90 +109,90 @@ export default function FolioIndex() {
             </button>
           }
         />
+      }
+    >
+      <IntroPanel icon={Library} title="A place for deep dives" storageKey="folioIntroDismissed">
+        Folios are where you <Key>go deep</Key>. Capture the links, notes, files and images from a
+        research rabbit hole into one place, then <Key>pull them together</Key> into one grounded,
+        reading-first digest. It stays your work, <Key>drawn only from your own material</Key>.
+      </IntroPanel>
 
-        <IntroPanel icon={Library} title="A place for deep dives" storageKey="folioIntroDismissed">
-          Folios are where you <Key>go deep</Key>. Capture the links, notes, files and images from a
-          research rabbit hole into one place, then <Key>pull them together</Key> into one grounded,
-          reading-first digest. It stays your work, <Key>drawn only from your own material</Key>.
-        </IntroPanel>
-
-        {/* Search */}
-        <div className="flex items-center gap-2.5 max-w-md mb-5 px-3.5 py-2.5 rounded-xl
-                        bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
-                        focus-within:ring-2 focus-within:ring-mint-500 transition-shadow">
-          <Search size={16} className="text-paper-500 dark:text-pitch-200 flex-shrink-0" />
-          <input
-            value={query}
-            onChange={(e) => onSearch(e.target.value)}
-            placeholder="Search your deep dives"
-            spellCheck={false}
-            className="flex-1 bg-transparent border-0 outline-none font-lexend text-sm
-                       text-pitch-800 dark:text-pitch-50 placeholder:text-paper-500 dark:placeholder:text-pitch-200"
-          />
-        </div>
-
-        {/* Manual topic chips (no AI suggestions in v1) */}
-        {topics.length > 0 && !searching && (
-          <div className="flex flex-wrap items-center gap-2 mb-6">
-            <Chip on={activeTopic === 'all'} onClick={() => setActiveTopic('all')}>All</Chip>
-            {topics.map((t) => (
-              <Chip key={t} on={activeTopic === t} onClick={() => setActiveTopic(t)}>
-                <Tag size={11} /> {t} <span className="opacity-60">{topicCounts[t]}</span>
-              </Chip>
-            ))}
-          </div>
-        )}
-
-        {folios === null ? (
-          <div className="flex justify-center py-20 text-paper-500 dark:text-pitch-200">
-            <Loader2 size={22} className="animate-spin" />
-          </div>
-        ) : shown.length === 0 ? (
-          searching
-            ? <p className="font-lexend text-sm text-paper-600 dark:text-pitch-100 py-16 text-center">
-                Nothing matched that. Try another word.
-              </p>
-            : <EmptyState onStart={newDive} creating={creating} />
-        ) : (
-          <>
-            {/* Sort + view controls */}
-            <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
-              <SortSelect value={sort} onChange={setSort} />
-              <ViewSwitch view={view} onChange={setView} />
-            </div>
-
-            {view === 'details' ? (
-              <>
-                {featured && <Hero folio={featured} onOpen={() => navigate(`/folios/${featured.id}`)} />}
-                {rest.length > 0 && (
-                  <>
-                    {featured && (
-                      <p className="font-mono text-2xs uppercase tracking-widest text-paper-500 dark:text-pitch-200 mt-7 mb-3 ml-0.5">
-                        More deep dives
-                      </p>
-                    )}
-                    <div className="grid gap-3.5" style={{ gridTemplateColumns: GRID_COLS.details }}>
-                      {rest.map((f) => (
-                        <DiveCard key={f.id} folio={f} onOpen={() => navigate(`/folios/${f.id}`)} />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </>
-            ) : (
-              <div className="grid gap-3.5" style={{ gridTemplateColumns: GRID_COLS[view] }}>
-                {shown.map((f) => {
-                  const onOpen = () => navigate(`/folios/${f.id}`)
-                  if (view === 'tiles') return <TileCard key={f.id} folio={f} onOpen={onOpen} />
-                  if (view === 'small') return <SmallCard key={f.id} folio={f} onOpen={onOpen} />
-                  return <DiveCard key={f.id} folio={f} onOpen={onOpen} />
-                })}
-              </div>
-            )}
-          </>
-        )}
+      {/* Search */}
+      <div className="flex items-center gap-2.5 max-w-md mb-5 px-3.5 py-2.5 rounded-xl
+                      bg-paper-200 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400
+                      focus-within:ring-2 focus-within:ring-mint-500 transition-shadow">
+        <Search size={16} className="text-paper-500 dark:text-pitch-200 flex-shrink-0" />
+        <input
+          value={query}
+          onChange={(e) => onSearch(e.target.value)}
+          placeholder="Search your deep dives"
+          spellCheck={false}
+          className="flex-1 bg-transparent border-0 outline-none font-lexend text-sm
+                     text-pitch-800 dark:text-pitch-50 placeholder:text-paper-500 dark:placeholder:text-pitch-200"
+        />
       </div>
-    </div>
+
+      {/* Manual topic chips (no AI suggestions in v1) */}
+      {topics.length > 0 && !searching && (
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <Chip on={activeTopic === 'all'} onClick={() => setActiveTopic('all')}>All</Chip>
+          {topics.map((t) => (
+            <Chip key={t} on={activeTopic === t} onClick={() => setActiveTopic(t)}>
+              <Tag size={11} /> {t} <span className="opacity-60">{topicCounts[t]}</span>
+            </Chip>
+          ))}
+        </div>
+      )}
+
+      {folios === null ? (
+        <div className="flex justify-center py-20 text-paper-500 dark:text-pitch-200">
+          <Loader2 size={22} className="animate-spin" />
+        </div>
+      ) : shown.length === 0 ? (
+        searching
+          ? <p className="font-lexend text-sm text-paper-600 dark:text-pitch-100 py-16 text-center">
+              Nothing matched that. Try another word.
+            </p>
+          : <EmptyState onStart={newDive} creating={creating} />
+      ) : (
+        <>
+          {/* Sort + view controls */}
+          <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+            <SortSelect value={sort} onChange={setSort} />
+            <ViewSwitch view={view} onChange={setView} />
+          </div>
+
+          {view === 'details' ? (
+            <>
+              {featured && <Hero folio={featured} onOpen={() => navigate(`/folios/${featured.id}`)} />}
+              {rest.length > 0 && (
+                <>
+                  {featured && (
+                    <p className="font-mono text-2xs uppercase tracking-widest text-paper-500 dark:text-pitch-200 mt-7 mb-3 ml-0.5">
+                      More deep dives
+                    </p>
+                  )}
+                  <div className="grid gap-3.5" style={{ gridTemplateColumns: GRID_COLS.details }}>
+                    {rest.map((f) => (
+                      <DiveCard key={f.id} folio={f} onOpen={() => navigate(`/folios/${f.id}`)} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="grid gap-3.5" style={{ gridTemplateColumns: GRID_COLS[view] }}>
+              {shown.map((f) => {
+                const onOpen = () => navigate(`/folios/${f.id}`)
+                if (view === 'tiles') return <TileCard key={f.id} folio={f} onOpen={onOpen} />
+                if (view === 'small') return <SmallCard key={f.id} folio={f} onOpen={onOpen} />
+                return <DiveCard key={f.id} folio={f} onOpen={onOpen} />
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </PageShell>
   )
 }
 

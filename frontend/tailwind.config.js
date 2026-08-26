@@ -128,6 +128,11 @@ export default {
         // Named spacing tokens (in addition to Tailwind defaults)
         '1px': '1px',
       },
+      maxWidth: {
+        // The one page container width. Lives in tokens.css as --page-max so
+        // there is a single place to change it. See PageShell.jsx.
+        page: 'var(--page-max)',
+      },
       borderRadius: {
         sm: '6px',
         md: '8px',

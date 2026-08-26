@@ -120,6 +120,16 @@
   --rule:         rgba(20, 19, 15, 0.10);
   --rule-strong:  rgba(20, 19, 15, 0.18);
 
+  /* ── Page shell ────────────────────────────────────────────────────────
+     The one container width every routed page sits inside. Rem, so it tracks
+     the Text size setting the way the pages already did. 1400 rather than
+     1600 because 1600 is wide for a two-column reading layout on a 27 inch
+     display, and 1024 was too narrow for the Signals and Insights card grids.
+     The Dashboard keeps its own 1600px .zones container on purpose. See the
+     note at the top of dashboard-zones.css. */
+  --page-max:     87.5rem;              /* 1400px at the default 16px root */
+  --page-grid:    rgba(20, 19, 15, 0.025);   /* the paper grid texture */
+
   /* ── Spacing scale ─────────────────────────────────────────────────────── */
   --space-1: 4px;
   --space-2: 8px;
@@ -157,6 +167,8 @@
 /* ── Dark mode overrides - applied when html.dark is present ─────────────── */
 html.dark {
   --rail-ground: var(--pitch);
+
+  --page-grid:   rgba(247, 244, 237, 0.025);
 
   --rule:        rgba(247, 244, 237, 0.10);
   --rule-strong: rgba(247, 244, 237, 0.18);

@@ -3,21 +3,25 @@
  *
  * Pattern (researched against Linear, Sunsama, Notion, Monday, Zoho):
  *   - a 20px icon in muted warm-grey, left of the title (NOT mint, so the
- *     accent stays scarce) — except an `accent` page (the AI surface) gets
+ *     accent stays scarce), except an `accent` page (the AI surface), which gets
  *     the icon in a small mint chip
  *   - title: Geist 20px / 600 / -0.01em, warm near-white (pitch-50), not pure
  *     white (which glares on the pitch surface)
  *   - an optional one-line Lexend subtitle in muted grey, aligned to the title
- *   - left-aligned, with a hairline divider beneath
+ *   - left-aligned
  *   - optional right-aligned actions/counts in the same row as the title
  *
  * Use the SAME icon a page has in the sidebar nav, so the thing you click and
  * the thing at the top of the page are visually linked.
+ *
+ * This renders inside PageShell's header bar, which owns the width, the
+ * padding, the pr-14 settings-button reserve and the hairline underneath. The
+ * header used to carry its own margin and rule, and that is why it is not here.
  */
 export default function PageHeader({ icon: Icon, title, subtitle, accent = false, right = null }) {
   return (
-    <div className="mb-6">
-      <div className="flex items-start justify-between gap-4 pr-14">
+    <div>
+      <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {Icon && (
             accent ? (
@@ -48,7 +52,6 @@ export default function PageHeader({ icon: Icon, title, subtitle, accent = false
         </div>
         {right && <div className="flex-shrink-0 flex items-center gap-2">{right}</div>}
       </div>
-      <div className="mt-4 border-b border-paper-300 dark:border-pitch-400" />
     </div>
   )
 }

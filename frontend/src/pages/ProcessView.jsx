@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { BrainCircuit, Check, X, RotateCcw, Upload, FileText, Mail, Calendar, ChevronRight, MessageSquare, CheckCheck, Plus, Edit3, Info } from 'lucide-react'
 import { areasApi, generateApi, entriesApi, ingestApi } from '../api/client'
 import PageHeader from '../components/PageHeader'
+import PageShell from '../components/PageShell'
 import IntroPanel, { Key } from '../components/IntroPanel'
 import StatusBadge from '../components/StatusBadge'
 import { useToast } from '../components/Toast'
@@ -855,29 +856,26 @@ export default function ProcessView() {
   const allReviewed = hasExtracted && items.length === 0 && !processing
 
   return (
-    <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800 bg-grid-light dark:bg-grid-dark">
-      {/* Header */}
-      <div className="max-w-5xl mx-auto px-6 md:px-8 pt-8">
+    <PageShell
+      header={
         <PageHeader
           icon={BrainCircuit}
           title="Smart Generate"
           subtitle="Turn emails, notes, and files into structured items."
         />
-      </div>
-
+      }
+    >
       {/* AI gate - show the empty state instead of the form when no engine
           is configured. Don't flash the form while we're still loading the
           status - wait until we know one way or the other. */}
       {aiLoading ? (
-        <div className="max-w-5xl mx-auto px-6 md:px-8 py-12 flex justify-center">
+        <div className="py-6 flex justify-center">
           <Spinner />
         </div>
       ) : !aiConfigured ? (
-        <div className="px-8 py-6">
-          <AIRequiredCard feature="Smart Generate" />
-        </div>
+        <AIRequiredCard feature="Smart Generate" />
       ) : (
-      <div className="max-w-5xl mx-auto px-6 md:px-8 py-6 space-y-6">
+      <div className="space-y-6">
         {/* Intro - mint explainer box + three-step "how it works" */}
         <div className="space-y-4">
           <IntroPanel icon={BrainCircuit} title="Smart Generate" storageKey="effro.smartGenerateIntroSeen">
@@ -1192,6 +1190,6 @@ export default function ProcessView() {
         )}
       </div>
       )}
-    </div>
+    </PageShell>
   )
 }

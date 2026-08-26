@@ -17,6 +17,7 @@ import Modal from '../components/Modal'
 import ConfirmDialog from '../components/ConfirmDialog'
 import AddMeetingModal from '../components/AddMeetingModal'
 import StatusChangeModal from '../components/StatusChangeModal'
+import PageShell from '../components/PageShell'
 import OverviewCard from '../components/OverviewCard'
 import { useToast } from '../components/Toast'
 import { THREAD_STATUSES, formatBytes, DUE_DATE_OPTIONS, getDueDateClass } from '../utils/status'
@@ -667,14 +668,9 @@ export default function ThreadView() {
   }
 
   return (
-    <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800 bg-grid-light dark:bg-grid-dark">
-      {/* Header */}
-      <header className="
-        sticky top-0 z-10 px-8 py-4
-        bg-paper-100/90 dark:bg-pitch-800/90 backdrop-blur-md
-        border-b border-paper-200 dark:border-pitch-700
-      ">
-        <div className="max-w-5xl mx-auto pr-14">
+    <PageShell
+      header={
+        <>
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-xs font-mono text-paper-500 dark:text-paper-600 mb-3">
             <Link to="/" className="hover:text-paper-700 dark:hover:text-paper-200 transition-colors">Dashboard</Link>
@@ -816,34 +812,32 @@ export default function ThreadView() {
               </div>
             )}
           </div>
-        </div>
-      </header>
-
-      {/* AI Overview — the same OverviewCard areas use, for consistency */}
-      <div className="max-w-5xl mx-auto px-8 pt-6">
-        <OverviewCard
-          data={thread}
-          aiConfigured={aiConfigured}
-          onSuggest={() => threadsApi.suggestSummary(threadId)}
-          onSave={(text) => threadsApi.update(threadId, { summary: text })}
-          onToggleAuto={(enabled) => threadsApi.update(threadId, { auto_update: enabled })}
-          onSetAutoAll={async () => { await threadsApi.setAutoUpdateAll(true); return threadsApi.get(threadId) }}
-          onChange={(updated) => setThread((t) => ({
-            ...updated,
-            entries: t.entries,
-            attachments: t.attachments,
-            outgoing_links: t.outgoing_links,
-            incoming_links: t.incoming_links,
-          }))}
-          onError={(e) => toast(e.message, 'error')}
-          scopeNoun="thread"
-          emptyHint="No overview yet. Click Update to summarise this thread, or write your own."
-          placeholder="Summarise what's happening in this thread..."
-        />
-      </div>
+        </>
+      }
+    >
+      {/* AI Overview, the same OverviewCard areas use, for consistency */}
+      <OverviewCard
+        data={thread}
+        aiConfigured={aiConfigured}
+        onSuggest={() => threadsApi.suggestSummary(threadId)}
+        onSave={(text) => threadsApi.update(threadId, { summary: text })}
+        onToggleAuto={(enabled) => threadsApi.update(threadId, { auto_update: enabled })}
+        onSetAutoAll={async () => { await threadsApi.setAutoUpdateAll(true); return threadsApi.get(threadId) }}
+        onChange={(updated) => setThread((t) => ({
+          ...updated,
+          entries: t.entries,
+          attachments: t.attachments,
+          outgoing_links: t.outgoing_links,
+          incoming_links: t.incoming_links,
+        }))}
+        onError={(e) => toast(e.message, 'error')}
+        scopeNoun="thread"
+        emptyHint="No overview yet. Click Update to summarise this thread, or write your own."
+        placeholder="Summarise what's happening in this thread..."
+      />
 
       {/* Body: two columns */}
-      <div className="max-w-5xl mx-auto px-8 py-6 flex gap-8">
+      <div className="mt-6 flex gap-8">
         {/* ── Left: Entry log ─────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-4">
@@ -1428,7 +1422,7 @@ export default function ThreadView() {
           </div>
         </div>
       </Modal>
-    </div>
+    </PageShell>
   )
 }
 
@@ -1575,12 +1569,12 @@ function LinkItem({ link, onDelete }) {
 
 function ThreadSkeleton() {
   return (
-    <div className="flex-1 min-h-screen bg-white dark:bg-pitch-800 p-8">
-      <div className="max-w-5xl mx-auto space-y-4">
+    <PageShell grid={false} bodyClassName="py-8">
+      <div className="space-y-4">
         <div className="h-7 w-64 rounded bg-paper-200 dark:bg-pitch-700 animate-pulse" />
         <div className="h-5 w-96 rounded bg-paper-200 dark:bg-pitch-700 animate-pulse" />
         <div className="h-32 rounded-xl bg-paper-200 dark:bg-pitch-700 animate-pulse mt-8" />
       </div>
-    </div>
+    </PageShell>
   )
 }

@@ -24,6 +24,7 @@ import StorageSetupModal from '../components/StorageSetupModal'
 import IntroPanel, { Key } from '../components/IntroPanel'
 import IntegrationsPanel from '../components/IntegrationsPanel'
 import PostConnectFlow from '../components/PostConnectFlow'
+import PageShell from '../components/PageShell'
 import ProviderLogo from '../components/ProviderLogos'
 import { syncNow as msSyncNow } from '../api/microsoft'
 import { syncNow as googleSyncNow } from '../api/google'
@@ -156,37 +157,34 @@ export default function SystemSettings({ updater }) {
   }
 
   return (
-    <div className="flex-1 min-h-screen bg-paper-100 dark:bg-pitch-800">
+    <>
       {postConnect && (
         <PostConnectFlow standalone {...postConnect} onClose={closePostConnect} />
       )}
-      <header className="
-        sticky top-0 z-10 px-8 py-5
-        bg-paper-100/90 dark:bg-pitch-800/90 backdrop-blur-md
-        border-b border-paper-300 dark:border-pitch-700
-      ">
-        <div className="max-w-5xl mx-auto pr-14">
-          <Link
-            to="/"
-            className="
-              inline-flex items-center gap-1 text-xs font-mono uppercase tracking-widest
-              text-paper-500 dark:text-paper-600
-              hover:text-pitch-700 dark:hover:text-paper-200
-              transition-colors mb-3
-            "
-          >
-            <ArrowLeft size={11} /> Back
-          </Link>
-          <div className="flex items-center gap-3">
-            <SettingsIcon size={20} strokeWidth={1.75} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
-            <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 leading-tight">
-              Settings
-            </h1>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-8 py-8">
+      <PageShell
+        bodyClassName="py-8"
+        header={
+          <>
+            <Link
+              to="/"
+              className="
+                inline-flex items-center gap-1 text-xs font-mono uppercase tracking-widest
+                text-paper-500 dark:text-paper-600
+                hover:text-pitch-700 dark:hover:text-paper-200
+                transition-colors mb-3
+              "
+            >
+              <ArrowLeft size={11} /> Back
+            </Link>
+            <div className="flex items-center gap-3">
+              <SettingsIcon size={20} strokeWidth={1.75} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
+              <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 leading-tight">
+                Settings
+              </h1>
+            </div>
+          </>
+        }
+      >
         <SettingsTabs tabs={tabs} tab={tab} onChange={setTab} />
         {active.body
           ? <IntroPanel icon={active.Icon} title={active.introTitle || active.label} storageKey={`effro.introPanel.${active.key}`}>{active.body}</IntroPanel>
@@ -207,8 +205,8 @@ export default function SystemSettings({ updater }) {
             </>
           )}
         </div>
-      </main>
-    </div>
+      </PageShell>
+    </>
   )
 }
 

@@ -231,14 +231,17 @@ function Shell({ onOpenSwitcher, onOpenNewArea, systemSettingsBadge }) {
   }, [hydrated, shouldShow])
 
   return (
-    <div className="flex min-h-screen bg-white dark:bg-pitch-800">
+    <div className="flex min-h-screen">
       <Sidebar
         areas={areas}
         onOpenSwitcher={onOpenSwitcher}
         onOpenNewArea={onOpenNewArea}
         systemSettingsBadge={systemSettingsBadge}
       />
-      <main data-onboarding="main-content" className="flex-1 min-w-0">
+      {/* The page ground lives here rather than on each page. Light mode used
+          to be white behind every route, so a page had to remember to override
+          it with bg-paper-100. A page that forgets should inherit paper. */}
+      <main data-onboarding="main-content" className="flex-1 min-w-0 bg-paper-100 dark:bg-pitch-800">
         <Outlet />
       </main>
 
