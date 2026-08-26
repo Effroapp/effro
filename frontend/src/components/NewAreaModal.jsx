@@ -46,7 +46,7 @@ export default function NewAreaModal({ isOpen, onClose, onCreated }) {
     <Modal isOpen={isOpen} onClose={onClose} title="New area" width="max-w-md" isDirty={isDirty}>
       <div className="space-y-4">
         <div>
-          <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+          <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
             Name
           </label>
           <div className="flex items-start gap-2">
@@ -69,7 +69,7 @@ export default function NewAreaModal({ isOpen, onClose, onCreated }) {
         </div>
 
         <div>
-          <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+          <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
             Description <span className="text-paper-400 dark:text-paper-700 normal-case font-mono">- optional</span>
           </label>
           <MarkdownArea

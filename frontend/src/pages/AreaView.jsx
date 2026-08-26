@@ -9,6 +9,7 @@ import ThreadCard from '../components/ThreadCard'
 import AreaFolios from '../components/AreaFolios'
 import Modal from '../components/Modal'
 import PageShell from '../components/PageShell'
+import PageHeader from '../components/PageHeader'
 import IconPicker, { AreaIcon } from '../components/IconPicker'
 import OverviewCard from '../components/OverviewCard'
 import { useToast } from '../components/Toast'
@@ -415,8 +416,8 @@ export default function AreaView() {
   return (
     <PageShell
       header={
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+        <PageHeader
+          icon={
             <IconPicker
               value={area.icon}
               onChange={async (nextIcon) => {
@@ -447,15 +448,12 @@ export default function AreaView() {
                 </button>
               )}
             </IconPicker>
-            <div className="min-w-0">
-              <div className="flex items-center gap-3 min-w-0">
-                <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 truncate">
-                  {area.name}
-                </h1>
-
-                {/* Status badge - click to change */}
-                <div className="relative">
-                  <button onClick={() => setEditingStatus((v) => !v)}>
+          }
+          title={area.name}
+          titleAdornment={
+            /* Status badge, click to change. */
+            <div className="relative flex-shrink-0">
+              <button onClick={() => setEditingStatus((v) => !v)}>
                 <StatusBadge status={area.status} type="area" />
               </button>
 
@@ -466,7 +464,7 @@ export default function AreaView() {
                       key={key}
                       onClick={() => changeStatus(key)}
                       className={`
-                        flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-display uppercase tracking-wide hover:bg-paper-100 dark:hover:bg-pitch-700 transition-colors
+                        flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-sans font-medium uppercase tracking-wide hover:bg-paper-100 dark:hover:bg-pitch-700 transition-colors
                         ${key === area.status ? 'bg-paper-100 dark:bg-pitch-700' : ''}
                         ${cfg.textClass}
                       `}
@@ -478,37 +476,36 @@ export default function AreaView() {
                 </div>
               )}
 
-              {/* Backdrop to close status dropdown */}
+              {/* Backdrop to close the status dropdown */}
               {editingStatus && (
                 <div className="fixed inset-0 z-10" onClick={() => setEditingStatus(false)} />
               )}
-                </div>
-              </div>
-              {/* Subtle line under the title — the stable description ("what
-                  this area is"), for orientation while the header is stuck
-                  mid-scroll. The full text lives in the Description card. */}
-              {area.description && (
-                <p className="font-lexend text-sm leading-snug text-paper-500 dark:text-pitch-100 normal-case tracking-normal mt-1 max-w-2xl line-clamp-2">
-                  {stripMarkdown(area.description).split('\n')[0]}
-                </p>
-              )}
             </div>
-          </div>
-
-          <button
-            onClick={() => openNewThread()}
-            className="
-              flex-shrink-0 self-start whitespace-nowrap
-              flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display font-medium uppercase tracking-wide
-              bg-mint-700 hover:bg-mint-800 text-white
-              shadow-sm hover:shadow-mint-500/25
-              transition-all duration-150
-            "
-          >
-            <Plus size={13} />
-            New Thread
-          </button>
-        </div>
+          }
+          subtitle={
+            /* The stable description, one line, for orientation while the
+               header is stuck mid-scroll. The full text lives in the
+               Description card. Clamped, because the header is sticky and a
+               long description would otherwise eat the viewport. */
+            area.description
+              ? <span className="block max-w-2xl line-clamp-2">{stripMarkdown(area.description).split('\n')[0]}</span>
+              : null
+          }
+          right={
+            <button
+              onClick={() => openNewThread()}
+              className="
+                whitespace-nowrap
+                flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-medium uppercase tracking-wide
+                bg-mint-700 hover:bg-mint-800 text-white
+                transition-colors duration-150
+              "
+            >
+              <Plus size={13} />
+              New Thread
+            </button>
+          }
+        />
       }
     >
       {/* Description - full width, above the Current Overview + rail grid,
@@ -545,7 +542,7 @@ export default function AreaView() {
       {/* Threads section */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-semibold uppercase tracking-widest text-xs text-paper-500 dark:text-paper-600">
+          <h2 className="eyebrow text-paper-500 dark:text-paper-600">
             Threads{' '}
             <span className="font-mono text-paper-400 dark:text-paper-700">
               ({threads.length})
@@ -555,7 +552,7 @@ export default function AreaView() {
             <button
               onClick={addGroup}
               title="Make a group to file threads under"
-              className="flex items-center gap-1.5 px-2 py-1 rounded-md text-2xs font-display uppercase tracking-wide
+              className="flex items-center gap-1.5 px-2 py-1 rounded-md text-2xs font-sans font-medium uppercase tracking-wide
                          text-paper-500 dark:text-paper-500 hover:text-paper-700 dark:hover:text-paper-300
                          hover:bg-paper-200/60 dark:hover:bg-pitch-700 transition-colors"
             >
@@ -605,13 +602,13 @@ export default function AreaView() {
                           if (e.key === 'Enter') e.target.blur()
                           if (e.key === 'Escape') setRenamingGroupId(null)
                         }}
-                        className="min-w-0 flex-shrink px-1.5 py-0.5 text-sm font-display font-semibold rounded
+                        className="min-w-0 flex-shrink px-1.5 py-0.5 text-sm font-sans font-semibold rounded
                                    bg-paper-100 dark:bg-pitch-700 text-pitch-800 dark:text-white
                                    border border-mint-500 focus:outline-none focus:ring-1 focus:ring-mint-500"
                       />
                     ) : (
                       <button onClick={() => setRenamingGroupId(group.id)} title="Rename group" className="group/name flex items-center gap-1.5 min-w-0">
-                        <span className="font-display font-semibold text-sm text-paper-700 dark:text-paper-200 truncate">{group.name}</span>
+                        <span className="font-sans font-semibold text-sm text-paper-700 dark:text-paper-200 truncate">{group.name}</span>
                         <Pencil size={11} className="flex-shrink-0 opacity-0 group-hover/name:opacity-100 text-paper-400 dark:text-paper-600 transition-opacity" />
                       </button>
                     )}
@@ -646,7 +643,7 @@ export default function AreaView() {
                         <p className="text-2xs text-paper-400 dark:text-paper-700">Empty. Drag a thread here, or use the folder menu on any thread.</p>
                         <button
                           onClick={() => openNewThread(group.id)}
-                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-2xs font-display uppercase tracking-wide
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-2xs font-sans font-medium uppercase tracking-wide
                                      text-mint-700 dark:text-mint-300 bg-mint/10 hover:bg-mint/20 transition-colors"
                         >
                           <Plus size={12} /> New thread
@@ -692,7 +689,7 @@ export default function AreaView() {
             >
               {groups.length > 0 && ungrouped.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-2xs uppercase tracking-widest text-paper-400 dark:text-paper-700">Ungrouped</span>
+                  <span className="eyebrow text-paper-400 dark:text-paper-700">Ungrouped</span>
                   <div className="flex-1 h-px bg-paper-200 dark:bg-pitch-600" />
                 </div>
               )}
@@ -711,7 +708,7 @@ export default function AreaView() {
       {/* Right rail: area facts + the dives filed here */}
       <aside className="xl:sticky xl:top-6 flex flex-col gap-3">
         <div className="rounded-xl bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400 p-3.5">
-          <div className="flex items-center gap-2 font-mono text-2xs uppercase tracking-[0.13em] text-paper-500 dark:text-pitch-200">
+          <div className="eyebrow flex items-center gap-2 text-paper-500 dark:text-pitch-200">
             <Gauge size={14} className="text-mint" /> At a glance
           </div>
           <div className="mt-3 flex flex-col gap-2.5 text-sm">
@@ -750,7 +747,7 @@ export default function AreaView() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+            <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
               Title *
             </label>
             <input
@@ -772,7 +769,7 @@ export default function AreaView() {
           </div>
 
           <div>
-            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+            <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
               Description
             </label>
             <MarkdownArea
@@ -785,7 +782,7 @@ export default function AreaView() {
           </div>
 
           <div>
-            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+            <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
               Status
             </label>
             <div className="flex flex-wrap gap-2">
@@ -794,7 +791,7 @@ export default function AreaView() {
                   key={key}
                   onClick={() => setThreadForm((f) => ({ ...f, status: key }))}
                   className={`
-                    flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display uppercase tracking-wide border transition-colors
+                    flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-medium uppercase tracking-wide border transition-colors
                     ${threadForm.status === key
                       ? `${cfg.textClass} ${cfg.bgClass} ${cfg.borderClass}`
                       : 'text-paper-600 dark:text-paper-500 border-paper-300 dark:border-pitch-500 hover:border-paper-400 dark:hover:border-paper-700'
@@ -809,12 +806,12 @@ export default function AreaView() {
           </div>
 
           <div>
-            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+            <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
               Group
             </label>
             <div className="flex flex-wrap gap-2">
               {(() => {
-                const pill = (active) => `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display uppercase tracking-wide border transition-colors ${
+                const pill = (active) => `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-medium uppercase tracking-wide border transition-colors ${
                   active
                     ? 'text-mint-700 dark:text-mint-300 bg-mint/10 border-mint-500'
                     : 'text-paper-600 dark:text-paper-500 border-paper-300 dark:border-pitch-500 hover:border-paper-400 dark:hover:border-paper-700'
@@ -927,7 +924,7 @@ function AreaDescription({ area, onSave, onError }) {
       <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-paper-300/70 dark:border-pitch-600/70">
         <div className="flex items-center gap-2 min-w-0">
           <AlignLeft size={13} className="text-paper-500 dark:text-pitch-100 flex-shrink-0" />
-          <span className="text-xs font-display uppercase tracking-widest text-paper-500 dark:text-pitch-100">
+          <span className="eyebrow text-paper-500 dark:text-pitch-100">
             Description
           </span>
         </div>
@@ -1010,7 +1007,7 @@ function MoveToGroupMenu({ groups, currentGroupId, onAssign, onCreateAndAssign }
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-1 z-20 min-w-[11rem] py-1 bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500 rounded-lg shadow-xl">
-            <div className="px-3 py-1.5 font-mono text-2xs uppercase tracking-widest text-paper-400 dark:text-paper-600">
+            <div className="eyebrow px-3 py-1.5 text-paper-400 dark:text-paper-600">
               Move to group
             </div>
             {groups.length === 0 && (
@@ -1095,7 +1092,7 @@ function AreaAuditRow({ record }) {
       <span className="text-paper-600 dark:text-paper-500 truncate w-36 flex-shrink-0">
         {record.thread_title || <span className="italic text-paper-400 dark:text-paper-700">area</span>}
       </span>
-      <span className={`font-display uppercase px-1.5 py-0.5 rounded flex-shrink-0 ${ACTION_BADGE[record.action] ?? ACTION_BADGE.updated}`}>
+      <span className={`font-sans font-medium uppercase px-1.5 py-0.5 rounded flex-shrink-0 ${ACTION_BADGE[record.action] ?? ACTION_BADGE.updated}`}>
         {record.action}
       </span>
       <span className="text-paper-600 dark:text-paper-500 flex-1 truncate">
@@ -1147,7 +1144,7 @@ function AreaAuditPanel({ areaId }) {
         onClick={open ? () => setOpen(false) : expand}
         className="
           w-full flex items-center gap-2 py-3
-          font-display uppercase tracking-widest text-xs
+          font-sans font-medium uppercase tracking-widest text-xs
           text-paper-400 dark:text-pitch-500
           hover:text-paper-600 dark:hover:text-paper-600
           cursor-pointer transition-colors

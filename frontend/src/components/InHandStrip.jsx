@@ -287,7 +287,7 @@ function UnpinButton({ onUnpin }) {
   return (
     <button
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); onUnpin() }}
-      className="inline-flex items-center gap-1.5 py-1.5 text-[11px] font-medium uppercase
+      className="inline-flex items-center gap-1.5 py-1.5 text-2xs font-medium uppercase
                  tracking-[0.09em] text-paper-700 dark:text-paper-300
                  hover:text-paper-900 dark:hover:text-white transition-colors"
     >

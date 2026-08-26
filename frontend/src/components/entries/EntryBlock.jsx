@@ -122,15 +122,14 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
             )}
             {showsHeading && entry.title_source === 'ai' && (
               <Tooltip content="Written from the entry. Click the title to change it.">
-                <span className="text-2xs font-display uppercase tracking-widest text-paper-400 dark:text-paper-700">
+                <span className="eyebrow text-paper-400 dark:text-paper-700">
                   suggested
                 </span>
               </Tooltip>
             )}
           </div>
           {isCustom && (
-            <span className="ml-auto mr-2 flex-shrink-0 text-2xs font-mono uppercase
-                             tracking-widest text-paper-400 dark:text-paper-700">
+            <span className="eyebrow ml-auto mr-2 flex-shrink-0 text-paper-400 dark:text-paper-700">
               Custom
             </span>
           )}
@@ -150,7 +149,7 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
                 {isTitled && !editing && !editingTitle && (isTodo || !showsHeading) && (
                   <button
                     onClick={openTitleEditor}
-                    className="px-1.5 py-1 rounded text-2xs font-display uppercase tracking-widest
+                    className="px-1.5 py-1 rounded text-2xs font-sans font-medium uppercase tracking-widest
                                text-paper-400 dark:text-paper-700
                                hover:text-paper-700 dark:hover:text-paper-200
                                hover:bg-paper-200 dark:hover:bg-pitch-700 transition-colors"
@@ -178,7 +177,7 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
               and shape; this says it for anyone reading rather than scanning. */}
           {!isReference && !editing && (
             <p
-              className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] mb-[7px]"
+              className="eyebrow mb-[7px]"
               style={{ color: meta.css }}
             >
               {meta.label}
@@ -218,7 +217,7 @@ export default function EntryBlock({ entry, highlighted, editing, draft, onEditS
               <h3
                 onClick={openTitleEditor}
                 title="Click to edit"
-                className="text-[21px] font-bold leading-[1.25] tracking-[-0.03em] cursor-text
+                className="text-[1.3125rem] font-bold leading-[1.25] tracking-[-0.03em] cursor-text
                            text-paper-900 dark:text-pitch-50 animate-fade-in"
                 style={{ textWrap: 'pretty' }}
               >

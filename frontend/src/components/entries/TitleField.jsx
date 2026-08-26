@@ -84,7 +84,7 @@ export default function TitleField({
           disabled={busy}
           className="absolute right-1.5 top-1/2 -translate-y-1/2
                      inline-flex items-center gap-1.5 px-2 py-1 rounded
-                     text-2xs font-display uppercase tracking-widest
+                     text-2xs font-sans font-medium uppercase tracking-widest
                      text-paper-500 dark:text-paper-600
                      hover:text-mint-700 dark:hover:text-mint-300
                      hover:bg-mint-50 dark:hover:bg-mint-900/20

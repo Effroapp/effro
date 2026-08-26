@@ -43,7 +43,7 @@ export default function AreaFolios({ areaId }) {
   return (
     <div className="rounded-xl bg-white dark:bg-pitch-700 border border-paper-300 dark:border-pitch-400 p-3.5">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <span className="flex items-center gap-2 font-mono text-2xs uppercase tracking-[0.13em] text-paper-500 dark:text-pitch-200">
+        <span className="eyebrow flex items-center gap-2 text-paper-500 dark:text-pitch-200">
           <Library size={14} className="text-mint" /> Deep dives
           {list.length > 0 && <span className="text-paper-400 dark:text-pitch-300">{list.length}</span>}
         </span>
@@ -80,7 +80,7 @@ export default function AreaFolios({ areaId }) {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-xs text-pitch-800 dark:text-pitch-50 truncate">{f.title || 'Untitled deep dive'}</span>
-                <span className="font-mono text-[10px] text-paper-500 dark:text-pitch-200 inline-flex items-center gap-1">
+                <span className="font-mono text-2xs text-paper-500 dark:text-pitch-200 inline-flex items-center gap-1">
                   <Layers size={9} /> {f.capture_count}
                 </span>
               </span>

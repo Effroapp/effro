@@ -79,6 +79,10 @@ html.dark .dashboard,html.dark .dz-tokens{
 .band{display:contents}
 .zone-head{display:flex;align-items:center;gap:12px;margin:0 4px 8px;min-height:30px}
 .zone-title{display:flex;align-items:baseline;gap:12px}
+/* .label is NOT the app-wide .eyebrow, and must not be pointed at it. Six of
+   the seven section styles below re-skin `.zone-head .label` into a real
+   heading, sans at 1rem to 1.125rem, weight 600, text-transform:none. It is a
+   themeable slot that happens to default to an eyebrow, not an eyebrow. */
 .label{font-family:var(--font-mono);font-size:0.6875rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dz-text-muted)}
 .count{font-size:0.8125rem;color:var(--dz-text-soft)}
 .zone-tools{margin-left:auto;display:flex;align-items:center;gap:8px}

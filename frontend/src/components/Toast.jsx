@@ -81,7 +81,7 @@ function Toast({ toast, onRemove }) {
       {toast.action && (
         <button
           onClick={() => { toast.action.onClick(); onRemove(toast.id) }}
-          className="ml-2 font-semibold uppercase text-[11px] tracking-[0.09em]
+          className="ml-2 font-semibold uppercase text-2xs tracking-[0.09em]
                      text-mint-700 hover:text-mint-800 dark:text-mint-400 dark:hover:text-mint-300
                      transition-colors"
         >

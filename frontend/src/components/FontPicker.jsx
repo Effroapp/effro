@@ -40,7 +40,7 @@ export default function FontPicker({ font, onChange }) {
           p-1
           animate-fade-in
         ">
-          <div className="px-2 py-1.5 text-xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-700">
+          <div className="eyebrow px-2 py-1.5 text-paper-500 dark:text-paper-700">
             Body font
           </div>
           {FONT_OPTIONS.map((opt) => {

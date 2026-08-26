@@ -29,7 +29,7 @@ export default function ThreadCard({ thread, areaId }) {
     >
       <div className="px-3.5 py-2.5 flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="font-display font-semibold text-sm text-pitch-800 dark:text-white truncate
+          <h3 className="font-sans font-semibold text-sm text-pitch-800 dark:text-white truncate
                          group-hover:text-paper-700 dark:group-hover:text-paper-200 transition-colors">
             <BionicText>{thread.title}</BionicText>
           </h3>

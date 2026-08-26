@@ -697,7 +697,7 @@ export default function ThreadView() {
                     onChange={(e) => setTitleDraft(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') setEditingTitle(false) }}
                     className="
-                      flex-1 font-display font-semibold text-xl tracking-[-0.01em]
+                      flex-1 font-sans font-semibold text-xl tracking-[-0.01em]
                       bg-transparent border-b-2 border-mint-500
                       text-pitch-800 dark:text-white outline-none px-0
                     "
@@ -707,7 +707,7 @@ export default function ThreadView() {
                 </div>
               ) : (
                 <div className="flex items-center gap-3 group">
-                  <h1 className="font-display font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 truncate">
+                  <h1 className="font-sans font-semibold text-xl tracking-[-0.01em] text-paper-900 dark:text-pitch-50 truncate">
                     {thread.title}
                   </h1>
                   <button
@@ -737,7 +737,7 @@ export default function ThreadView() {
                   }}
                   disabled={creatingDive}
                   title="Start a deep dive filed to this thread"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-display font-medium
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans font-medium
                              bg-paper-200/60 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500
                              text-pitch-800 dark:text-pitch-50 hover:border-mint/40 transition-colors disabled:opacity-50"
                 >
@@ -759,7 +759,7 @@ export default function ThreadView() {
                         <button
                           key={key}
                           onClick={() => requestStatusChange(key)}
-                          className={`flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-display uppercase tracking-wide hover:bg-paper-100 dark:hover:bg-pitch-700 transition-colors ${cfg.textClass}`}
+                          className={`flex items-center gap-2 w-full px-4 py-2.5 text-left text-xs font-sans font-medium uppercase tracking-wide hover:bg-paper-100 dark:hover:bg-pitch-700 transition-colors ${cfg.textClass}`}
                         >
                           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cfg.dot }} />
                           {cfg.label}
@@ -841,7 +841,7 @@ export default function ThreadView() {
         {/* ── Left: Entry log ─────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="flex items-center gap-2 text-sm font-display font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
+            <h2 className="eyebrow flex items-center gap-2 text-paper-600 dark:text-pitch-100">
               <MessageSquare size={15} className="text-paper-500 dark:text-pitch-100" />
               Add an entry
             </h2>
@@ -904,7 +904,7 @@ export default function ThreadView() {
                       key={opt.label}
                       onClick={() => handleDueDateOption(opt)}
                       className={`
-                        px-2.5 py-1 rounded-full text-xs font-display uppercase tracking-wide transition-colors
+                        px-2.5 py-1 rounded-full text-xs font-sans font-medium uppercase tracking-wide transition-colors
                         ${dueDateOption === opt.label
                           ? 'bg-mint-700 text-white'
                           : 'text-paper-600 dark:text-paper-500 bg-paper-200 dark:bg-pitch-700 hover:bg-paper-300 dark:hover:bg-pitch-500'
@@ -940,7 +940,7 @@ export default function ThreadView() {
                   text-paper-600 dark:text-paper-500
                   bg-paper-200 dark:bg-pitch-800
                   hover:bg-paper-300 dark:hover:bg-pitch-500
-                  font-display uppercase tracking-wide transition-colors
+                  font-sans font-medium uppercase tracking-wide transition-colors
                 "
               >
                 {(() => {
@@ -965,7 +965,7 @@ export default function ThreadView() {
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <ListTodo size={15} className="text-paper-500 dark:text-pitch-100" />
-                <h3 className="text-sm font-display font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
+                <h3 className="eyebrow text-paper-600 dark:text-pitch-100">
                   Open Tasks
                 </h3>
                 <span className="font-mono text-xs text-paper-400 dark:text-pitch-200">
@@ -1007,7 +1007,7 @@ export default function ThreadView() {
           <div className="border-t border-paper-200 dark:border-pitch-600 mt-2 mb-5" />
           <div className="flex items-center gap-2 mb-4">
             <Activity size={15} className="text-paper-500 dark:text-pitch-100" />
-            <h2 className="text-sm font-display font-semibold uppercase tracking-wider text-paper-600 dark:text-pitch-100">
+            <h2 className="eyebrow text-paper-600 dark:text-pitch-100">
               Timeline
             </h2>
             <span className="font-mono text-xs text-paper-400 dark:text-pitch-200">{thread.entries.length}</span>
@@ -1087,7 +1087,7 @@ export default function ThreadView() {
               `}
             >
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 flex items-center gap-1.5">
+                <h3 className="eyebrow text-paper-500 dark:text-paper-600 flex items-center gap-1.5">
                   <Paperclip size={11} />
                   Files <span className="font-mono text-paper-400 dark:text-paper-700">({files.length})</span>
                 </h3>
@@ -1124,7 +1124,7 @@ export default function ThreadView() {
                 "
               >
                 <UploadCloud size={20} className="opacity-70" />
-                <span className="text-2xs font-display uppercase tracking-widest">
+                <span className="text-2xs font-sans font-medium uppercase tracking-widest">
                   Drop a file to upload
                 </span>
               </button>
@@ -1137,7 +1137,7 @@ export default function ThreadView() {
                   border-2 border-dashed border-mint-500
                 ">
                   <Upload size={20} className="text-mint-700" />
-                  <p className="font-display uppercase tracking-widest text-2xs text-paper-700 dark:text-paper-200">
+                  <p className="eyebrow text-paper-700 dark:text-paper-200">
                     Drop to upload
                   </p>
                 </div>
@@ -1147,7 +1147,7 @@ export default function ThreadView() {
             {/* Links - paste a URL inline, label after, or click +Add */}
             <div className="p-4 rounded-xl bg-paper-100 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 flex items-center gap-1.5">
+                <h3 className="eyebrow text-paper-500 dark:text-paper-600 flex items-center gap-1.5">
                   <Link2 size={11} />
                   Links <span className="font-mono text-paper-400 dark:text-paper-700">({links.length})</span>
                 </h3>
@@ -1222,7 +1222,7 @@ export default function ThreadView() {
             {/* Linked threads */}
             <div className="p-4 rounded-xl bg-paper-100 dark:bg-pitch-700 border border-paper-300 dark:border-pitch-500">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 flex items-center gap-1.5">
+                <h3 className="eyebrow text-paper-500 dark:text-paper-600 flex items-center gap-1.5">
                   <GitBranch size={11} />
                   Linked threads
                 </h3>
@@ -1256,7 +1256,7 @@ export default function ThreadView() {
       >
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">Label</label>
+            <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">Label</label>
             <input
               autoFocus
               type="text"
@@ -1267,7 +1267,7 @@ export default function ThreadView() {
             />
           </div>
           <div>
-            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">URL</label>
+            <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">URL</label>
             <input
               type="url"
               value={linkForm.url}
@@ -1347,7 +1347,7 @@ export default function ThreadView() {
       >
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+            <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
               Relationship
             </label>
             <div className="flex items-center gap-1.5">
@@ -1359,7 +1359,7 @@ export default function ThreadView() {
                   key={key}
                   onClick={() => setLinkThreadForm((f) => ({ ...f, kind: key }))}
                   className={`
-                    px-3 py-1 rounded-full text-xs font-display uppercase tracking-wide transition-colors
+                    px-3 py-1 rounded-full text-xs font-sans font-medium uppercase tracking-wide transition-colors
                     ${linkThreadForm.kind === key
                       ? 'bg-mint-700 text-white'
                       : 'text-paper-600 dark:text-paper-500 bg-paper-200 dark:bg-pitch-700 hover:bg-paper-300 dark:hover:bg-pitch-500'
@@ -1373,7 +1373,7 @@ export default function ThreadView() {
           </div>
 
           <div>
-            <label className="block text-xs font-display uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
+            <label className="block text-xs font-sans font-medium uppercase tracking-wide text-paper-600 dark:text-paper-500 mb-1.5">
               Target thread
             </label>
             <select
@@ -1456,7 +1456,7 @@ function ThreadLinksList({ outgoing, incoming, onRemove }) {
           <div key={`${row.direction}-${row.link_id}`} className="group flex items-start gap-2 text-xs">
             <ArrowIcon size={11} className="text-paper-500 dark:text-paper-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="font-display uppercase tracking-wide text-paper-500 dark:text-paper-600 mb-0.5">
+              <div className="eyebrow text-paper-500 dark:text-paper-600 mb-0.5">
                 {label}
               </div>
               <Link

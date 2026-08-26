@@ -69,7 +69,7 @@ function ActivityRow({ item }) {
       <span className={`p-1.5 rounded-md flex-shrink-0 ${cfg.className}`}>
         <Icon size={13} />
       </span>
-      <span className="font-display font-semibold uppercase tracking-wide text-xs text-pitch-700 dark:text-paper-200 flex-shrink-0">
+      <span className="eyebrow text-pitch-700 dark:text-paper-200 flex-shrink-0">
         {item.area_name}
       </span>
       <span className="text-paper-400 dark:text-paper-700 text-xs flex-shrink-0">/</span>
@@ -149,7 +149,7 @@ export default function RecentActivity({ viewMode }) {
         "
       >
         {collapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
-        <span className="font-display uppercase tracking-widest text-xs">
+        <span className="font-sans font-medium uppercase tracking-widest text-xs">
           Recent Activity
         </span>
         <span className="font-mono text-xs text-paper-400 dark:text-paper-700">
@@ -170,7 +170,7 @@ export default function RecentActivity({ viewMode }) {
               <button
                 onClick={() => setShowAll(v => !v)}
                 className="
-                  p-2 rounded-md text-xs font-display uppercase tracking-wide transition-colors duration-150
+                  p-2 rounded-md text-xs font-sans font-medium uppercase tracking-wide transition-colors duration-150
                   text-paper-500 dark:text-paper-600
                   hover:text-paper-700 dark:hover:text-paper-200
                   hover:bg-paper-200 dark:hover:bg-pitch-700

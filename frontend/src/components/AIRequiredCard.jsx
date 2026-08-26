@@ -27,7 +27,7 @@ export default function AIRequiredCard({ feature = 'This feature' }) {
       ">
         <Cpu size={20} className="text-mint-700 dark:text-mint-300" />
       </div>
-      <h2 className="font-display font-medium text-lg text-pitch-800 dark:text-white mb-2">
+      <h2 className="font-sans font-medium text-lg text-pitch-800 dark:text-white mb-2">
         {feature} needs an AI engine
       </h2>
       <p className="text-sm text-paper-600 dark:text-paper-500 mb-6 leading-relaxed">
@@ -40,7 +40,7 @@ export default function AIRequiredCard({ feature = 'This feature' }) {
           inline-flex items-center gap-1.5
           px-4 py-2.5 rounded-md
           bg-mint-700 hover:bg-mint-800 text-white
-          font-display uppercase tracking-wide text-xs
+          font-sans font-medium uppercase tracking-wide text-xs
           transition-colors
         "
       >

@@ -479,7 +479,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
 
             {/* "What is this?" - same idiom as the AI Engine setup card */}
             <div className="rounded-lg p-3 bg-paper-100 dark:bg-pitch-800 border-l-4 border-mint">
-              <div className="text-2xs font-display uppercase tracking-widest text-mint-700 dark:text-mint-300 mb-1">
+              <div className="eyebrow text-mint-700 dark:text-mint-300 mb-1">
                 What is this?
               </div>
               <div className="text-xs text-pitch-700 dark:text-paper-300 leading-relaxed">
@@ -513,7 +513,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
             {picked === 'nextcloud' && (
               <>
                 <div>
-                  <div className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
+                  <div className="eyebrow text-paper-500 dark:text-paper-600 mb-2">
                     To get your app password
                   </div>
                   <div className="space-y-2">
@@ -670,7 +670,7 @@ export default function StorageSetupModal({ onClose, onSaved, currentConfig, ini
             </div>
 
             <div>
-              <div className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-2">
+              <div className="eyebrow text-paper-500 dark:text-paper-600 mb-2">
                 Database backups
               </div>
               <div className="text-xs text-paper-500 dark:text-paper-600 leading-relaxed mb-3">

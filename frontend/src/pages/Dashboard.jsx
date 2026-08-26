@@ -230,7 +230,7 @@ export default function Dashboard() {
               "
             >
               <Sparkles size={13} />
-              <span className="text-xs font-display uppercase tracking-wide">Weekly Roundup</span>
+              <span className="text-xs font-sans font-medium uppercase tracking-wide">Weekly Roundup</span>
             </button>
           </div>
           )}
@@ -239,7 +239,7 @@ export default function Dashboard() {
       </header>
 
       {/* ── Zones ── */}
-      <main className="zones">
+      <div className="zones">
         {/* In Hand renders nothing at all when nothing is pinned. */}
         <InHandStrip onCount={setInHandCount} />
 
@@ -272,7 +272,7 @@ export default function Dashboard() {
             )}
           </Zone>
         </div>
-      </main>
+      </div>
 
         {/* Daily insight - ambient by design: one muted, italic line on the
             page background (no box, no tint), a small leaf mark, and quiet
@@ -331,7 +331,7 @@ function NewAreaTile({ onClick }) {
       "
     >
       <Plus size={18} className="transition-transform duration-200 group-hover:scale-110" />
-      <span className="text-xs font-display uppercase tracking-wide">New area</span>
+      <span className="text-xs font-sans font-medium uppercase tracking-wide">New area</span>
     </button>
   )
 }
@@ -345,7 +345,7 @@ function EmptyState({ onCreate }) {
       <div className="w-12 h-12 mx-auto mb-5 rounded-xl bg-mint-50 dark:bg-mint-900/20 flex items-center justify-center text-mint-700 dark:text-mint-300">
         <LayoutGrid size={20} />
       </div>
-      <h2 className="font-display font-bold text-lg text-pitch-800 dark:text-white mb-2">
+      <h2 className="title-section text-pitch-800 dark:text-white mb-2">
         Set up your first area
       </h2>
       <p className="text-sm text-paper-600 dark:text-paper-500 leading-relaxed mb-6">
@@ -374,7 +374,7 @@ function ViewSegmentedControl({ viewMode, onChange }) {
           key={key}
           onClick={() => onChange(key)}
           className={`
-            px-3 py-1 rounded text-xs font-display uppercase tracking-wide transition-colors
+            px-3 py-1 rounded text-xs font-sans font-medium uppercase tracking-wide transition-colors
             ${viewMode === key
               ? 'is-on bg-mint-50 dark:bg-mint-900/20 text-mint-700 dark:text-mint-300 shadow-sm'
               : 'text-paper-600 dark:text-paper-500 hover:text-pitch-700 dark:hover:text-paper-300'

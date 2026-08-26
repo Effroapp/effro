@@ -60,7 +60,7 @@ export default function SetupGuide({ guide, open, onClose }) {
               />
             ))}
           </div>
-          <p className="mt-2 text-2xs font-mono uppercase tracking-widest text-paper-500 dark:text-paper-600">
+          <p className="eyebrow mt-2 text-paper-500 dark:text-paper-600">
             Step {i + 1} of {steps.length}
           </p>
         </div>
@@ -138,7 +138,7 @@ function CopyRow({ label, value }) {
   return (
     <div className="rounded-lg border border-paper-300 dark:border-pitch-500 bg-paper-100 dark:bg-pitch-800 overflow-hidden">
       {label && (
-        <div className="px-3 pt-2 text-2xs font-mono uppercase tracking-widest text-paper-500 dark:text-paper-600">{label}</div>
+        <div className="eyebrow px-3 pt-2 text-paper-500 dark:text-paper-600">{label}</div>
       )}
       <div className="flex items-center gap-2 px-3 py-2">
         <code className="flex-1 min-w-0 text-xs font-mono text-pitch-800 dark:text-paper-200 break-all">{value}</code>

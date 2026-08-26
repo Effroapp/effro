@@ -17,7 +17,7 @@ export default function StatusBadge({ status, type = 'area', size = 'sm' }) {
 
   return (
     <span
-      className={`inline-flex items-center font-display font-medium rounded uppercase tracking-wide
+      className={`inline-flex items-center font-sans font-medium rounded uppercase tracking-wide
         ${sizeClasses}
         ${config.textClass}
         ${config.bgClass}

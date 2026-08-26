@@ -37,7 +37,7 @@ export default function UpdateOverlay({ updater }) {
 
         {status === 'error' ? (
           <>
-            <h2 className="font-display font-semibold text-lg text-pitch-800 dark:text-pitch-50">The update could not finish</h2>
+            <h2 className="font-sans font-semibold text-lg text-pitch-800 dark:text-pitch-50">The update could not finish</h2>
             <p className="font-lexend text-sm text-paper-600 dark:text-pitch-100 mt-2 leading-relaxed">
               Nothing has changed - you are still on your current version. You can try again, or download it yourself.
             </p>
@@ -59,8 +59,8 @@ export default function UpdateOverlay({ updater }) {
           </>
         ) : (
           <>
-            <p className="font-mono text-2xs uppercase tracking-[0.18em] text-mint-700 dark:text-mint-300">Updating Effro</p>
-            <h2 className="font-display font-semibold text-xl text-pitch-800 dark:text-pitch-50 mt-1.5">
+            <p className="eyebrow text-mint-700 dark:text-mint-300">Updating Effro</p>
+            <h2 className="font-sans font-semibold text-xl text-pitch-800 dark:text-pitch-50 mt-1.5">
               {status === 'ready' ? 'Almost there' : 'Downloading the update'}
             </h2>
             {target && (

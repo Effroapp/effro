@@ -107,7 +107,7 @@ export default function SettingsMenu({
         title="Personal settings"
         className={`
           w-10 h-10 rounded-full overflow-hidden flex items-center justify-center
-          font-display font-semibold text-sm
+          font-sans font-semibold text-sm
           shadow-md ring-2 transition-all
           ${shownAvatar
             ? 'ring-paper-300/80 dark:ring-pitch-500/80'
@@ -161,7 +161,7 @@ export default function SettingsMenu({
                 className="mt-2 w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs
                            bg-paper-200 dark:bg-pitch-800 text-pitch-700 dark:text-paper-200
                            hover:bg-paper-300 dark:hover:bg-pitch-500
-                           font-display uppercase tracking-wide transition-colors"
+                           font-sans font-medium uppercase tracking-wide transition-colors"
               >
                 <ShieldCheck size={11} /> Account &amp; security
               </button>
@@ -174,7 +174,7 @@ export default function SettingsMenu({
               <span className="
                 w-12 h-12 rounded-full overflow-hidden flex-shrink-0
                 flex items-center justify-center
-                bg-paper-300 dark:bg-pitch-600 text-paper-700 dark:text-paper-200 font-display font-semibold text-base
+                bg-paper-300 dark:bg-pitch-600 text-paper-700 dark:text-paper-200 font-sans font-semibold text-base
               ">
                 {shownAvatar
                   ? <img src={shownAvatar} alt="" className="w-full h-full object-cover" />
@@ -189,7 +189,7 @@ export default function SettingsMenu({
                     bg-paper-200 dark:bg-pitch-800
                     text-pitch-700 dark:text-paper-200
                     hover:bg-paper-300 dark:hover:bg-pitch-500
-                    font-display uppercase tracking-wide transition-colors
+                    font-sans font-medium uppercase tracking-wide transition-colors
                   "
                 >
                   <Upload size={11} />
@@ -202,7 +202,7 @@ export default function SettingsMenu({
                       flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs
                       text-paper-600 dark:text-paper-500
                       hover:bg-paper-100 dark:hover:bg-pitch-800
-                      font-display uppercase tracking-wide transition-colors
+                      font-sans font-medium uppercase tracking-wide transition-colors
                     "
                   >
                     <X size={11} />
@@ -287,7 +287,7 @@ export default function SettingsMenu({
                        text-paper-600 dark:text-paper-400
                        hover:bg-paper-200 dark:hover:bg-pitch-700
                        hover:text-pitch-700 dark:hover:text-paper-200
-                       font-display uppercase tracking-wide transition-colors"
+                       font-sans font-medium uppercase tracking-wide transition-colors"
           >
             <Compass size={12} /> Replay the tour
           </button>
@@ -298,7 +298,7 @@ export default function SettingsMenu({
               onClick={handleLogout}
               className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs
                          text-terracotta hover:bg-terracotta/10
-                         font-display uppercase tracking-wide transition-colors"
+                         font-sans font-medium uppercase tracking-wide transition-colors"
             >
               <LogOut size={12} /> Log out
             </button>
@@ -376,7 +376,7 @@ function SectionStylePicker({ value, onChange }) {
 function Section({ label, children }) {
   return (
     <div>
-      <div className="text-2xs font-display uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1.5">
+      <div className="eyebrow text-paper-500 dark:text-paper-600 mb-1.5">
         {label}
       </div>
       {children}
@@ -465,7 +465,7 @@ function Segmented({ value, options, onChange, renderLabel }) {
           >
             {Icon && <Icon size={12} />}
             {renderLabel ? renderLabel(opt) : (
-              <span className="font-display uppercase tracking-wide">{opt.label}</span>
+              <span className="font-sans font-medium uppercase tracking-wide">{opt.label}</span>
             )}
             {active && !Icon && <Check size={11} className="opacity-60" />}
           </button>

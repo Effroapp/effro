@@ -81,7 +81,7 @@ export default function PostConnectFlow({
 
       {stage === 'hello' && (
         <div className="animate-rise motion-reduce:animate-none">
-          <h3 className="font-display font-semibold text-lg text-pitch-800 dark:text-white">Connected</h3>
+          <h3 className="font-sans font-semibold text-lg text-pitch-800 dark:text-white">Connected</h3>
           <p className="mt-1 text-sm text-paper-600 dark:text-paper-300 leading-relaxed max-w-xs mx-auto">
             Effro and {providerName} are now friends. New captures will arrive on their own from here.
           </p>
@@ -115,7 +115,7 @@ export default function PostConnectFlow({
             </div>
           ) : (
             <>
-              <h3 className="font-display font-semibold text-lg text-pitch-800 dark:text-white">
+              <h3 className="font-sans font-semibold text-lg text-pitch-800 dark:text-white">
                 {added > 0
                   ? `${added} new item${added === 1 ? '' : 's'} arrived`
                   : 'All caught up'}
@@ -132,7 +132,7 @@ export default function PostConnectFlow({
 
           {/* How a capture looks once it lands - a small honest preview. */}
           <div className="mt-4 max-w-sm mx-auto text-left">
-            <p className="font-mono text-2xs uppercase tracking-widest text-paper-500 dark:text-paper-600 mb-1.5 text-center">
+            <p className="eyebrow text-paper-500 dark:text-paper-600 mb-1.5 text-center">
               New captures land in Signals
             </p>
             <div className="rounded-lg border border-paper-300 dark:border-pitch-500 bg-white dark:bg-pitch-700 p-3" aria-hidden>
@@ -145,7 +145,7 @@ export default function PostConnectFlow({
               <div className="h-2.5 w-3/4 rounded bg-paper-200 dark:bg-pitch-600 mb-1.5" />
               <div className="h-2.5 w-1/2 rounded bg-paper-200 dark:bg-pitch-600 mb-2.5" />
               <div className="flex items-center gap-1.5">
-                <span className="text-2xs font-mono uppercase tracking-wider text-paper-500 dark:text-paper-600">Add as</span>
+                <span className="eyebrow text-paper-500 dark:text-paper-600">Add as</span>
                 <span className="px-1.5 py-0.5 rounded text-2xs bg-mint-700 text-white">To-do</span>
                 <span className="px-1.5 py-0.5 rounded text-2xs border border-paper-300 dark:border-pitch-500 text-paper-600 dark:text-paper-300">Note</span>
               </div>

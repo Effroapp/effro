@@ -128,20 +128,20 @@ export default function CredentialIntegrationCard({
 
       <div className="flex items-center gap-2 flex-wrap">
         <button onClick={handleSyncNow} disabled={isSyncing}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 disabled:opacity-40 font-display uppercase tracking-wide transition-colors">
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 disabled:opacity-40 font-sans font-medium uppercase tracking-wide transition-colors">
           {isSyncing ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
           {isSyncing ? 'Syncing…' : 'Sync now'}
         </button>
         <button onClick={handleTest} disabled={testingConn}
-          className="px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 disabled:opacity-40 font-display uppercase tracking-wide transition-colors">
+          className="px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 disabled:opacity-40 font-sans font-medium uppercase tracking-wide transition-colors">
           {testingConn ? 'Testing…' : 'Test'}
         </button>
         <button onClick={() => setEditing(true)}
-          className="px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 font-display uppercase tracking-wide transition-colors">
+          className="px-3 py-1.5 rounded-md text-xs text-paper-700 dark:text-paper-300 hover:bg-paper-200 dark:hover:bg-pitch-700 font-sans font-medium uppercase tracking-wide transition-colors">
           Edit
         </button>
         <button onClick={handleDisconnect}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-terracotta/80 hover:text-terracotta hover:bg-terracotta/10 font-display uppercase tracking-wide transition-colors">
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-terracotta/80 hover:text-terracotta hover:bg-terracotta/10 font-sans font-medium uppercase tracking-wide transition-colors">
           <LogOut size={11} /> Disconnect
         </button>
       </div>
