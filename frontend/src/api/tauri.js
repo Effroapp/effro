@@ -85,8 +85,14 @@ export async function getUpdateChannel() {
 }
 
 /**
- * Persist the channel. Takes effect on the *next* app launch (updater
- * endpoint is wired at plugin-init time).
+ * Persist the channel. Live immediately, no relaunch: the `check_update`
+ * command below resolves the channel from the store on every call, so the
+ * frontend re-checking straight after a switch already hits the new endpoint.
+ *
+ * This used to say it took effect on the next launch, which was true when the
+ * plugin's own endpoint was wired at init time. It has not been true since
+ * `check_update` started overriding the endpoint per channel, and a stale
+ * comment about an update path is the kind that gets believed.
  */
 export async function setUpdateChannel(channel) {
   if (!isTauri()) return
