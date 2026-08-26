@@ -11,8 +11,8 @@ already done rather than reopening it.
 
 | Phase | State | Branch | Commit |
 |---|---|---|---|
-| 1. Page shell | Built, not committed | `feature/ui-consistency-page-shell` | |
-| 2. Typography plumbing | Not started | | |
+| 1. Page shell | Merged to main | `feature/ui-consistency-page-shell` | `2f214d4`, merged `28f4aab` (PR #69) |
+| 2. Typography plumbing | Built, not pushed | `feature/ui-consistency-typography` | `6698069` (2a/2b), `0d6ec68` (2c/2d) |
 | 3. Primitives | Not started | | |
 | 4. Tells cleanup | Not started | | |
 | 5. Brand colour | Blocked on design brief 1 | | |
@@ -177,6 +177,88 @@ The Dashboard's own container. Auth pages. Anything inside a page body.
 ---
 
 # Phase 2. Typography plumbing
+
+**Built on `feature/ui-consistency-typography`. Two commits, not yet pushed.**
+
+## What the brief got wrong, and it mattered
+
+The brief said the `.font-display` collision meant "which wins depends on source
+order". It is not ambiguous. A rule authored inside `@layer utilities` is
+emitted at the END of that layer, after every core utility, so in the built
+sheet `.font-display{...500;-0.025em}` sat at byte 70052 and `.font-bold`
+56607, `.font-semibold` 56692, `.tracking-widest` 58142 all sat before it.
+Equal specificity, later wins.
+
+So on every element carrying `font-display`, **the authored weight and the
+authored tracking were both dead**. `.prose-entry h1`, written
+`@apply font-display font-semibold`, compiled to `font-weight:500` with the 600
+emitted and immediately overwritten. Nine headings written five different ways
+rendered byte for byte identically. The one heading written `font-bold` rendered
+at the same weight as the one written `font-medium`. Nine uppercase labels asked
+for positive tracking and got -0.025em. Exactly one site in the app escaped, by
+`!important`, and that `!important` existed for no other reason.
+
+The consequence for the sweep: the brief's instruction to swap only "where it
+appears alongside an explicit weight, since it's contributing nothing there" had
+no such sites. There was one true no-op in 208. Every swap was a visual change,
+and the change is the authored intent arriving.
+
+## What was built
+
+**2a.** The block is deleted. All 208 call sites say `font-sans` and state their
+own weight and tracking. The 150 uppercase labels that had no weight of their own
+were leaning on the dead 500, and at 11px dropping them to 400 is a real
+legibility loss, so they carry `font-medium` deliberately now.
+
+**2b.** The brief listed six px type sizes. There are 33: 24 arbitrary
+`text-[NNpx]`, one raw CSS `font-size` (the entry prose, the running body of
+every entry in every thread), seven inline `fontSize` numbers in
+`OnboardingWizard.jsx` which meant the entire first-run tour ignored the Text
+size setting, and one computed px in `Logo.jsx` left alone because WCAG exempts
+logotypes. Six sites sat below the 11px floor that `tailwind.config.js` documents
+and says never to go below, and are lifted to it rather than preserved. Two
+places set a weight below 400 and both are now 400.
+
+**2c.** One `.eyebrow`, 64 sites. It carries no colour, because a good number of
+these labels are deliberately mint, mustard, clay or per-type, and muting them
+would break a semantic tie. It lives in `@layer components`, not
+`@layer utilities`, so a call site's own colour still wins. Every `<button>` and
+`<label>` was left alone: a control label is not a section kicker, and phase 3
+folds them into `Button` and `Field`.
+
+**The brief's instruction to point `.label` in `dashboard-zones.css` at the same
+definition was not followed, and must not be.** Six of the seven section styles
+re-skin `.zone-head .label` into a real heading, sans at 1rem to 1.125rem,
+weight 600, `text-transform: none`. It is a themeable slot that happens to
+default to an eyebrow. The reason is now written beside it in that file.
+
+**2d.** Three ladder steps, `.title-page` / `.title-section` / `.title-card`,
+using a new `--font-heading` token rather than `--font-sans`, because
+`--font-sans` follows the reading-font setting and a heading that used it left
+Geist the moment someone picked Lexend. `PageHeader` gains `above`,
+`titleAdornment`, `below` and a node-capable `icon`, and AreaView, LogView and
+SystemSettings are routed through it.
+
+Also taken here: `scroll-padding-top` on `html`, since every page is now sticky
+and a focused element would otherwise scroll under the header; and
+`Dashboard.jsx` rendered `<main className="zones">` inside `App.jsx`'s `<main>`,
+so the default route had two `main` landmarks.
+
+## Verified
+
+Build and both check scripts clean. Measured live on every routed page in both
+themes: one `h1` each, all Geist Sans 20px/600/-0.01em, one `<main>` per page,
+`scroll-padding-top` 80px, `.eyebrow` at Geist Mono 11px/500 with 1.98px
+tracking which is 0.18em, and the clay Areas label keeping its colour, which is
+what proves the components-layer placement. With the reading font set to Lexend
+the whole ladder stays Geist and only the entry prose follows, at 15px/400.
+
+## Left for later
+
+`ThreadView` still hand-rolls its header, and `PageHeader` already has the
+`above` and `below` slots it needs. The button and form-field labels still carry
+their own class strings, by design, until phase 3. Both are in `CLAUDE.md` under
+Known debt.
 
 ## Why
 
