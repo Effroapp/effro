@@ -155,7 +155,7 @@ export default function Insights() {
       {/* Narrative line - the calm "what to notice", deterministic + accurate. */}
       {week?.narrative && (
         <p className="font-lexend text-sm leading-relaxed text-paper-600 dark:text-pitch-100 italic mb-6 -mt-1 flex items-start gap-1.5">
-          <Sparkles size={13} className="mt-1 flex-shrink-0 text-mint/70" />
+          <Telescope size={13} className="mt-1 flex-shrink-0 text-mint/70" />
           <span><BionicText>{week.narrative}</BionicText></span>
         </p>
       )}
@@ -466,7 +466,7 @@ function WindDownCard({ mode, narrative, startedLabel, tip, onRefresh }) {
 function Celebrations({ items }) {
   if (!items?.length) return null
   return (
-    <div className="rounded-xl bg-gradient-to-br from-mint/10 to-mint/[0.03] dark:from-mint/[0.12] dark:to-mint/[0.03] p-4 space-y-3">
+    <div className="rounded-xl bg-mint/[0.06] border border-mint/20 p-4 space-y-3">
       {items.map((c, i) => {
         const m = CELEB_META[c.type] || CELEB_META.decisions
         return (

@@ -12,9 +12,9 @@ already done rather than reopening it.
 | Phase | State | Branch | Commit |
 |---|---|---|---|
 | 1. Page shell | Merged to main | `feature/ui-consistency-page-shell` | `2f214d4`, merged `28f4aab` (PR #69) |
-| 2. Typography plumbing | Built, not pushed | `feature/ui-consistency-typography` | `6698069` (2a/2b), `0d6ec68` (2c/2d) |
-| 3. Primitives | Not started | | |
-| 4. Tells cleanup | Not started | | |
+| 2. Typography plumbing | Shipped | `feature/ui-consistency-typography` | `6698069`, `0d6ec68`, merged `8a0c446` (PR #70) |
+| 3. Primitives | Shipped | `feature/ui-consistency-primitives` | `7d208db`, merged `22da72d` (PR #72), fixes `f61e0ed` (PR #73) |
+| 4. Tells cleanup | Built | `feature/ui-consistency-tells` | |
 | 5. Brand colour | Blocked on design brief 1 | | |
 | 6. Type direction | Blocked on design brief 2 | | |
 | 7. Insights hero | Blocked on design brief 3 | | |
@@ -367,6 +367,44 @@ one and sweep.
 
 # Phase 3. Primitives
 
+**Shipped. Two commits: the phase, then two defects an adversarial review found.**
+
+## What the brief got wrong
+
+Nine primary button class strings is **42, across 58 sites**. Seven input
+variants is **29 distinct shapes across 86 controls**.
+
+`function Field({ label, hint, value, onChange, placeholder, type, autoComplete })`
+already existed **four times** with the same signature and body, plus a fifth
+copy inlined. The codebase had already voted for the component.
+
+**The one accessibility failure the brief named is not one.**
+`.focus\:outline-none:focus` compiles to `outline` and `outline-offset` and
+nothing else, and the global ring is a **box-shadow**, so it was always
+painting. The genuine no-indicator failures were the inverse: an **always-on**
+`ring-2` utility is the same specificity as `:focus-visible` and is emitted
+later, so it wins. Two elements had one and focusing them changed nothing.
+
+## Two things that must not be undone
+
+`.btn` and `.eyebrow` and the `.title-*` ladder all live in `@layer components`,
+never `@layer utilities`. A rule in the utilities layer is emitted after every
+core utility and beats a call site's own `w-full`, `flex-1` or `mt-3`.
+
+`Button.jsx` maps variants through a `VARIANTS` object rather than composing
+`btn-${variant}`. Tailwind scans for **literal** class names, so the
+interpolated version meant `btn-ghost` and `btn-danger` were tree-shaken out of
+the stylesheet entirely and the component rendered unstyled buttons **with no
+error anywhere**. The build was happy. Only reading the built CSS found it.
+
+## What the review caught, after the fact
+
+The size rule was "btn-sm if `text-xs` OR `py-1.5`". Padding is the wrong
+signal: three buttons were `px-4 py-1.5 text-sm` and lost a type step too,
+ending up smaller than the unswept secondary beside them. And
+`transition-[max-height]` dropped the opacity half of a two-property animation.
+Both fixed in `f61e0ed`.
+
 ## 3a. Button
 
 Nine distinct class strings for the primary mint button.
@@ -466,6 +504,23 @@ a component has a stated reason.
 ---
 
 # Phase 4. Tells cleanup
+
+**Built on `feature/ui-consistency-tells`.**
+
+The brief names **three** Sparkles call sites. There are **eleven render sites
+across nine files**. The three it settles are done (OverviewCard to `RefreshCw`,
+Insights to `Telescope`, demo data to `Database`). The other eight are listed in
+the report and left for a decision, because choosing eight replacement icons is
+a design call rather than a sweep. Two files imported Sparkles and never
+rendered it; those imports are gone.
+
+The brief names the FolioIndex **hero** hover lift. The same
+`hover:-translate-y-0.5 hover:shadow-md` string is on the tile card and the dive
+card too. All three went, since the reasoning is identical and leaving two would
+recreate the split the phase exists to close.
+
+Removing the FolioView numbered kickers orphaned `SECTION_TONES`, which existed
+only to colour them. It is gone as well.
 
 Small, cosmetic, independent of everything else. Safe to run as a worktree
 alongside phase 3.

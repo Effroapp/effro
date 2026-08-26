@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Plus, Check, X, Edit3, RefreshCw, History, ChevronDown, ChevronUp, Sparkles, Clock, Wand2, GripVertical, Gauge, AlignLeft, FolderPlus, Folder, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Check, X, Edit3, RefreshCw, History, ChevronDown, ChevronUp, Clock, Wand2, GripVertical, Gauge, AlignLeft, FolderPlus, Folder, Pencil, Trash2 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { areasApi } from '../api/client'
 import { parseUTC } from '../utils/time.js'

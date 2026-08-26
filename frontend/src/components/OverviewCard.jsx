@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Sparkles, Edit3, Wand2, Clock, Check, X } from 'lucide-react'
+import { RefreshCw, Edit3, Wand2, Clock, Check, X } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { SECTION_ICONS } from '../utils/entityIcons'
 import { parseUTC } from '../utils/time.js'
@@ -175,7 +175,7 @@ export default function OverviewCard({
             title={aiOff ? 'Set up an AI engine in Settings to use this' : 'Regenerate from recent activity'}
             className="flex items-center gap-1.5 text-xs text-paper-500 dark:text-pitch-100 hover:text-paper-700 dark:hover:text-paper-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <Sparkles size={12} />
+            <RefreshCw size={12} />
             {suggesting ? 'Generating…' : 'Update'}
           </button>
           {!editing && (
